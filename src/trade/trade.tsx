@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { LiquidityHub } from './liquidity-hub/liquidity-hub'
 
 export function Trade() {
   return (
@@ -11,9 +12,7 @@ export function Trade() {
           <TabsTrigger value="twap">TWAP</TabsTrigger>
         </TabsList>
         <TabsContent value="swap">
-          <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4">
-            Swap with Liquidity Hub by Orbs
-          </div>
+          <LiquidityHub />
         </TabsContent>
         <TabsContent value="twap">
           <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4">
