@@ -7,9 +7,11 @@ import { polygon } from 'wagmi/chains'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { RainbowProvider } from './providers/rainbow-provider'
 
+const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID
+
 const config = getDefaultConfig({
   appName: 'DEX Playground',
-  projectId: 'YOUR_PROJECT_ID',
+  projectId: walletConnectProjectId,
   chains: [polygon],
 })
 
