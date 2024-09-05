@@ -12,6 +12,7 @@ import { Input } from '../ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Token } from '@/types'
 import { Card } from '../ui/card'
+import { useState } from 'react'
 
 type TokenSelectProps = {
   selectedToken: Token
@@ -24,12 +25,15 @@ export function TokenSelect({
   tokens,
   onSelectToken,
 }: TokenSelectProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Dialog modal={true}>
-      <DialogTrigger>
+    <Dialog modal={true} open={open} onOpenChange={(o) => setOpen(o)}>
+      <DialogTrigger asChild>
         <Button
           variant="secondary"
           className="rounded-full flex items-center gap-3 py-7 px-2.5"
+          onClick={() => setOpen(true)}
         >
           <Avatar>
             <AvatarImage
@@ -57,7 +61,10 @@ export function TokenSelect({
           {tokens.map((t) => (
             <Card
               className="cursor-pointer p-4 flex items-center gap-3"
-              onClick={() => onSelectToken(t)}
+              onClick={() => {
+                onSelectToken(t)
+                setOpen(false)
+              }}
             >
               <Avatar>
                 <AvatarImage src={t.logoUrl} alt={t.symbol} />
