@@ -5,6 +5,7 @@ import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { WagmiProvider } from 'wagmi'
 import { polygon } from 'wagmi/chains'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
+import { RainbowProvider } from './providers/rainbow-provider'
 
 const config = getDefaultConfig({
   appName: 'DEX Playground',
@@ -19,7 +20,9 @@ function Root() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <App />
+          <RainbowProvider>
+            <App />
+          </RainbowProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </WagmiProvider>
