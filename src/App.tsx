@@ -1,9 +1,19 @@
-import { ThemeToggle } from '@/components/theme-toggle'
+import { Header } from '@/components/header'
+import {
+  darkTheme,
+  lightTheme,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit'
+import { useTheme } from './providers/theme-provider'
 
 export function App() {
+  const { theme } = useTheme()
   return (
-    <div className="p-4 flex w-full justify-start items-center">
-      <ThemeToggle />
-    </div>
+    <RainbowKitProvider
+      modalSize="compact"
+      theme={theme === 'light' ? lightTheme() : darkTheme()}
+    >
+      <Header />
+    </RainbowKitProvider>
   )
 }
