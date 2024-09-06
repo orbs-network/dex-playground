@@ -57,7 +57,7 @@ export function TokenSelect({
           </DialogDescription>
           <Input />
         </DialogHeader>
-        <div className="space-y-2 relative flex flex-1 flex-col flex-grow gap-2 overflow-y-scroll pr-3">
+        <div className="relative flex flex-1 flex-col flex-grow gap-2 overflow-y-scroll pr-3">
           {tokens.map((t) => (
             <Card
               className="cursor-pointer p-4 flex items-center gap-3"
