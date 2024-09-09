@@ -1,13 +1,29 @@
 import { Spinner } from '@/components/spinner'
 import { TokenCard } from '@/components/tokens/token-card'
 import { useTokensList } from '@/components/tokens/useTokenList'
+import { SwitchButton } from '@/components/ui/switch-button'
 import { Token } from '@/types'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export function LiquidityHub() {
   const { data: tokens, isLoading } = useTokensList({ chainId: 137 })
   const [fromToken, setFromToken] = useState<Token | null>(null)
   const [toToken, setToToken] = useState<Token | null>(null)
+
+  const handleSwitch = useCallback(() => {
+    setFromToken(toToken)
+    setToToken(fromToken)
+  }, [fromToken, toToken])
+
+  useEffect(() => {
+    if (!fromToken && tokens) {
+      setFromToken(tokens[0])
+    }
+
+    if (!toToken && tokens) {
+      setToToken(tokens[1])
+    }
+  }, [fromToken, toToken, tokens])
 
   if (isLoading) {
     return (
@@ -36,6 +52,9 @@ export function LiquidityHub() {
         tokens={tokens}
         onSelectToken={setFromToken}
       />
+      <div className="h-0 relative z-10 flex items-center justify-center">
+        <SwitchButton onClick={handleSwitch} />
+      </div>
       <TokenCard
         label="Buy"
         amount="0.00"
