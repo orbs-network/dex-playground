@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi'
 import { polygon } from 'wagmi/chains'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { RainbowProvider } from './providers/rainbow-provider'
+import { structuralSharing } from '@wagmi/core/query'
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID
 
@@ -15,7 +16,13 @@ const config = getDefaultConfig({
   chains: [polygon],
 })
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      structuralSharing,
+    },
+  },
+})
 
 function Root() {
   return (

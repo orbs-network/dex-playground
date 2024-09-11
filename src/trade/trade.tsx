@@ -8,15 +8,21 @@ export function Trade() {
 
       <Tabs defaultValue="swap" className="w-full">
         <TabsList>
-          <TabsTrigger value="swap">Swap</TabsTrigger>
+          <TabsTrigger value="swap">Liquidity Hub</TabsTrigger>
           <TabsTrigger value="twap">TWAP</TabsTrigger>
+          <TabsTrigger value="twap">Limit</TabsTrigger>
         </TabsList>
         <TabsContent value="swap">
           <LiquidityHub />
         </TabsContent>
         <TabsContent value="twap">
           <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4">
-            Twap by Orbs
+            dTwap by Orbs
+          </div>
+        </TabsContent>
+        <TabsContent value="limit">
+          <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4">
+            dLimit by Orbs
           </div>
         </TabsContent>
       </Tabs>

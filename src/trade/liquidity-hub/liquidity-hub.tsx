@@ -1,29 +1,94 @@
 import { Spinner } from '@/components/spinner'
 import { TokenCard } from '@/components/tokens/token-card'
-import { useTokensList } from '@/components/tokens/useTokenList'
 import { SwitchButton } from '@/components/ui/switch-button'
 import { Token } from '@/types'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import BN from 'bignumber.js'
+import { useTokensWithBalances } from '@/lib/hooks/tokens/useTokensWithBalances'
+import { zeroAddress } from 'viem'
+import { usePriceUSD } from '@/lib/hooks/balances/usePriceUsd'
+import { useAccount } from 'wagmi'
+import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
+import { useDebounce } from '@/lib/hooks/utils'
+import { amountBN, amountUi, crypto } from '@/lib/utils'
 
 export function LiquidityHub() {
-  const { data: tokens, isLoading } = useTokensList({ chainId: 137 })
-  const [fromToken, setFromToken] = useState<Token | null>(null)
-  const [toToken, setToToken] = useState<Token | null>(null)
+  const { tokensWithBalances, isLoading } = useTokensWithBalances()
+  const [srcToken, setSrcToken] = useState<Token | null>(null)
+  const [dstToken, setDstToken] = useState<Token | null>(null)
+  const [srcAmount, setSrcAmount] = useState<string>('')
+  const debouncedSrcAmount = useDebounce(srcAmount, 300)
+  const account = useAccount()
+
+  const initialTokens = useMemo(() => {
+    if (!tokensWithBalances) return []
+
+    return [
+      tokensWithBalances[zeroAddress].token,
+      Object.values(tokensWithBalances).find((t) => t.token.symbol === 'USDT')
+        ?.token || null,
+    ].filter(Boolean) as Token[]
+  }, [tokensWithBalances])
+
+  const { data: srcPriceUsd } = usePriceUSD(137, srcToken?.address)
+  const { data: dstPriceUsd } = usePriceUSD(137, dstToken?.address)
+
+  const { data: quote, isFetching } = useQuote({
+    chainId: 137,
+    fromToken: srcToken?.address || '',
+    toToken: dstToken?.address || '',
+    inAmount: debouncedSrcAmount
+      ? amountBN(srcToken?.decimals, debouncedSrcAmount).toString()
+      : '0',
+    slippage: 0.5,
+    partner: 'widget',
+    account: account.address,
+  })
+
+  const { srcAmountUsd, dstAmountUsd, dstAmount } = useMemo(() => {
+    const srcAmountUsd = BN(debouncedSrcAmount || 0)
+      .times(srcPriceUsd || 0)
+      .toFixed(2)
+      .toString()
+
+    const dstAmount = quote?.outAmount
+      ? amountUi(dstToken?.decimals, quote.outAmount)
+      : ''
+
+    const dstAmountUsd = BN(dstAmount || 0)
+      .times(dstPriceUsd || 0)
+      .toFixed(2)
+      .toString()
+
+    return {
+      srcAmountUsd,
+      dstAmountUsd,
+      dstAmount,
+    }
+  }, [
+    debouncedSrcAmount,
+    srcPriceUsd,
+    dstToken?.decimals,
+    quote?.outAmount,
+    dstPriceUsd,
+  ])
 
   const handleSwitch = useCallback(() => {
-    setFromToken(toToken)
-    setToToken(fromToken)
-  }, [fromToken, toToken])
+    setSrcToken(dstToken)
+    setDstToken(srcToken)
+
+    setSrcAmount('')
+  }, [srcToken, dstToken])
 
   useEffect(() => {
-    if (!fromToken && tokens) {
-      setFromToken(tokens[0])
+    if (!srcToken && tokensWithBalances) {
+      setSrcToken(initialTokens[0])
     }
 
-    if (!toToken && tokens) {
-      setToToken(tokens[1])
+    if (!dstToken && tokensWithBalances) {
+      setDstToken(initialTokens[1])
     }
-  }, [fromToken, toToken, tokens])
+  }, [srcToken, initialTokens, dstToken, tokensWithBalances])
 
   if (isLoading) {
     return (
@@ -33,7 +98,7 @@ export function LiquidityHub() {
     )
   }
 
-  if (!tokens) {
+  if (!tokensWithBalances) {
     return (
       <div className="flex justify-center items-center p-6">
         <div className="text-red-600">Failed to load tokens</div>
@@ -45,26 +110,41 @@ export function LiquidityHub() {
     <div className="flex flex-col gap-2 pt-2">
       <TokenCard
         label="Sell"
-        amount="0.00"
-        amountUsd="0.00"
-        balance="0.00"
-        selectedToken={fromToken || tokens[0]}
-        tokens={tokens}
-        onSelectToken={setFromToken}
+        amount={srcAmount}
+        amountUsd={srcAmountUsd}
+        balance={
+          tokensWithBalances && srcToken
+            ? amountUi(
+                srcToken.decimals,
+                tokensWithBalances[srcToken.address]?.balance.toString()
+              )
+            : '0.00'
+        }
+        selectedToken={srcToken || initialTokens[0]}
+        tokens={tokensWithBalances}
+        onSelectToken={setSrcToken}
+        onValueChange={setSrcAmount}
       />
       <div className="h-0 relative z-10 flex items-center justify-center">
         <SwitchButton onClick={handleSwitch} />
       </div>
       <TokenCard
         label="Buy"
-        amount="0.00"
-        amountUsd="0.00"
-        balance="0.00"
-        selectedToken={
-          toToken || tokens.find((t) => t.symbol === 'USDC') || tokens[1]
+        amount={dstAmount ? crypto.format(Number(dstAmount)) : ''}
+        amountUsd={dstAmountUsd}
+        balance={
+          tokensWithBalances && dstToken
+            ? amountUi(
+                dstToken.decimals,
+                tokensWithBalances[dstToken.address]?.balance.toString()
+              )
+            : '0.00'
         }
-        tokens={tokens}
-        onSelectToken={setToToken}
+        selectedToken={dstToken || initialTokens[1]}
+        tokens={tokensWithBalances}
+        onSelectToken={setDstToken}
+        isAmountEditable={false}
+        amountLoading={isFetching}
       />
     </div>
   )

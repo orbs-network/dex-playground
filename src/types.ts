@@ -5,3 +5,10 @@ export type Token = {
   logoUrl: string
   name?: string
 }
+
+export type TokenWithBalance = {
+  token: Token
+  balance: bigint
+}
+
+export type TokensWithBalances = Record<string, TokenWithBalance>
