@@ -1,12 +1,14 @@
 import { DataDetails } from '@/components/ui/data-details'
 import { Separator } from '@/components/ui/separator'
 import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
-import { amountUi, dollar } from '@/lib/utils'
+import { amountUi, dollar, crypto } from '@/lib/utils'
 import { Token } from '@/types'
 import { Quote } from '@orbs-network/liquidity-hub-sdk-2'
 import BN from 'bignumber.js'
 
 export type SwapDetailsProps = {
+  srcToken: Token
+  srcPriceUsd: number
   dstToken: Token
   dstAmount: string
   srcAmountUsd: string
@@ -17,6 +19,8 @@ export type SwapDetailsProps = {
 }
 
 export function SwapDetails({
+  srcToken,
+  srcPriceUsd,
   dstAmount,
   dstAmountUsd,
   dstToken,
@@ -30,7 +34,11 @@ export function SwapDetails({
     srcAmountUsd,
   })
 
-  let data = {}
+  const rate = BN(srcPriceUsd).dividedBy(dstPriceUsd).toNumber()
+
+  let data: Record<string, React.ReactNode> = {
+    Rate: `1 ${srcToken.symbol} = ${crypto.format(rate)} ${dstToken.symbol}`,
+  }
 
   if (priceImpact) {
     data = {

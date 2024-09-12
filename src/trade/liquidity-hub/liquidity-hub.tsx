@@ -195,14 +195,17 @@ export function LiquidityHub() {
         srcToken &&
         dstAmount &&
         quote &&
+        srcPriceUsd &&
         dstPriceUsd &&
         account.address && (
           <SwapDetails
+            srcToken={srcToken}
             dstAmount={dstAmount}
             dstToken={dstToken}
             dstAmountUsd={dstAmountUsd}
             srcAmountUsd={srcAmountUsd}
             quote={quote}
+            srcPriceUsd={srcPriceUsd}
             dstPriceUsd={dstPriceUsd}
             account={formatAddress(account.address)}
           />
