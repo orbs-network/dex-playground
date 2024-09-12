@@ -69,7 +69,7 @@ export function TokenSelect({
       <DialogTrigger asChild>
         <Button
           variant="secondary"
-          className="rounded-full flex items-center gap-3 py-7 px-2.5"
+          className="rounded-full flex items-center gap-3 py-7 px-2.5 mix-blend-multiply dark:mix-blend-screen"
           onClick={() => setOpen(true)}
         >
           <Avatar>

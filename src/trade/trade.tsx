@@ -8,7 +8,7 @@ export function Trade() {
 
       <Tabs defaultValue="swap" className="w-full">
         <TabsList>
-          <TabsTrigger value="swap">Liquidity Hub</TabsTrigger>
+          <TabsTrigger value="swap">Swap</TabsTrigger>
           <TabsTrigger value="twap">TWAP</TabsTrigger>
           <TabsTrigger value="twap">Limit</TabsTrigger>
         </TabsList>

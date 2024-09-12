@@ -3,7 +3,7 @@ import { Card } from '../ui/card'
 import { TokenSelect } from './token-select'
 import { Token, TokensWithBalances } from '@/types'
 import { NumericFormat } from 'react-number-format'
-import { dollar, crypto } from '@/lib/utils'
+import { dollar, crypto, cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
 
 export type TokenCardProps = {
@@ -17,6 +17,7 @@ export type TokenCardProps = {
   isAmountEditable?: boolean
   onValueChange?: (value: string) => void
   amountLoading?: boolean
+  inputError?: string | null
 }
 
 export function TokenCard({
@@ -30,9 +31,16 @@ export function TokenCard({
   onValueChange,
   isAmountEditable = true,
   amountLoading,
+  inputError,
 }: TokenCardProps) {
   return (
-    <Card className="bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4">
+    <Card
+      className={cn(
+        'bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4',
+        inputError &&
+          'mix-blend-multiply bg-red-50 dark:mix-blend-screen dark:bg-red-950'
+      )}
+    >
       <h2 className="text-gray-500 dark:text-gray-400">{label}</h2>
       <div className="flex justify-between items-center">
         <div className="text-4xl">
@@ -64,9 +72,15 @@ export function TokenCard({
         </div>
       </div>
       <div className="flex justify-between items-center">
-        <div className="text-gray-500 dark:text-gray-400 text-lg">
-          {dollar.format(Number(amountUsd))}
-        </div>
+        {inputError ? (
+          <div className="text-red-700 dark:text-red-600 text-lg">
+            {inputError}
+          </div>
+        ) : (
+          <div className="text-gray-500 dark:text-gray-400 text-lg">
+            {dollar.format(Number(amountUsd))}
+          </div>
+        )}
         <div className="flex gap-2 items-center text-gray-500 dark:text-gray-400 text-lg">
           <WalletIcon className="h-5 w-5" />
           <div>{crypto.format(Number(balance))}</div>

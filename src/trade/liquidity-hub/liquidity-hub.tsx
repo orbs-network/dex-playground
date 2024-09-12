@@ -11,12 +11,14 @@ import { useAccount } from 'wagmi'
 import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
 import { useDebounce } from '@/lib/hooks/utils'
 import { amountBN, amountUi, crypto } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export function LiquidityHub() {
   const { tokensWithBalances, isLoading } = useTokensWithBalances()
   const [srcToken, setSrcToken] = useState<Token | null>(null)
   const [dstToken, setDstToken] = useState<Token | null>(null)
   const [srcAmount, setSrcAmount] = useState<string>('')
+  const [inputError, setInputError] = useState<string | null>(null)
   const debouncedSrcAmount = useDebounce(srcAmount, 300)
   const account = useAccount()
 
@@ -90,6 +92,20 @@ export function LiquidityHub() {
     }
   }, [srcToken, initialTokens, dstToken, tokensWithBalances])
 
+  useEffect(() => {
+    if (!srcToken || !tokensWithBalances) return
+
+    const valueBN = amountBN(srcToken.decimals, debouncedSrcAmount)
+    const balance = tokensWithBalances[srcToken.address].balance
+
+    if (valueBN.gt(balance.toString())) {
+      setInputError('Exceeds balance')
+      return
+    }
+
+    setInputError(null)
+  }, [debouncedSrcAmount, srcToken, tokensWithBalances])
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center mt-28">
@@ -124,6 +140,7 @@ export function LiquidityHub() {
         tokens={tokensWithBalances}
         onSelectToken={setSrcToken}
         onValueChange={setSrcAmount}
+        inputError={inputError}
       />
       <div className="h-0 relative z-10 flex items-center justify-center">
         <SwitchButton onClick={handleSwitch} />
@@ -146,6 +163,9 @@ export function LiquidityHub() {
         isAmountEditable={false}
         amountLoading={isFetching}
       />
+      <Button className="mt-2" size="lg">
+        {account.isConnected ? 'Swap' : 'Connect'}
+      </Button>
     </div>
   )
 }
