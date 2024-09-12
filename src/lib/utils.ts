@@ -42,3 +42,9 @@ export const getChainConfig = (chainId?: number) => {
     apiUrl: localStorageApiUrl || getApiUrl(chainId),
   }
 }
+
+export function formatAddress(address: string): string {
+  return address.length >= 8
+    ? `${address.slice(0, 4)}...${address.slice(-4)}`
+    : address
+}
