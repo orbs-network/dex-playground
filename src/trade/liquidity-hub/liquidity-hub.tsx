@@ -11,10 +11,10 @@ import { useAccount } from 'wagmi'
 import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
 import { useDebounce } from '@/lib/hooks/utils'
 import { amountBN, amountUi, crypto, formatAddress } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { ErrorCodes, getErrorMessage } from './errors'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { SwapDetails } from './swap-details'
+import { SwapConfirmationDialog } from './swap-confirmation-dialog'
 
 export function LiquidityHub() {
   const { tokensWithBalances, isLoading } = useTokensWithBalances()
@@ -170,18 +170,19 @@ export function LiquidityHub() {
         isAmountEditable={false}
         amountLoading={isFetching}
       />
-      {account.isConnected ? (
-        <Button
-          className="mt-2"
-          size="lg"
-          disabled={Boolean(
-            quoteError || inputError || !srcAmount || !dstAmount
-          )}
-        >
-          {inputError === ErrorCodes.InsufficientBalance
-            ? 'Insufficient balance'
-            : 'Swap'}
-        </Button>
+      {account.address && account.isConnected ? (
+        <SwapConfirmationDialog
+          account={account.address}
+          dstAmount={dstAmount}
+          dstAmountUsd={dstAmountUsd}
+          dstPriceUsd={dstPriceUsd}
+          dstToken={dstToken}
+          inputError={inputError}
+          quote={quote}
+          quoteError={quoteError}
+          srcAmount={srcAmount}
+          srcAmountUsd={srcAmountUsd}
+        />
       ) : (
         <ConnectButton />
       )}
