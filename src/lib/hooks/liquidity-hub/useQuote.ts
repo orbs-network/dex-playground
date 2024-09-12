@@ -42,7 +42,6 @@ export function useQuote(args: QuoteArgs) {
   return useQuery({
     queryKey,
     queryFn: () => {
-      console.log('calling quote')
       const sessionId = (
         queryClient.getQueryData(queryKey) as Quote | undefined
       )?.sessionId

@@ -5,6 +5,7 @@ import { Token, TokensWithBalances } from '@/types'
 import { NumericFormat } from 'react-number-format'
 import { dollar, crypto, cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
+import { ErrorCodes } from '@/trade/liquidity-hub/errors'
 
 export type TokenCardProps = {
   label: string
@@ -74,7 +75,9 @@ export function TokenCard({
       <div className="flex justify-between items-center">
         {inputError ? (
           <div className="text-red-700 dark:text-red-600 text-lg">
-            {inputError}
+            {inputError === ErrorCodes.InsufficientBalance
+              ? 'Exceeds balance'
+              : inputError}
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-lg">

@@ -12,6 +12,8 @@ import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
 import { useDebounce } from '@/lib/hooks/utils'
 import { amountBN, amountUi, crypto } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ErrorCodes, getErrorMessage } from './errors'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 export function LiquidityHub() {
   const { tokensWithBalances, isLoading } = useTokensWithBalances()
@@ -35,7 +37,11 @@ export function LiquidityHub() {
   const { data: srcPriceUsd } = usePriceUSD(137, srcToken?.address)
   const { data: dstPriceUsd } = usePriceUSD(137, dstToken?.address)
 
-  const { data: quote, isFetching } = useQuote({
+  const {
+    data: quote,
+    isFetching,
+    error: quoteError,
+  } = useQuote({
     chainId: 137,
     fromToken: srcToken?.address || '',
     toToken: dstToken?.address || '',
@@ -99,7 +105,7 @@ export function LiquidityHub() {
     const balance = tokensWithBalances[srcToken.address].balance
 
     if (valueBN.gt(balance.toString())) {
-      setInputError('Exceeds balance')
+      setInputError(ErrorCodes.InsufficientBalance)
       return
     }
 
@@ -163,9 +169,24 @@ export function LiquidityHub() {
         isAmountEditable={false}
         amountLoading={isFetching}
       />
-      <Button className="mt-2" size="lg">
-        {account.isConnected ? 'Swap' : 'Connect'}
-      </Button>
+      {account.isConnected ? (
+        <Button
+          className="mt-2"
+          size="lg"
+          disabled={Boolean(quoteError || inputError)}
+        >
+          {inputError === ErrorCodes.InsufficientBalance
+            ? 'Insufficient balance'
+            : 'Swap'}
+        </Button>
+      ) : (
+        <ConnectButton />
+      )}
+      {quoteError && (
+        <div className="text-red-600">
+          {getErrorMessage(quoteError.message)}
+        </div>
+      )}
     </div>
   )
 }
