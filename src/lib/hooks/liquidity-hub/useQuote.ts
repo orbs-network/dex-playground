@@ -5,6 +5,8 @@ import { useWrapOrUnwrapOnly } from './useWrapOrUnwrapOnly'
 import { getChainConfig } from '@/lib/utils'
 import { isNativeAddress } from '@defi.org/web3-candies'
 
+export const QUOTE_REFETCH_INTERVAL = 20_000
+
 export function useQuote(args: QuoteArgs) {
   const chainConfig = getChainConfig(args.chainId)
 
@@ -52,5 +54,6 @@ export function useQuote(args: QuoteArgs) {
     staleTime: Infinity,
     gcTime: 0,
     retry: 2,
+    refetchInterval: QUOTE_REFETCH_INTERVAL,
   })
 }
