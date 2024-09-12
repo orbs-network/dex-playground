@@ -5,7 +5,7 @@ export function App() {
   return (
     <>
       <Header />
-      <div className="flex justify-center h-full pt-28">
+      <div className="flex justify-center h-full py-32">
         <Trade />
       </div>
     </>
