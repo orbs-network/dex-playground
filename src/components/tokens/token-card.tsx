@@ -44,7 +44,9 @@ export function TokenCard({
               value={amount}
               placeholder="0.00"
               contentEditable={isAmountEditable}
+              decimalScale={5}
               readOnly={!isAmountEditable}
+              thousandSeparator={true}
               onValueChange={({ value }) => {
                 if (!onValueChange) return
 
