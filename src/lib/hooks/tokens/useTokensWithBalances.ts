@@ -1,13 +1,13 @@
 import { useAccount } from 'wagmi'
 import { useTokensList } from './useTokenList'
-import { useBalancesWeb3 } from '../balances/useBalancesWeb3'
+import { useBalances } from '../balances/useBalances'
 
 export function useTokensWithBalances() {
   const account = useAccount()
   const { data: tokens, isLoading: tokensLoading } = useTokensList({
     chainId: 137,
   })
-  const { data: balances, isLoading: balancesLoading } = useBalancesWeb3({
+  const { data: balances, isLoading: balancesLoading } = useBalances({
     chainId: 137,
     tokens: tokens || [],
     account: account.address,

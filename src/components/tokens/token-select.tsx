@@ -13,8 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Token, TokensWithBalances } from '@/types'
 import { Card } from '../ui/card'
 import { useMemo, useState } from 'react'
-import BN from 'bignumber.js'
-import { amountUi } from '@/lib/utils'
+import { fromBigNumber } from '@/lib/utils'
 
 type TokenSelectProps = {
   selectedToken: Token
@@ -33,8 +32,8 @@ export function TokenSelect({
     return Object.values(tokens)
       .sort(
         (a, b) =>
-          Number(amountUi(b.token.decimals, b.balance.toString())) -
-          Number(amountUi(a.token.decimals, a.balance.toString()))
+          fromBigNumber(b.balance, b.token.decimals) -
+          fromBigNumber(a.balance, a.token.decimals)
       )
       .map((t) => (
         <Card
@@ -57,9 +56,7 @@ export function TokenSelect({
               <div className="text-sm text-slate-400">{t.token.name}</div>
             </div>
           </div>
-          <div>
-            {BN(t.balance.toString()).shiftedBy(-t.token.decimals).toFixed(5)}
-          </div>
+          <div>{fromBigNumber(t.balance, t.token.decimals).toFixed(5)}</div>
         </Card>
       ))
   }, [onSelectToken, tokens])

@@ -3,14 +3,19 @@ import { TokenCard } from '@/components/tokens/token-card'
 import { SwitchButton } from '@/components/ui/switch-button'
 import { Token } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import BN from 'bignumber.js'
 import { useTokensWithBalances } from '@/lib/hooks/tokens/useTokensWithBalances'
 import { zeroAddress } from 'viem'
 import { usePriceUSD } from '@/lib/hooks/balances/usePriceUsd'
 import { useAccount } from 'wagmi'
 import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
 import { useDebounce } from '@/lib/hooks/utils'
-import { amountBN, amountUi, crypto, formatAddress } from '@/lib/utils'
+import {
+  toBigNumber,
+  fromBigNumber,
+  crypto,
+  formatAddress,
+  toBigInt,
+} from '@/lib/utils'
 import { ErrorCodes, getErrorMessage } from './errors'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { SwapDetails } from './swap-details'
@@ -47,7 +52,7 @@ export function LiquidityHub() {
     fromToken: srcToken?.address || '',
     toToken: dstToken?.address || '',
     inAmount: debouncedSrcAmount
-      ? amountBN(srcToken?.decimals, debouncedSrcAmount).toString()
+      ? toBigNumber(debouncedSrcAmount, srcToken?.decimals)
       : '0',
     slippage: 0.5,
     partner: 'widget',
@@ -55,17 +60,15 @@ export function LiquidityHub() {
   })
 
   const { srcAmountUsd, dstAmountUsd, dstAmount } = useMemo(() => {
-    const srcAmountUsd = BN(debouncedSrcAmount || 0)
-      .times(srcPriceUsd || 0)
+    const srcAmountUsd = (Number(debouncedSrcAmount || 0) * (srcPriceUsd || 0))
       .toFixed(2)
       .toString()
 
     const dstAmount = quote?.outAmount
-      ? amountUi(dstToken?.decimals, quote.outAmount)
+      ? fromBigNumber(quote.outAmount, dstToken?.decimals).toString()
       : ''
 
-    const dstAmountUsd = BN(dstAmount || 0)
-      .times(dstPriceUsd || 0)
+    const dstAmountUsd = (Number(dstAmount || 0) * (dstPriceUsd || 0))
       .toFixed(2)
       .toString()
 
@@ -74,13 +77,7 @@ export function LiquidityHub() {
       dstAmountUsd,
       dstAmount,
     }
-  }, [
-    debouncedSrcAmount,
-    srcPriceUsd,
-    dstToken?.decimals,
-    quote?.outAmount,
-    dstPriceUsd,
-  ])
+  }, [debouncedSrcAmount, srcPriceUsd, quote?.outAmount, dstToken, dstPriceUsd])
 
   const handleSwitch = useCallback(() => {
     setSrcToken(dstToken)
@@ -102,10 +99,10 @@ export function LiquidityHub() {
   useEffect(() => {
     if (!srcToken || !tokensWithBalances) return
 
-    const valueBN = amountBN(srcToken.decimals, debouncedSrcAmount)
+    const valueBN = toBigInt(debouncedSrcAmount, srcToken.decimals)
     const balance = tokensWithBalances[srcToken.address].balance
 
-    if (valueBN.gt(balance.toString())) {
+    if (valueBN > balance) {
       setInputError(ErrorCodes.InsufficientBalance)
       return
     }
@@ -137,11 +134,11 @@ export function LiquidityHub() {
         amountUsd={srcAmountUsd}
         balance={
           tokensWithBalances && srcToken
-            ? amountUi(
-                srcToken.decimals,
-                tokensWithBalances[srcToken.address]?.balance.toString()
+            ? fromBigNumber(
+                tokensWithBalances[srcToken.address]?.balance,
+                srcToken.decimals
               )
-            : '0.00'
+            : 0
         }
         selectedToken={srcToken || initialTokens[0]}
         tokens={tokensWithBalances}
@@ -158,11 +155,11 @@ export function LiquidityHub() {
         amountUsd={dstAmountUsd}
         balance={
           tokensWithBalances && dstToken
-            ? amountUi(
-                dstToken.decimals,
-                tokensWithBalances[dstToken.address]?.balance.toString()
+            ? fromBigNumber(
+                tokensWithBalances[dstToken.address]?.balance || 0n,
+                dstToken.decimals
               )
-            : '0.00'
+            : 0
         }
         selectedToken={dstToken || initialTokens[1]}
         tokens={tokensWithBalances}
@@ -180,6 +177,7 @@ export function LiquidityHub() {
           inputError={inputError}
           quote={quote}
           quoteError={quoteError}
+          srcToken={srcToken}
           srcAmount={srcAmount}
           srcAmountUsd={srcAmountUsd}
         />

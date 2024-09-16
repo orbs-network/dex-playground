@@ -1,23 +1,49 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import BN from 'bignumber.js'
-import { networks, parsebn } from '@defi.org/web3-candies'
-import { getApiUrl } from '@orbs-network/liquidity-hub-sdk-2'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const amountBN = (decimals?: number, amount?: string) =>
-  parsebn(amount || '')
-    .times(new BN(10).pow(decimals || 0))
-    .decimalPlaces(0)
-
-export const amountUi = (decimals?: number, amount?: BN | string) => {
-  if (!amount) return ''
-  const percision = new BN(10).pow(decimals || 0)
-  return BN(amount).times(percision).idiv(percision).div(percision).toString()
+export const toBigInt = (amount: string | number, decimals?: number) => {
+  const num = Number(amount)
+  return BigInt(num * 10 ** (decimals || 0))
 }
+
+export const toBigNumber = (amount: string | number, decimals?: number) => {
+  return toBigInt(amount, decimals).toString()
+}
+
+export const fromBigNumber = (amount: bigint | string, decimals?: number) => {
+  const numStr = typeof amount === 'bigint' ? amount.toString() : amount
+  const precision = decimals || 0
+
+  if (precision > 0) {
+    const integerPart = numStr.slice(0, -precision) || '0'
+    const fractionalPart = numStr.slice(-precision).padStart(precision, '0')
+
+    return Number(`${integerPart}.${fractionalPart}`)
+  } else {
+    return Number(numStr)
+  }
+}
+
+export const zeroAddress = '0x0000000000000000000000000000000000000000'
+
+export const nativeTokenAddresses = [
+  zeroAddress,
+  '0x0000000000000000000000000000000000001010',
+  '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+  '0x000000000000000000000000000000000000dEaD',
+  '0x000000000000000000000000000000000000800A',
+]
+
+export function eqIgnoreCase(a: string, b: string) {
+  return a == b || a.toLowerCase() == b.toLowerCase()
+}
+
+export const isNativeAddress = (address: string) =>
+  !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address))
 
 export const dollar = Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -31,17 +57,6 @@ export const crypto = Intl.NumberFormat('en-US', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 5,
 })
-
-export const getChainConfig = (chainId?: number) => {
-  if (!chainId) return undefined
-  const result = Object.values(networks).find((it) => it.id === chainId)
-  if (!result) return undefined
-  const localStorageApiUrl = localStorage.getItem('apiUrl')
-  return {
-    ...result,
-    apiUrl: localStorageApiUrl || getApiUrl(chainId),
-  }
-}
 
 export function formatAddress(address: string): string {
   return address.length >= 8

@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { Address, erc20Abi, isAddress, zeroAddress } from 'viem'
 import { getBalance, multicall } from '@wagmi/core'
 import { Config, serialize, useBalance, useConfig } from 'wagmi'
 import { GetBalanceReturnType } from 'wagmi/actions'
 import { useWatchByInterval } from '../watch/useWatchByInterval'
-import { Token, TokensWithBalances } from '@/types'
+import { Address, Token, TokensWithBalances } from '@/types'
+import { erc20Abi, isAddress } from 'viem'
+import { zeroAddress } from '@/lib/utils'
 
 interface QueryBalanceParams {
   chainId: number | undefined
   tokens: Token[]
-  account: Address | undefined
+  account: string | undefined
   nativeBalance?: GetBalanceReturnType
   config: Config
 }
@@ -26,7 +27,7 @@ export const queryFnUseBalances = async ({
   let native = nativeBalance
   if (typeof native === 'undefined') {
     native = await getBalance(config, {
-      address: account,
+      address: account as Address,
       chainId,
     })
   }
@@ -84,7 +85,7 @@ interface UseBalanceParams {
   enabled?: boolean
 }
 
-export const useBalancesWeb3 = ({
+export const useBalances = ({
   chainId,
   tokens,
   account,
@@ -102,7 +103,7 @@ export const useBalancesWeb3 = ({
 
   return useQuery({
     queryKey: [
-      'useBalancesWeb3',
+      'useBalances',
       { chainId, tokens, account, nativeBalance: serialize(nativeBalance) },
     ],
     queryFn: () =>

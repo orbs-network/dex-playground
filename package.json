@@ -10,8 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@defi.org/web3-candies": "^5.0.0",
-    "@orbs-network/liquidity-hub-sdk-2": "^10.0.0",
+    "@orbs-network/liquidity-hub-sdk": "^1.0.10",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
@@ -21,9 +20,9 @@
     "@rainbow-me/rainbowkit": "^2.1.5",
     "@tanstack/react-query": "^5.54.1",
     "axios": "^1.7.7",
-    "bignumber.js": "^9.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "ethers": "^6.13.2",
     "lucide-react": "^0.438.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

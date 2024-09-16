@@ -1,22 +1,23 @@
-import { getChainConfig } from '@/lib/utils'
-import { eqIgnoreCase, isNativeAddress } from '@defi.org/web3-candies'
+import { networks } from '@/lib/networks'
+import { eqIgnoreCase, isNativeAddress } from '@/lib/utils'
 import { useMemo } from 'react'
 
 export function useWrapOrUnwrapOnly(
   fromTokenAddress?: string,
-  toTokenAddress?: string,
-  chainId?: number
+  toTokenAddress?: string
 ) {
   return useMemo(() => {
-    const wTokenAddress = getChainConfig(chainId)?.wToken?.address
-
     return {
       isWrapOnly:
-        eqIgnoreCase(wTokenAddress || '', toTokenAddress || '') &&
-        isNativeAddress(fromTokenAddress || ''),
+        eqIgnoreCase(
+          networks.poly.wToken.address || '',
+          toTokenAddress || ''
+        ) && isNativeAddress(fromTokenAddress || ''),
       isUnwrapOnly:
-        eqIgnoreCase(wTokenAddress || '', fromTokenAddress || '') &&
-        isNativeAddress(toTokenAddress || ''),
+        eqIgnoreCase(
+          networks.poly.wToken.address || '',
+          fromTokenAddress || ''
+        ) && isNativeAddress(toTokenAddress || ''),
     }
-  }, [chainId, fromTokenAddress, toTokenAddress])
+  }, [fromTokenAddress, toTokenAddress])
 }

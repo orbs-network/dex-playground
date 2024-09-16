@@ -9,9 +9,19 @@ import {
 } from '@/components/ui/dialog'
 import { ErrorCodes } from './errors'
 import { Token } from '@/types'
-import { Quote } from '@orbs-network/liquidity-hub-sdk-2'
+import {
+  fromBigNumber,
+  crypto,
+  formatAddress,
+  isNativeAddress,
+} from '@/lib/utils'
+import { Card } from '@/components/ui/card'
+import { DataDetails } from '@/components/ui/data-details'
+import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 export type SwapConfirmationDialogProps = {
+  srcToken: Token | null
   dstToken: Token | null
   dstAmount: string
   srcAmount: string
@@ -29,7 +39,18 @@ export function SwapConfirmationDialog({
   inputError,
   srcAmount,
   dstAmount,
+  srcToken,
+  dstToken,
+  account,
+  quote,
+  dstAmountUsd,
+  srcAmountUsd,
 }: SwapConfirmationDialogProps) {
+  const priceImpact = usePriceImpact({
+    dstAmountUsd,
+    srcAmountUsd,
+  })
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -47,13 +68,53 @@ export function SwapConfirmationDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Swap Details</DialogTitle>
+          <DialogTitle>
+            Buy {crypto.format(Number(dstAmount))} {dstToken?.symbol}
+          </DialogTitle>
           <DialogDescription>
-            {quoteError && (
-              <div className="text-red-600">{quoteError.message}</div>
-            )}
+            Sell {crypto.format(Number(srcAmount))} {srcToken?.symbol}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <Card className="bg-slate-900">
+            <div className="p-4">
+              <DataDetails
+                data={{
+                  Network: 'Polygon',
+                  'Price Impact': `${priceImpact}%`,
+                  'Gas Fee': `${crypto.format(
+                    fromBigNumber(
+                      quote?.gasAmountOut || '0',
+                      dstToken?.decimals
+                    )
+                  )} ${dstToken?.symbol}`,
+                }}
+              />
+            </div>
+          </Card>
+          <Card className="bg-slate-900">
+            <div className="p-4">
+              <DataDetails
+                data={{
+                  Recipient: formatAddress(account),
+                }}
+              />
+            </div>
+          </Card>
+          {srcToken && dstToken && (
+            <Card className="bg-slate-900">
+              <div className="p-4">
+                <h3>Steps</h3>
+                {isNativeAddress(srcToken.address) && (
+                  <p>Wrap {srcToken.symbol}</p>
+                )}
+              </div>
+            </Card>
+          )}
+          <Button size="lg">
+            Swap {srcToken?.symbol} for {dstToken?.symbol}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

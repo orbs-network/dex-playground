@@ -1,3 +1,4 @@
+import { zeroAddress } from '@/lib/utils'
 import { Token } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -10,8 +11,6 @@ type PolygonToken = {
   name?: string
   symbol: string
 }
-
-const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 const getPolygonTokens = async (): Promise<Token[]> => {
   const res = await (

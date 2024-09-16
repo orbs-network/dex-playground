@@ -1,4 +1,5 @@
-import { isNativeAddress, network } from '@defi.org/web3-candies'
+import { networks } from '@/lib/networks'
+import { isNativeAddress } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 
 export const usePriceUSD = (chainId: number, address?: string) => {
@@ -38,7 +39,7 @@ export async function fetchLLMAPrice(token: string, chainId: number) {
     const chainName = chainIdToName[chainId] || 'Unknown Chain'
 
     if (isNativeAddress(token)) {
-      token = network(chainId).wToken.address
+      token = networks.poly.wToken.address
     }
     const tokenAddressWithChainId = `${chainName}:${token}`
     const url = `https://coins.llama.fi/prices/current/${tokenAddressWithChainId}`

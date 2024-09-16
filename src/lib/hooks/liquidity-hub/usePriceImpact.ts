@@ -1,4 +1,3 @@
-import BN from 'bignumber.js'
 import { useMemo } from 'react'
 
 type UsePriceImapctProps = {
@@ -11,20 +10,13 @@ export function usePriceImpact({
   dstAmountUsd,
 }: UsePriceImapctProps) {
   return useMemo(() => {
-    if (
-      !srcAmountUsd ||
-      !dstAmountUsd ||
-      BN(srcAmountUsd || '0').isZero() ||
-      BN(dstAmountUsd || '0').isZero()
-    ) {
+    const srcNum = Number(srcAmountUsd || '0')
+    const dstNum = Number(dstAmountUsd || '0')
+
+    if (!srcAmountUsd || !dstAmountUsd || srcNum === 0 || dstNum === 0) {
       return
     }
 
-    return BN(dstAmountUsd)
-      .div(srcAmountUsd)
-      .minus(1)
-      .times(100)
-      .toFixed(2)
-      .toString()
+    return ((dstNum / srcNum - 1) * 100).toFixed(2).toString()
   }, [srcAmountUsd, dstAmountUsd])
 }
