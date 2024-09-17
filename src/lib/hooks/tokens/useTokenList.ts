@@ -1,7 +1,6 @@
 import { zeroAddress } from '@/lib/utils'
 import { Token } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
 
 type PolygonToken = {
   address: string
@@ -13,14 +12,17 @@ type PolygonToken = {
 }
 
 const getPolygonTokens = async (): Promise<Token[]> => {
-  const res = await (
-    await axios.get(
-      'https://unpkg.com/quickswap-default-token-list@1.3.16/build/quickswap-default.tokenlist.json'
-    )
-  ).data
-  const tokens = (res.tokens as PolygonToken[]).filter(
-    (it) => it.chainId === 137
+  const res = await fetch(
+    'https://unpkg.com/quickswap-default-token-list@1.3.16/build/quickswap-default.tokenlist.json'
   )
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch tokens')
+  }
+
+  const polyTokens = (await res.json()).tokens as PolygonToken[]
+
+  const tokens = polyTokens.filter((it) => it.chainId === 137)
 
   const candiesAddresses = [
     zeroAddress,
