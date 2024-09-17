@@ -3,8 +3,8 @@ import { getBalance, multicall } from '@wagmi/core'
 import { Config, serialize, useBalance, useConfig } from 'wagmi'
 import { GetBalanceReturnType } from 'wagmi/actions'
 import { useWatchByInterval } from '../watch/useWatchByInterval'
-import { Address, Token, TokensWithBalances } from '@/types'
-import { erc20Abi, isAddress } from 'viem'
+import { Token, TokensWithBalances } from '@/types'
+import { erc20Abi, isAddress, Address } from 'viem'
 import { zeroAddress } from '@/lib/utils'
 
 interface QueryBalanceParams {

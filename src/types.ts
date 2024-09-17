@@ -12,5 +12,3 @@ export type TokenWithBalance = {
 }
 
 export type TokensWithBalances = Record<string, TokenWithBalance>
-
-export type Address = `0x${string}`

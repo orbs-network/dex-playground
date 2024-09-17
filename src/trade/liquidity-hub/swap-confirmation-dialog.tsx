@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/card'
 import { DataDetails } from '@/components/ui/data-details'
 import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
 
 export type SwapConfirmationDialogProps = {
   srcToken: Token | null
@@ -49,6 +50,13 @@ export function SwapConfirmationDialog({
   const priceImpact = usePriceImpact({
     dstAmountUsd,
     srcAmountUsd,
+  })
+
+  const { data: requiresApproval } = useRequiresApproval({
+    account,
+    tokenAddress: srcToken?.address || '',
+    srcToken,
+    srcAmount: Number(srcAmount),
   })
 
   return (
@@ -105,9 +113,13 @@ export function SwapConfirmationDialog({
             <Card className="bg-slate-900">
               <div className="p-4">
                 <h3>Steps</h3>
-                {isNativeAddress(srcToken.address) && (
-                  <p>Wrap {srcToken.symbol}</p>
-                )}
+                <div className="text-xs">
+                  {isNativeAddress(srcToken.address) && (
+                    <p>Wrap {srcToken.symbol}</p>
+                  )}
+                  {requiresApproval && <p>Approve {srcToken.symbol}</p>}
+                  <p>Swap</p>
+                </div>
               </div>
             </Card>
           )}
