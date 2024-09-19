@@ -1,33 +1,31 @@
-import { networks } from '@/lib/networks'
 import { wagmiConfig } from '@/lib/wagmi-config'
+import { permit2Address } from '@orbs-network/liquidity-hub-sdk'
 import { useQuery } from '@tanstack/react-query'
-import { Address, encodeFunctionData, erc20Abi } from 'viem'
+import { Address, encodeFunctionData, erc20Abi, maxUint256 } from 'viem'
 import { estimateGas, simulateContract } from 'wagmi/actions'
 
 type UseEstimateGasForWrapToken = {
   account: string
-  value: bigint
   enabled?: boolean
 }
 
 export function useEstimateGasForApproval({
   account,
-  value,
   enabled,
 }: UseEstimateGasForWrapToken) {
   return useQuery({
-    queryKey: ['useEstimateGasForApproval', account, value.toString()],
+    queryKey: ['useEstimateGasForApproval', account],
     queryFn: async () => {
       const approveData = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [account as Address, value],
+        args: [permit2Address, maxUint256],
       })
 
       const estimatedGas = await estimateGas(wagmiConfig, {
         account: account as Address,
-        to: networks.poly.wToken.address as Address,
-        value,
+        to: permit2Address,
+        value: maxUint256,
         data: approveData,
       })
 
@@ -35,8 +33,8 @@ export function useEstimateGasForApproval({
         abi: erc20Abi,
         functionName: 'approve',
         account: account as Address,
-        address: networks.poly.wToken.address as Address,
-        args: [account as Address, value],
+        address: permit2Address,
+        args: [permit2Address, maxUint256],
       })
 
       return {
@@ -44,6 +42,6 @@ export function useEstimateGasForApproval({
         simulatedData,
       }
     },
-    enabled: Boolean(value && enabled),
+    enabled: Boolean(maxUint256 && enabled),
   })
 }

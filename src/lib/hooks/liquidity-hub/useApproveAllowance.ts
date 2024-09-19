@@ -1,5 +1,3 @@
-import { IWETHabi } from '@/lib/abis'
-import { networks } from '@/lib/networks'
 import { wagmiConfig } from '@/lib/wagmi-config'
 import {
   SwapStepId,
@@ -7,52 +5,46 @@ import {
   useSwapStore,
 } from '@/trade/liquidity-hub/useSwapStore'
 import { Token } from '@/types'
+import { permit2Address } from '@orbs-network/liquidity-hub-sdk'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Address } from 'viem'
+import { Address, erc20Abi, maxUint256 } from 'viem'
 import {
   getTransactionConfirmations,
   simulateContract,
   writeContract,
 } from 'wagmi/actions'
 
-type UseWrapTokenProps = {
+type UseApproveAllowanceProps = {
   account: string
-  srcAmount: bigint
   srcToken: Token | null
 }
 
-export function useWrapToken({
-  srcAmount,
+export function useApproveAllowance({
   account,
   srcToken,
-}: UseWrapTokenProps) {
+}: UseApproveAllowanceProps) {
   const updateStatus = useSwapStore((state) => state.updateStatus)
   const appendStep = useSwapStore((state) => state.appendCurrentStep)
 
   return useMutation({
-    mutationKey: [
-      'useWrapToken',
-      srcToken?.address,
-      srcAmount.toString(),
-      account,
-    ],
+    mutationKey: ['useApproveAllowance', srcToken?.address, account],
     mutationFn: async () => {
-      console.log('wrapToken')
+      console.log('approve allowance')
       try {
-        updateStatus(SwapStepId.Wrap, SwapStepStatus.Loading)
+        updateStatus(SwapStepId.Approve, SwapStepStatus.Loading)
 
         // Simulate the contract to check if there would be any errors
         const simulatedData = await simulateContract(wagmiConfig, {
-          abi: IWETHabi,
-          functionName: 'deposit',
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [permit2Address, maxUint256],
           account: account as Address,
-          address: networks.poly.wToken.address as Address,
-          value: srcAmount,
+          address: srcToken?.address as Address,
         })
 
         const txHash = await writeContract(wagmiConfig, simulatedData.request)
-        console.log('wrapToken', txHash)
+        console.log('approve', txHash)
 
         const pollConfirmations = setInterval(async () => {
           const confirmations = await getTransactionConfirmations(wagmiConfig, {
@@ -61,7 +53,7 @@ export function useWrapToken({
 
           if (confirmations >= 3) {
             clearInterval(pollConfirmations)
-            updateStatus(SwapStepId.Wrap, SwapStepStatus.Complete)
+            updateStatus(SwapStepId.Approve, SwapStepStatus.Complete)
             appendStep()
           }
         }, 3000)
@@ -78,7 +70,7 @@ export function useWrapToken({
               : err.message
             : 'An error occurred while wrapping your token'
         )
-        updateStatus(SwapStepId.Wrap, SwapStepStatus.Error)
+        updateStatus(SwapStepId.Approve, SwapStepStatus.Error)
       }
     },
   })

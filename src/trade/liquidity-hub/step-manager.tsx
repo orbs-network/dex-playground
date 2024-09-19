@@ -13,6 +13,8 @@ import { SwapSteps } from './swap-steps'
 import { useWrapToken } from '@/lib/hooks/liquidity-hub/useWrapToken'
 import { useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
+import { useApproveAllowance } from '@/lib/hooks/liquidity-hub/useApproveAllowance'
+import { XIcon } from 'lucide-react'
 
 export default function StepManager() {
   const reset = useSwapStore((state) => state.reset)
@@ -22,6 +24,10 @@ export default function StepManager() {
   const { mutate: wrapToken } = useWrapToken({
     account: quote?.user || '',
     srcAmount: BigInt(quote?.inAmount || 0),
+    srcToken: quote?.inToken || null,
+  })
+  const { mutate: approve } = useApproveAllowance({
+    account: quote?.user || '',
     srcToken: quote?.inToken || null,
   })
 
@@ -41,7 +47,7 @@ export default function StepManager() {
         break
       }
       case SwapStepId.Approve: {
-        console.log('Approve')
+        approve()
         break
       }
       case SwapStepId.Swap: {
@@ -49,23 +55,24 @@ export default function StepManager() {
         break
       }
     }
-  }, [currentStep, currentStepId, wrapToken])
+  }, [approve, currentStep, currentStepId, wrapToken])
 
   if (!quote || !steps) {
     return null
   }
 
   return (
-    <Dialog
-      modal
-      open={Boolean(steps)}
-      onOpenChange={(o) => {
-        if (!o) {
-          reset()
-        }
-      }}
-    >
-      <DialogContent hideClose={!canCancel}>
+    <Dialog modal open={Boolean(steps)}>
+      <DialogContent hideClose>
+        {canCancel && (
+          <div
+            onClick={reset}
+            className="cursor-pointer absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground p-2"
+          >
+            <XIcon className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </div>
+        )}
         <DialogHeader>
           <DialogTitle>
             Buy{' '}

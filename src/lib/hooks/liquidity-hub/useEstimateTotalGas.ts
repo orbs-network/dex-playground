@@ -32,7 +32,6 @@ export function useEstimateTotalGas({
 
   const { data: gasForApproval } = useEstimateGasForApproval({
     account,
-    value: BigInt(quote?.inAmount || '0'),
     enabled: requiresApproval,
   })
 
