@@ -9,17 +9,13 @@ import { usePriceUSD } from '@/lib/hooks/balances/usePriceUsd'
 import { useAccount } from 'wagmi'
 import { useQuote } from '@/lib/hooks/liquidity-hub/useQuote'
 import { useDebounce } from '@/lib/hooks/utils'
-import {
-  toBigNumber,
-  fromBigNumber,
-  crypto,
-  formatAddress,
-  toBigInt,
-} from '@/lib/utils'
+import { toBigNumber, fromBigNumber, format, toBigInt } from '@/lib/utils'
 import { ErrorCodes, getErrorMessage } from './errors'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { SwapDetails } from './swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
+import { SwapStepStatus, useSwapStore } from './useSwapStore'
+import StepManager from './step-manager'
 
 export function LiquidityHub() {
   const { tokensWithBalances, isLoading } = useTokensWithBalances()
@@ -43,21 +39,37 @@ export function LiquidityHub() {
   const { data: srcPriceUsd } = usePriceUSD(137, srcToken?.address)
   const { data: dstPriceUsd } = usePriceUSD(137, dstToken?.address)
 
+  const steps = useSwapStore((state) => state.steps)
+  const resetSwapStore = useSwapStore((state) => state.reset)
+
+  // on exit check if swap is still processing and if not reset swap store
+  useEffect(() => {
+    return () => {
+      if (steps && steps[steps.length - 1].status === SwapStepStatus.Complete) {
+        console.log('resetting swap store')
+        resetSwapStore()
+      }
+    }
+  }, [resetSwapStore, steps])
+
   const {
     data: quote,
     isFetching,
     error: quoteError,
-  } = useQuote({
-    chainId: 137,
-    fromToken: srcToken?.address || '',
-    toToken: dstToken?.address || '',
-    inAmount: debouncedSrcAmount
-      ? toBigNumber(debouncedSrcAmount, srcToken?.decimals)
-      : '0',
-    slippage: 0.5,
-    partner: 'widget',
-    account: account.address,
-  })
+  } = useQuote(
+    {
+      chainId: 137,
+      fromToken: srcToken?.address || '',
+      toToken: dstToken?.address || '',
+      inAmount: debouncedSrcAmount
+        ? toBigNumber(debouncedSrcAmount, srcToken?.decimals)
+        : '0',
+      slippage: 0.5,
+      partner: 'widget',
+      account: account.address,
+    },
+    Boolean(steps)
+  )
 
   const { srcAmountUsd, dstAmountUsd, dstAmount } = useMemo(() => {
     const srcAmountUsd = (Number(debouncedSrcAmount || 0) * (srcPriceUsd || 0))
@@ -151,7 +163,7 @@ export function LiquidityHub() {
       </div>
       <TokenCard
         label="Buy"
-        amount={dstAmount ? crypto.format(Number(dstAmount)) : ''}
+        amount={dstAmount ? format.crypto(Number(dstAmount)) : ''}
         amountUsd={dstAmountUsd}
         balance={
           tokensWithBalances && dstToken
@@ -205,9 +217,10 @@ export function LiquidityHub() {
             quote={quote}
             srcPriceUsd={srcPriceUsd}
             dstPriceUsd={dstPriceUsd}
-            account={formatAddress(account.address)}
+            account={format.address(account.address)}
           />
         )}
+      <StepManager />
     </div>
   )
 }

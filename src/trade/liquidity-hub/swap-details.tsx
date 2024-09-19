@@ -1,7 +1,8 @@
 import { DataDetails } from '@/components/ui/data-details'
 import { Separator } from '@/components/ui/separator'
+import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
 import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
-import { dollar, crypto, fromBigNumber } from '@/lib/utils'
+import { format, fromBigNumber } from '@/lib/utils'
 import { Token } from '@/types'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
@@ -33,10 +34,16 @@ export function SwapDetails({
     srcAmountUsd,
   })
 
+  const { totalGasFeeUsd } = useEstimateTotalGas({
+    account,
+    quote,
+    srcToken,
+  })
+
   const rate = srcPriceUsd / dstPriceUsd
 
   let data: Record<string, React.ReactNode> = {
-    Rate: `1 ${srcToken.symbol} ≈ ${crypto.format(rate)} ${dstToken.symbol}`,
+    Rate: `1 ${srcToken.symbol} ≈ ${format.crypto(rate)} ${dstToken.symbol}`,
   }
 
   if (priceImpact) {
@@ -50,17 +57,14 @@ export function SwapDetails({
     const minDstAmount = fromBigNumber(quote.minAmountOut, dstToken.decimals)
     data = {
       ...data,
-      'Est. Received': `${crypto.format(Number(dstAmount))} ${dstToken.symbol}`,
-      'Min. Received': `${crypto.format(minDstAmount)} ${dstToken.symbol}`,
+      'Est. Received': `${format.crypto(Number(dstAmount))} ${dstToken.symbol}`,
+      'Min. Received': `${format.crypto(minDstAmount)} ${dstToken.symbol}`,
     }
 
-    const gasFee = fromBigNumber(quote.gasAmountOut || '0', dstToken.decimals)
-    const gasFeeUsd = gasFee * dstPriceUsd
     data = {
       ...data,
-      'Gas Fee': `${crypto.format(gasFee)} ${dstToken.symbol} (${dollar.format(
-        gasFeeUsd
-      )})`,
+      'Gas Fee':
+        totalGasFeeUsd > 0.01 ? format.dollar(totalGasFeeUsd) : '< $0.01',
     }
   }
 

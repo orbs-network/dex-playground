@@ -6,23 +6,25 @@ import { networks } from '@/lib/networks'
 
 export const QUOTE_REFETCH_INTERVAL = 20_000
 
-export function useQuote(args: QuoteArgs) {
+export function useQuote(args: QuoteArgs, lock = false) {
   const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(
     args.fromToken,
     args.toToken
   )
 
-  const enabled = Boolean(
-    args.chainId &&
-      args.fromToken &&
-      args.toToken &&
-      Number(args.inAmount) > 0 &&
-      args.partner &&
-      !isUnwrapOnly &&
-      !isWrapOnly
-  )
+  const enabled =
+    !lock &&
+    Boolean(
+      args.chainId &&
+        args.fromToken &&
+        args.toToken &&
+        Number(args.inAmount) > 0 &&
+        args.partner &&
+        !isUnwrapOnly &&
+        !isWrapOnly
+    )
 
-  const queryKey = ['quote', ...Object.values(args)]
+  const queryKey = ['quote', ...Object.values(args), lock]
 
   const payload: QuoteArgs = {
     ...args,
@@ -34,6 +36,7 @@ export function useQuote(args: QuoteArgs) {
   return useQuery({
     queryKey,
     queryFn: () => {
+      console.log('fetching quote')
       return fetchQuote(payload)
     },
     enabled,

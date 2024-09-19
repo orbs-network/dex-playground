@@ -14,7 +14,10 @@ export const toBigNumber = (amount: string | number, decimals?: number) => {
   return toBigInt(amount, decimals).toString()
 }
 
-export const fromBigNumber = (amount: bigint | string, decimals?: number) => {
+export const fromBigNumberToStr = (
+  amount: bigint | string,
+  decimals?: number
+) => {
   const numStr = typeof amount === 'bigint' ? amount.toString() : amount
   const precision = decimals || 0
 
@@ -22,10 +25,14 @@ export const fromBigNumber = (amount: bigint | string, decimals?: number) => {
     const integerPart = numStr.slice(0, -precision) || '0'
     const fractionalPart = numStr.slice(-precision).padStart(precision, '0')
 
-    return Number(`${integerPart}.${fractionalPart}`)
+    return `${integerPart}.${fractionalPart}`
   } else {
-    return Number(numStr)
+    return numStr
   }
+}
+
+export const fromBigNumber = (amount: bigint | string, decimals?: number) => {
+  return Number(fromBigNumberToStr(amount, decimals))
 }
 
 export const zeroAddress = '0x0000000000000000000000000000000000000000'
@@ -45,21 +52,27 @@ export function eqIgnoreCase(a: string, b: string) {
 export const isNativeAddress = (address: string) =>
   !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address))
 
-export const dollar = Intl.NumberFormat('en-US', {
+const dollarDisplay = Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
 
-export const crypto = Intl.NumberFormat('en-US', {
+const cryptoDisplay = Intl.NumberFormat('en-US', {
   style: 'decimal',
   minimumFractionDigits: 0,
   maximumFractionDigits: 5,
 })
 
-export function formatAddress(address: string): string {
+function formatAddress(address: string): string {
   return address.length >= 8
     ? `${address.slice(0, 4)}...${address.slice(-4)}`
     : address
+}
+
+export const format = {
+  dollar: dollarDisplay.format,
+  crypto: cryptoDisplay.format,
+  address: formatAddress,
 }

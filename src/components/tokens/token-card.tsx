@@ -3,7 +3,7 @@ import { Card } from '../ui/card'
 import { TokenSelect } from './token-select'
 import { Token, TokensWithBalances } from '@/types'
 import { NumericFormat } from 'react-number-format'
-import { dollar, crypto, cn } from '@/lib/utils'
+import { format, cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
 import { ErrorCodes } from '@/trade/liquidity-hub/errors'
 
@@ -81,12 +81,12 @@ export function TokenCard({
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-            {dollar.format(Number(amountUsd))}
+            {format.dollar(Number(amountUsd))}
           </div>
         )}
         <div className="flex gap-2 items-center text-gray-500 dark:text-gray-400 text-lg">
           <WalletIcon className="h-5 w-5" />
-          <div>{crypto.format(balance)}</div>
+          <div>{format.crypto(balance)}</div>
         </div>
       </div>
     </Card>

@@ -9,17 +9,17 @@ import {
 } from '@/components/ui/dialog'
 import { ErrorCodes } from './errors'
 import { Token } from '@/types'
-import {
-  fromBigNumber,
-  crypto,
-  formatAddress,
-  isNativeAddress,
-} from '@/lib/utils'
+import { format } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { DataDetails } from '@/components/ui/data-details'
 import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
+import { SwapSteps } from './swap-steps'
+import { EnrichedQuote, useSwapStore } from './useSwapStore'
+import { useCallback, useMemo, useState } from 'react'
+import { getSteps } from './getSteps'
+import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
 
 export type SwapConfirmationDialogProps = {
   srcToken: Token | null
@@ -47,6 +47,8 @@ export function SwapConfirmationDialog({
   dstAmountUsd,
   srcAmountUsd,
 }: SwapConfirmationDialogProps) {
+  const [open, setOpen] = useState(false)
+
   const priceImpact = usePriceImpact({
     dstAmountUsd,
     srcAmountUsd,
@@ -59,14 +61,43 @@ export function SwapConfirmationDialog({
     srcAmount: Number(srcAmount),
   })
 
+  const _steps = useSwapStore((state) => state.steps)
+
+  const steps = useMemo(() => {
+    if (!dstToken || !srcToken) return []
+
+    if (_steps) return _steps
+
+    return getSteps({ dstToken, requiresApproval, srcToken })
+  }, [_steps, dstToken, requiresApproval, srcToken])
+
+  const beginSwap = useSwapStore((state) => state.beginSwap)
+
+  const { totalGasFeeUsd } = useEstimateTotalGas({
+    account,
+    quote,
+    srcToken,
+  })
+
+  const confirmSwap = useCallback(() => {
+    console.log('confirm swap')
+    beginSwap(
+      steps,
+      quote && srcToken && dstToken
+        ? ({ ...quote, inToken: srcToken, outToken: dstToken } as EnrichedQuote)
+        : null
+    )
+    setOpen(false)
+  }, [beginSwap, steps, quote, srcToken, dstToken])
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
       <DialogTrigger asChild>
         <Button
           className="mt-2"
           size="lg"
           disabled={Boolean(
-            quoteError || inputError || !srcAmount || !dstAmount
+            quoteError || inputError || !srcAmount || !dstAmount || _steps
           )}
         >
           {inputError === ErrorCodes.InsufficientBalance
@@ -77,10 +108,10 @@ export function SwapConfirmationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Buy {crypto.format(Number(dstAmount))} {dstToken?.symbol}
+            Buy {format.crypto(Number(dstAmount))} {dstToken?.symbol}
           </DialogTitle>
           <DialogDescription>
-            Sell {crypto.format(Number(srcAmount))} {srcToken?.symbol}
+            Sell {format.crypto(Number(srcAmount))} {srcToken?.symbol}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -90,12 +121,10 @@ export function SwapConfirmationDialog({
                 data={{
                   Network: 'Polygon',
                   'Price Impact': `${priceImpact}%`,
-                  'Gas Fee': `${crypto.format(
-                    fromBigNumber(
-                      quote?.gasAmountOut || '0',
-                      dstToken?.decimals
-                    )
-                  )} ${dstToken?.symbol}`,
+                  'Gas Fee':
+                    totalGasFeeUsd > 0.01
+                      ? format.dollar(totalGasFeeUsd)
+                      : '< $0.01',
                 }}
               />
             </div>
@@ -104,7 +133,7 @@ export function SwapConfirmationDialog({
             <div className="p-4">
               <DataDetails
                 data={{
-                  Recipient: formatAddress(account),
+                  Recipient: format.address(account),
                 }}
               />
             </div>
@@ -112,18 +141,15 @@ export function SwapConfirmationDialog({
           {srcToken && dstToken && (
             <Card className="bg-slate-900">
               <div className="p-4">
-                <h3>Steps</h3>
-                <div className="text-xs">
-                  {isNativeAddress(srcToken.address) && (
-                    <p>Wrap {srcToken.symbol}</p>
-                  )}
-                  {requiresApproval && <p>Approve {srcToken.symbol}</p>}
-                  <p>Swap</p>
-                </div>
+                <DataDetails
+                  data={{
+                    Steps: <SwapSteps steps={steps} />,
+                  }}
+                />
               </div>
             </Card>
           )}
-          <Button size="lg">
+          <Button size="lg" onClick={confirmSwap}>
             Swap {srcToken?.symbol} for {dstToken?.symbol}
           </Button>
         </div>

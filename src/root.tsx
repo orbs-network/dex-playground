@@ -1,20 +1,12 @@
 import { App } from './App'
 import { ThemeProvider } from './providers/theme-provider'
 import '@rainbow-me/rainbowkit/styles.css'
-import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { WagmiProvider } from 'wagmi'
-import { polygon } from 'wagmi/chains'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { RainbowProvider } from './providers/rainbow-provider'
 import { structuralSharing } from '@wagmi/core/query'
-
-const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID
-
-const config = getDefaultConfig({
-  appName: 'DEX Playground',
-  projectId: walletConnectProjectId,
-  chains: [polygon],
-})
+import { wagmiConfig } from './lib/wagmi-config'
+import { Toaster } from './components/ui/sonner'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,11 +18,12 @@ const queryClient = new QueryClient({
 
 function Root() {
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
           <RainbowProvider>
             <App />
+            <Toaster />
           </RainbowProvider>
         </ThemeProvider>
       </QueryClientProvider>
