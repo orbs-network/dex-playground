@@ -2,6 +2,7 @@ import { DataDetails } from '@/components/ui/data-details'
 import { Separator } from '@/components/ui/separator'
 import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
 import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
+import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
 import { format, fromBigNumber } from '@/lib/utils'
 import { Token } from '@/types'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
@@ -16,6 +17,7 @@ export type SwapDetailsProps = {
   quote: Quote
   dstPriceUsd: number
   account: string
+  srcAmount: string
 }
 
 export function SwapDetails({
@@ -28,16 +30,25 @@ export function SwapDetails({
   quote,
   dstPriceUsd,
   account,
+  srcAmount,
 }: SwapDetailsProps) {
   const priceImpact = usePriceImpact({
     dstAmountUsd,
     srcAmountUsd,
   })
 
+  const { data: requiresApproval } = useRequiresApproval({
+    account,
+    tokenAddress: srcToken?.address || '',
+    srcToken,
+    srcAmount: Number(srcAmount),
+  })
+
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,
     quote,
     srcToken,
+    requiresApproval,
   })
 
   const rate = srcPriceUsd / dstPriceUsd

@@ -11,7 +11,7 @@ import { DataDetails } from '@/components/ui/data-details'
 import { format, fromBigNumber } from '@/lib/utils'
 import { SwapSteps } from './swap-steps'
 import { useWrapToken } from '@/lib/hooks/liquidity-hub/useWrapToken'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 
 export default function StepManager() {
@@ -24,6 +24,10 @@ export default function StepManager() {
     srcAmount: BigInt(quote?.inAmount || 0),
     srcToken: quote?.inToken || null,
   })
+
+  const canCancel = useMemo(() => {
+    return steps?.every((step) => step.status === SwapStepStatus.Idle)
+  }, [steps])
 
   const currentStep = steps?.find((step) => step.stepId === currentStepId)
 
@@ -52,8 +56,16 @@ export default function StepManager() {
   }
 
   return (
-    <Dialog modal open={Boolean(steps)}>
-      <DialogContent hideClose>
+    <Dialog
+      modal
+      open={Boolean(steps)}
+      onOpenChange={(o) => {
+        if (!o) {
+          reset()
+        }
+      }}
+    >
+      <DialogContent hideClose={!canCancel}>
         <DialogHeader>
           <DialogTitle>
             Buy{' '}

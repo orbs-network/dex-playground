@@ -77,6 +77,7 @@ export function SwapConfirmationDialog({
     account,
     quote,
     srcToken,
+    requiresApproval,
   })
 
   const confirmSwap = useCallback(() => {

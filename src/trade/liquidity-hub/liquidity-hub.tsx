@@ -218,6 +218,7 @@ export function LiquidityHub() {
             srcPriceUsd={srcPriceUsd}
             dstPriceUsd={dstPriceUsd}
             account={format.address(account.address)}
+            srcAmount={srcAmount}
           />
         )}
       <StepManager />
