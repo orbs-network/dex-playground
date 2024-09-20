@@ -59,12 +59,12 @@ export function useWrapToken({
             hash: txHash,
           })
 
-          if (confirmations >= 3) {
+          if (confirmations >= 1) {
             clearInterval(pollConfirmations)
             updateStatus(SwapStepId.Wrap, SwapStepStatus.Complete)
             appendStep()
           }
-        }, 3000)
+        }, 1000)
 
         return txHash
       } catch (error) {

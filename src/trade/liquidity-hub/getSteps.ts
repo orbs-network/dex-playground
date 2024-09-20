@@ -1,6 +1,7 @@
 import { isNativeAddress } from '@/lib/utils'
 import { Token } from '@/types'
 import { SwapStepId, SwapStepItem, SwapStepStatus } from './useSwapStore'
+import { networks } from '@/lib/networks'
 
 type GetSteps = {
   srcToken: Token
@@ -21,7 +22,11 @@ export function getSteps({ dstToken, requiresApproval, srcToken }: GetSteps) {
   if (requiresApproval) {
     _steps.unshift({
       stepId: SwapStepId.Approve,
-      label: `Approve ${srcToken.symbol}`,
+      label: `Approve ${
+        isNativeAddress(srcToken.address)
+          ? networks.poly.wToken.symbol
+          : srcToken.symbol
+      }`,
       status: SwapStepStatus.Idle,
     })
   }

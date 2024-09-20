@@ -1,4 +1,5 @@
-import { fromBigNumber } from '@/lib/utils'
+import { networks } from '@/lib/networks'
+import { fromBigNumber, isNativeAddress } from '@/lib/utils'
 import { Token } from '@/types'
 import { permit2Address } from '@orbs-network/liquidity-hub-sdk'
 import { useMemo } from 'react'
@@ -19,7 +20,9 @@ export function useRequiresApproval({
   srcAmount,
 }: UseAllowanceProps) {
   const { data: allowanceBi, ...rest } = useReadContract({
-    address: tokenAddress as Address,
+    address: (isNativeAddress(tokenAddress)
+      ? networks.poly.wToken.address
+      : tokenAddress) as Address,
     abi: erc20Abi,
     functionName: 'allowance',
     args: [account as Address, permit2Address],

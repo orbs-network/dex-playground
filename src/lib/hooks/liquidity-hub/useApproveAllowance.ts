@@ -1,3 +1,5 @@
+import { networks } from '@/lib/networks'
+import { isNativeAddress } from '@/lib/utils'
 import { wagmiConfig } from '@/lib/wagmi-config'
 import {
   SwapStepId,
@@ -16,8 +18,8 @@ import {
 } from 'wagmi/actions'
 
 type UseApproveAllowanceProps = {
-  account: string
-  srcToken: Token | null
+  account: string | undefined
+  srcToken: Token | undefined
 }
 
 export function useApproveAllowance({
@@ -30,7 +32,9 @@ export function useApproveAllowance({
   return useMutation({
     mutationKey: ['useApproveAllowance', srcToken?.address, account],
     mutationFn: async () => {
-      console.log('approve allowance')
+      if (!account || !srcToken) return
+      console.log('approve allowance', account, srcToken)
+
       try {
         updateStatus(SwapStepId.Approve, SwapStepStatus.Loading)
 
@@ -40,7 +44,9 @@ export function useApproveAllowance({
           functionName: 'approve',
           args: [permit2Address, maxUint256],
           account: account as Address,
-          address: srcToken?.address as Address,
+          address: (isNativeAddress(srcToken?.address)
+            ? networks.poly.wToken.address
+            : srcToken.address) as Address,
         })
 
         const txHash = await writeContract(wagmiConfig, simulatedData.request)
@@ -51,12 +57,12 @@ export function useApproveAllowance({
             hash: txHash,
           })
 
-          if (confirmations >= 3) {
+          if (confirmations >= 1) {
             clearInterval(pollConfirmations)
             updateStatus(SwapStepId.Approve, SwapStepStatus.Complete)
             appendStep()
           }
-        }, 3000)
+        }, 1000)
 
         return txHash
       } catch (error) {

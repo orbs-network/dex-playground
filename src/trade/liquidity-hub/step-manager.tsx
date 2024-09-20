@@ -15,6 +15,7 @@ import { useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { useApproveAllowance } from '@/lib/hooks/liquidity-hub/useApproveAllowance'
 import { XIcon } from 'lucide-react'
+import { useSwap } from '@/lib/hooks/liquidity-hub/useSwap'
 
 export default function StepManager() {
   const reset = useSwapStore((state) => state.reset)
@@ -27,9 +28,10 @@ export default function StepManager() {
     srcToken: quote?.inToken || null,
   })
   const { mutate: approve } = useApproveAllowance({
-    account: quote?.user || '',
-    srcToken: quote?.inToken || null,
+    account: quote?.user,
+    srcToken: quote?.inToken,
   })
+  const { mutate: swapToken } = useSwap({ quote })
 
   const canCancel = useMemo(() => {
     return steps?.every((step) => step.status === SwapStepStatus.Idle)
@@ -51,11 +53,11 @@ export default function StepManager() {
         break
       }
       case SwapStepId.Swap: {
-        console.log('Swap')
+        swapToken()
         break
       }
     }
-  }, [approve, currentStep, currentStepId, wrapToken])
+  }, [approve, currentStep, currentStepId, swapToken, wrapToken])
 
   if (!quote || !steps) {
     return null
