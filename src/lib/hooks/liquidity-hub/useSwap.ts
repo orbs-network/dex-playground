@@ -8,9 +8,9 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
-import { swap, getTxDetails } from '@orbs-network/liquidity-hub-sdk'
-import { networks } from '@/lib/networks'
 import { toast } from 'sonner'
+import { getTxDetails, swap } from '@orbs-network/liquidity-hub-sdk'
+import { networks } from '@/lib/networks'
 
 type UseSwapProps = {
   quote: EnrichedQuote | null
@@ -18,6 +18,7 @@ type UseSwapProps = {
 
 export function useSwap({ quote }: UseSwapProps) {
   const updateStatus = useSwapStore((state) => state.updateStatus)
+  // const setSwapSignature = useSwapStore((state) => state.setSwapSignature)
 
   return useMutation({
     mutationKey: ['useSwap', ...Object.values(quote || {})],
@@ -29,27 +30,32 @@ export function useSwap({ quote }: UseSwapProps) {
 
       const { permitData } = quote
 
-      const payload = _TypedDataEncoder.getPayload(
+      const populated = await _TypedDataEncoder.resolveNames(
         permitData.domain,
         permitData.types,
-        permitData.values
+        permitData.values,
+        async (name: string) => name
+      )
+
+      const payload = _TypedDataEncoder.getPayload(
+        populated.domain,
+        permitData.types,
+        populated.value
       )
 
       console.log(payload)
 
       try {
-        const signature = await signTypedData(wagmiConfig, {
-          ...payload,
-          account: quote.user,
-        })
+        const signature = await signTypedData(wagmiConfig, payload)
         console.log('signature', signature)
-        const txHash = await swap(quote, signature, networks.poly.id)
-        console.log('txHash', txHash)
 
-        const txDetails = await getTxDetails(txHash, networks.poly.id, quote)
-        console.log('txDetails', txDetails)
-        updateStatus(SwapStepId.Swap, SwapStepStatus.Complete)
-        toast.success('Swap successful')
+        const txHash = await swap(quote, signature, networks.poly.id)
+
+        if (!txHash) {
+          throw new Error('Swap failed')
+        }
+
+        return await getTxDetails(txHash, networks.poly.id, quote)
       } catch (error) {
         console.log(error)
         updateStatus(SwapStepId.Swap, SwapStepStatus.Error)

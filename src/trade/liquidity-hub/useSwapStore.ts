@@ -31,6 +31,7 @@ type State = {
   steps: SwapStepItem[] | null
   quote: EnrichedQuote | null
   currentStepId: SwapStepId | null
+  swapSignature: string | null
 }
 
 type Actions = {
@@ -39,12 +40,14 @@ type Actions = {
   setCurrentStep: (stepId: SwapStepId) => void
   updateStatus: (stepId: SwapStepId, status: SwapStepStatus) => void
   appendCurrentStep: () => void
+  setSwapSignature: (signature: string) => void
 }
 
 const initialStore: State = {
   steps: null,
   quote: null,
   currentStepId: null,
+  swapSignature: null,
 }
 
 export const useSwapStore = create<
@@ -113,6 +116,7 @@ export const useSwapStore = create<
           }
         })
       },
+      setSwapSignature: (swapSignature) => set({ swapSignature }),
     }),
     {
       name: 'orbs-swap-store',

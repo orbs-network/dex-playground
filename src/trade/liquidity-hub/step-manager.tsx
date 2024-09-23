@@ -16,12 +16,14 @@ import { Button } from '@/components/ui/button'
 import { useApproveAllowance } from '@/lib/hooks/liquidity-hub/useApproveAllowance'
 import { XIcon } from 'lucide-react'
 import { useSwap } from '@/lib/hooks/liquidity-hub/useSwap'
+import { useProcessingSwap } from '@/lib/hooks/liquidity-hub/useProcessingSwap'
 
 export default function StepManager() {
   const reset = useSwapStore((state) => state.reset)
   const currentStepId = useSwapStore((state) => state.currentStepId)
   const steps = useSwapStore((state) => state.steps)
   const quote = useSwapStore((state) => state.quote)
+  const signature = useSwapStore((state) => state.swapSignature)
   const { mutate: wrapToken } = useWrapToken({
     account: quote?.user || '',
     srcAmount: BigInt(quote?.inAmount || 0),
@@ -32,6 +34,7 @@ export default function StepManager() {
     srcToken: quote?.inToken,
   })
   const { mutate: swapToken } = useSwap({ quote })
+  const { mutate: processSwap } = useProcessingSwap({ quote, signature })
 
   const canCancel = useMemo(() => {
     return steps?.every((step) => step.status === SwapStepStatus.Idle)
@@ -57,7 +60,20 @@ export default function StepManager() {
         break
       }
     }
-  }, [approve, currentStep, currentStepId, swapToken, wrapToken])
+  }, [approve, currentStep, currentStepId, processSwap, swapToken, wrapToken])
+
+  useEffect(() => {
+    if (!signature || !quote) return
+
+    if (
+      currentStep?.stepId !== SwapStepId.Swap ||
+      (currentStep?.stepId !== SwapStepId.Swap &&
+        currentStep?.status !== SwapStepStatus.Loading)
+    )
+      return
+
+    processSwap()
+  }, [currentStep?.status, currentStep?.stepId, processSwap, quote, signature])
 
   if (!quote || !steps) {
     return null
