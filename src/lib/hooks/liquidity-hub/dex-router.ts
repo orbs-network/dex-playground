@@ -43,7 +43,15 @@ export const useDexRouter = ({
             : destToken!,
           amount: srcAmount!,
           side: SwapSide.SELL,
-
+          options: {
+            includeDEXS: [
+              "quickswap",
+              "quickswapv3",
+              "quickswapv3.1",
+              "quickperps",
+            ],
+            partner: "quickswapv3",
+          },
         },
         signal
       );

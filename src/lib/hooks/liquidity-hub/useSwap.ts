@@ -8,8 +8,8 @@ import { useMutation } from '@tanstack/react-query'
 import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import { toast } from 'sonner'
-import { getTxDetails, Quote, swap } from '@orbs-network/liquidity-hub-sdk'
-import { networks } from '@/lib/networks'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import { useLiquidityHub } from './useLiquidityHub'
 
 type UseSwapProps = {
   quote: Quote | null
@@ -18,7 +18,7 @@ type UseSwapProps = {
 export function useSwap({ quote }: UseSwapProps) {
   const updateStatus = useSwapStore((state) => state.updateStatus)
   // const setSwapSignature = useSwapStore((state) => state.setSwapSignature)
-
+  const liquidityHub = useLiquidityHub()
   return useMutation({
     mutationKey: ['useSwap', ...Object.values(quote || {})],
     mutationFn: async () => {
@@ -48,14 +48,14 @@ export function useSwap({ quote }: UseSwapProps) {
         const signature = await signTypedData(wagmiConfig, payload)
         console.log('signature', signature)
 
-        const txHash = await swap(quote, signature, networks.poly.id)
+        const txHash = await liquidityHub.swap(quote, signature)
 
         if (!txHash) {
           throw new Error('Swap failed')
         }
         console.log('txHash', txHash)
 
-        const txDetails = await getTxDetails(txHash, networks.poly.id, quote)
+        const txDetails = await liquidityHub.getTransactionDetails(txHash, quote)
         console.log('txDetails', txDetails)
         updateStatus(SwapStepId.Swap, SwapStepStatus.Complete)
 

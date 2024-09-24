@@ -5,7 +5,7 @@ import {
 } from '@/trade/liquidity-hub/useSwapStore'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { waitForSwap } from './waitForSwap'
+import { useWaitForSwapCallback } from './useWaitForSwapCallback'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 type UseProcessingSwapProps = {
@@ -18,7 +18,7 @@ export function useProcessingSwap({
   signature,
 }: UseProcessingSwapProps) {
   const updateStatus = useSwapStore((state) => state.updateStatus)
-
+  const waitForSwap = useWaitForSwapCallback()
   return useMutation({
     mutationKey: ['useProcessingSwap', signature],
     mutationFn: async () => {

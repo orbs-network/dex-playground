@@ -1,12 +1,14 @@
-import { fetchQuote, QuoteArgs } from '@orbs-network/liquidity-hub-sdk'
+import { QuoteArgs } from '@orbs-network/liquidity-hub-sdk'
 import { useQuery } from '@tanstack/react-query'
 import { useWrapOrUnwrapOnly } from './useWrapOrUnwrapOnly'
 import { isNativeAddress } from '@/lib/utils'
 import { networks } from '@/lib/networks'
+import { useLiquidityHub } from './useLiquidityHub'
 
 export const QUOTE_REFETCH_INTERVAL = 20_000
 
 export function useQuote(args: QuoteArgs, lock = false) {
+  const liquidityHub = useLiquidityHub()
   const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(
     args.fromToken,
     args.toToken
@@ -15,11 +17,9 @@ export function useQuote(args: QuoteArgs, lock = false) {
   const enabled =
     !lock &&
     Boolean(
-      args.chainId &&
         args.fromToken &&
         args.toToken &&
         Number(args.inAmount) > 0 &&
-        args.partner &&
         !isUnwrapOnly &&
         !isWrapOnly
     )
@@ -44,7 +44,7 @@ export function useQuote(args: QuoteArgs, lock = false) {
     queryKey,
     queryFn: () => {
       console.log('fetching quote')
-      return fetchQuote(payload)
+      return liquidityHub.getQuote(payload)
     },
     enabled,
     refetchOnWindowFocus: false,
