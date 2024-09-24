@@ -16,7 +16,18 @@ import { SwapDetails } from './swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
 import { SwapStepStatus, useSwapStore } from './useSwapStore'
 import StepManager from './step-manager'
+import { useDexRouter } from '@/lib/hooks/liquidity-hub/dex-router'
+const slippage = 0.5
 
+const getDexMinAmountOut = (slippage: number, _destAmount: string) => {
+  const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)) // 0.5% becomes 995
+
+  // Convert priceRoute.destAmount to BigInt
+  const destAmount = BigInt(_destAmount)
+
+  // Calculate the minimum amount considering slippage
+  return ((destAmount * slippageFactor) / BigInt(1000)).toString()
+}
 export function LiquidityHub() {
   const { tokensWithBalances, isLoading } = useTokensWithBalances()
   const [srcToken, setSrcToken] = useState<Token | null>(null)
@@ -52,6 +63,23 @@ export function LiquidityHub() {
     }
   }, [resetSwapStore, steps])
 
+  const inAmount = useMemo(() => {
+    return debouncedSrcAmount
+      ? toBigNumber(debouncedSrcAmount, srcToken?.decimals)
+      : '0'
+  }, [debouncedSrcAmount, srcToken?.decimals])
+
+  const { data: dexQuote } = useDexRouter({
+    srcToken: srcToken?.address || '',
+    destToken: dstToken?.address || '',
+    srcAmount: inAmount,
+  })
+
+  const dexMinAmountOut = useMemo(
+    () => getDexMinAmountOut(slippage, dexQuote?.destAmount || "0"),
+    [dexQuote?.destAmount]
+  )
+
   const {
     data: quote,
     isFetching,
@@ -61,15 +89,19 @@ export function LiquidityHub() {
       chainId: 137,
       fromToken: srcToken?.address || '',
       toToken: dstToken?.address || '',
-      inAmount: debouncedSrcAmount
-        ? toBigNumber(debouncedSrcAmount, srcToken?.decimals)
-        : '0',
-      slippage: 0.5,
-      partner: 'widget',
+      inAmount,
+      slippage,
+      partner: "widget",
       account: account.address,
+      dexMinAmountOut,
     },
     Boolean(steps)
   )
+
+  //comparing liquidity hub min amount out with dex min amount out
+  const isLiquidityHubTrade = useMemo(() => {
+    return toBigInt(quote?.minAmountOut || 0) > BigInt(dexMinAmountOut)
+  }, [quote?.minAmountOut, dexMinAmountOut])
 
   const { srcAmountUsd, dstAmountUsd, dstAmount } = useMemo(() => {
     const srcAmountUsd = (Number(debouncedSrcAmount || 0) * (srcPriceUsd || 0))
@@ -89,7 +121,13 @@ export function LiquidityHub() {
       dstAmountUsd,
       dstAmount,
     }
-  }, [debouncedSrcAmount, srcPriceUsd, quote?.outAmount, dstToken, dstPriceUsd])
+  }, [
+    debouncedSrcAmount,
+    srcPriceUsd,
+    quote?.outAmount,
+    dstToken,
+    dstPriceUsd
+  ])
 
   const handleSwitch = useCallback(() => {
     setSrcToken(dstToken)

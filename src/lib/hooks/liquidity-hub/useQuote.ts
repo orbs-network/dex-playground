@@ -24,7 +24,14 @@ export function useQuote(args: QuoteArgs, lock = false) {
         !isWrapOnly
     )
 
-  const queryKey = ['quote', ...Object.values(args), lock]
+  const queryKey = [
+    'quote',
+    args.fromToken,
+    args.toToken,
+    args.inAmount,
+    args.slippage,
+    lock
+  ]
 
   const payload: QuoteArgs = {
     ...args,
