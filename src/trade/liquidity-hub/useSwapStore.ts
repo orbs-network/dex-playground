@@ -22,21 +22,23 @@ export type SwapStepItem = {
   status: SwapStepStatus
 }
 
-export type EnrichedQuote = Quote & {
-  outToken: Token
-  inToken: Token
-}
-
 type State = {
   steps: SwapStepItem[] | null
-  quote: EnrichedQuote | null
+  quote: Quote | null
   currentStepId: SwapStepId | null
   swapSignature: string | null
+  outToken: Token | null
+  inToken: Token | null
 }
 
 type Actions = {
   reset: () => void
-  beginSwap: (steps: SwapStepItem[], quote: EnrichedQuote | null) => void
+  beginSwap: (
+    steps: SwapStepItem[],
+    quote: Quote,
+    inToken: Token,
+    outToken: Token
+  ) => void
   setCurrentStep: (stepId: SwapStepId) => void
   updateStatus: (stepId: SwapStepId, status: SwapStepStatus) => void
   appendCurrentStep: () => void
@@ -48,6 +50,8 @@ const initialStore: State = {
   quote: null,
   currentStepId: null,
   swapSignature: null,
+  inToken: null,
+  outToken: null,
 }
 
 export const useSwapStore = create<
@@ -58,8 +62,8 @@ export const useSwapStore = create<
     (set) => ({
       ...initialStore,
       reset: () => set((state) => ({ ...state, ...initialStore })),
-      beginSwap: (steps, quote) => {
-        set({ steps, quote, currentStepId: steps[0].stepId })
+      beginSwap: (steps, quote, inToken, outToken) => {
+        set({ steps, quote, currentStepId: steps[0].stepId, inToken, outToken })
       },
       setCurrentStep: (currentStepId) => set({ currentStepId }),
       updateStatus: (stepId, status) => {

@@ -24,20 +24,26 @@ export default function StepManager() {
   const steps = useSwapStore((state) => state.steps)
   const quote = useSwapStore((state) => state.quote)
   const signature = useSwapStore((state) => state.swapSignature)
+  const inToken = useSwapStore((state) => state.inToken)
+  const outToken = useSwapStore((state) => state.outToken)
   const { mutate: wrapToken } = useWrapToken({
     account: quote?.user || '',
     srcAmount: BigInt(quote?.inAmount || 0),
-    srcToken: quote?.inToken || null,
+    srcToken: inToken,
   })
   const { mutate: approve } = useApproveAllowance({
     account: quote?.user,
-    srcToken: quote?.inToken,
+    srcToken: inToken,
   })
   const { mutate: swapToken } = useSwap({ quote })
   const { mutate: processSwap } = useProcessingSwap({ quote, signature })
 
   const canCancel = useMemo(() => {
     return steps?.every((step) => step.status === SwapStepStatus.Idle)
+  }, [steps])
+
+  const isComplete = useMemo(() => {
+    return steps?.every((step) => step.status === SwapStepStatus.Complete)
   }, [steps])
 
   const currentStep = steps?.find((step) => step.stepId === currentStepId)
@@ -75,7 +81,7 @@ export default function StepManager() {
     processSwap()
   }, [currentStep?.status, currentStep?.stepId, processSwap, quote, signature])
 
-  if (!quote || !steps) {
+  if (!quote || !steps || !inToken || !outToken) {
     return null
   }
 
@@ -94,17 +100,13 @@ export default function StepManager() {
         <DialogHeader>
           <DialogTitle>
             Buy{' '}
-            {format.crypto(
-              fromBigNumber(quote.outAmount, quote.outToken.decimals)
-            )}{' '}
-            {quote.outToken.symbol}
+            {format.crypto(fromBigNumber(quote.outAmount, outToken.decimals))}{' '}
+            {outToken.symbol}
           </DialogTitle>
           <DialogDescription>
             Sell{' '}
-            {format.crypto(
-              fromBigNumber(quote.inAmount, quote.inToken.decimals)
-            )}{' '}
-            {quote.inToken.symbol}
+            {format.crypto(fromBigNumber(quote.inAmount, inToken.decimals))}{' '}
+            {inToken.symbol}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -131,6 +133,11 @@ export default function StepManager() {
           {currentStep && currentStep.status === SwapStepStatus.Error && (
             <Button variant="secondary" onClick={reset}>
               Start over
+            </Button>
+          )}
+          {isComplete && (
+            <Button variant="secondary" onClick={reset}>
+              Done
             </Button>
           )}
         </div>

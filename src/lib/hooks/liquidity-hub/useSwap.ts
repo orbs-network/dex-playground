@@ -1,6 +1,5 @@
 import { wagmiConfig } from '@/lib/wagmi-config'
 import {
-  EnrichedQuote,
   SwapStepId,
   SwapStepStatus,
   useSwapStore,
@@ -9,11 +8,11 @@ import { useMutation } from '@tanstack/react-query'
 import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import { toast } from 'sonner'
-import { getTxDetails, swap } from '@orbs-network/liquidity-hub-sdk'
+import { getTxDetails, Quote, swap } from '@orbs-network/liquidity-hub-sdk'
 import { networks } from '@/lib/networks'
 
 type UseSwapProps = {
-  quote: EnrichedQuote | null
+  quote: Quote | null
 }
 
 export function useSwap({ quote }: UseSwapProps) {
@@ -54,8 +53,13 @@ export function useSwap({ quote }: UseSwapProps) {
         if (!txHash) {
           throw new Error('Swap failed')
         }
+        console.log('txHash', txHash)
 
-        return await getTxDetails(txHash, networks.poly.id, quote)
+        const txDetails = await getTxDetails(txHash, networks.poly.id, quote)
+        console.log('txDetails', txDetails)
+        updateStatus(SwapStepId.Swap, SwapStepStatus.Complete)
+
+        return txDetails
       } catch (error) {
         console.log(error)
         updateStatus(SwapStepId.Swap, SwapStepStatus.Error)

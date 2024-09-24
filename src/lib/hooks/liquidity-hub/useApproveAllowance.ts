@@ -19,7 +19,7 @@ import {
 
 type UseApproveAllowanceProps = {
   account: string | undefined
-  srcToken: Token | undefined
+  srcToken: Token | null
 }
 
 export function useApproveAllowance({

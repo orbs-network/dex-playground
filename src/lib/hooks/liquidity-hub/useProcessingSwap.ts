@@ -1,5 +1,4 @@
 import {
-  EnrichedQuote,
   SwapStepId,
   SwapStepStatus,
   useSwapStore,
@@ -7,9 +6,10 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { waitForSwap } from './waitForSwap'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 type UseProcessingSwapProps = {
-  quote: EnrichedQuote | null
+  quote: Quote | null
   signature: string | null
 }
 

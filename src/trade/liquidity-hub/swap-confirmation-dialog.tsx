@@ -16,7 +16,7 @@ import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
 import { SwapSteps } from './swap-steps'
-import { EnrichedQuote, useSwapStore } from './useSwapStore'
+import { useSwapStore } from './useSwapStore'
 import { useCallback, useMemo, useState } from 'react'
 import { getSteps } from './getSteps'
 import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
@@ -81,13 +81,10 @@ export function SwapConfirmationDialog({
   })
 
   const confirmSwap = useCallback(() => {
+    if (!quote || !srcToken || !dstToken) return
+
     console.log('confirm swap')
-    beginSwap(
-      steps,
-      quote && srcToken && dstToken
-        ? ({ ...quote, inToken: srcToken, outToken: dstToken } as EnrichedQuote)
-        : null
-    )
+    beginSwap(steps, quote, srcToken, dstToken)
     setOpen(false)
   }, [beginSwap, steps, quote, srcToken, dstToken])
 
