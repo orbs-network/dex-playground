@@ -5,6 +5,7 @@ type UsePriceImapctProps = {
   outAmountUsd?: string | number
 }
 
+// Calculates price impact of swap
 export function usePriceImpact({
   inAmountUsd,
   outAmountUsd,

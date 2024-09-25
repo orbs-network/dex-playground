@@ -5,7 +5,7 @@ import { usePriceImpact } from '@/trade/swap/liquidity-hub/usePriceImpact'
 import { format, fromBigNumber } from '@/lib/utils'
 import { Token } from '@/types'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
-import { useGetRequiresApproval } from './liquidity-hub/swap-flow/getRequiresApproval'
+import { useGetRequiresApproval } from './liquidity-hub/swap-flow/useGetRequiresApproval'
 
 export type SwapDetailsProps = {
   inToken: Token
@@ -35,7 +35,7 @@ export function SwapDetails({
     inAmountUsd,
   })
 
-  const {requiresApproval} = useGetRequiresApproval(quote)
+  const { requiresApproval } = useGetRequiresApproval(quote)
 
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,
