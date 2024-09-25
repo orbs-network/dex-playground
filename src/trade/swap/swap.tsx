@@ -10,7 +10,7 @@ import { usePriceUSD } from '@/lib/hooks/balances/usePriceUsd'
 import { useAccount } from 'wagmi'
 import { useDebounce } from '@/lib/hooks/utils'
 import { toBigNumber, fromBigNumber, format, toBigInt } from '@/lib/utils'
-import { ErrorCodes, getErrorMessage } from './liquidity-hub/errors'
+import { ErrorCodes, getSDKErrorMessage } from './liquidity-hub/errors'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { SwapDetails } from './swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
@@ -284,7 +284,7 @@ export function Swap() {
       )}
       {quoteError && (
         <div className="text-red-600">
-          {getErrorMessage(quoteError.message)}
+          {getSDKErrorMessage(quoteError.message)}
         </div>
       )}
       {outToken &&

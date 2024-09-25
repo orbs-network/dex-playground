@@ -2,7 +2,7 @@ export const enum ErrorCodes {
   InsufficientBalance = 'InsufficientBalance',
 }
 
-export function getErrorMessage(errorCode: string) {
+export function getSDKErrorMessage(errorCode: string) {
   switch (errorCode) {
     case 'ldv':
       return 'Minimum trade amount is $30'

@@ -9,7 +9,7 @@ import { Steps } from '../types'
 import { getSteps } from './getSteps'
 import { approveAllowance } from './approveAllowance'
 import { wrapToken } from './wrapToken'
-import { useLiquidityHubSDK } from '../liquidity-hub-sdk'
+import { useLiquidityHubSDK } from '../useLiquidityHubSDK'
 
 export function useSwap() {
   const liquidityHub = useLiquidityHubSDK()

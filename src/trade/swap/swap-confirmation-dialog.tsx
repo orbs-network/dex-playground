@@ -31,6 +31,7 @@ export type SwapConfirmationDialogProps = {
   currentStep?: Steps
 }
 
+// Construct steps for swap to display in UI
 const useSteps = (requiresApproval: boolean, inToken?: Token) => {
   return useMemo((): SwapStep[] => {
     if (!inToken) return []
