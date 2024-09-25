@@ -7,29 +7,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ErrorCodes } from './errors'
+import { ErrorCodes } from './liquidity-hub/errors'
 import { Token } from '@/types'
 import { format } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { DataDetails } from '@/components/ui/data-details'
-import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
+import { usePriceImpact } from '@/trade/swap/liquidity-hub/usePriceImpact'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
-import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
 import { SwapSteps } from './swap-steps'
-import { useSwapStore } from './useSwapStore'
 import { useCallback, useMemo, useState } from 'react'
-import { getSteps } from './getSteps'
-import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
+import { useEstimateTotalGas } from '@/trade/swap/liquidity-hub/gas/useEstimateTotalGas'
+import { useLiquidityHub } from './liquidity-hub/provider/useLiquidityHub'
+import { useGetRequiresApproval } from './liquidity-hub/swap-flow/getRequiresApproval'
+import { getSteps } from './liquidity-hub/swap-flow/getSteps'
+import { SwapStatus } from './liquidity-hub/types'
+import { useSwap } from './liquidity-hub/swap-flow/useSwap'
 
 export type SwapConfirmationDialogProps = {
-  srcToken: Token | null
-  dstToken: Token | null
-  dstAmount: string
-  srcAmount: string
-  srcAmountUsd: string
-  dstAmountUsd: string
-  quote?: Quote
-  dstPriceUsd?: number
+  inToken: Token
+  outToken: Token
+  outAmount: string
+  inAmount: string
+  inAmountUsd: string
+  outAmountUsd: string
+  quote: Quote
+  outPriceUsd?: number
   account: string
   quoteError: Error | null
   inputError: string | null
@@ -38,55 +40,48 @@ export type SwapConfirmationDialogProps = {
 export function SwapConfirmationDialog({
   quoteError,
   inputError,
-  srcAmount,
-  dstAmount,
-  srcToken,
-  dstToken,
+  inAmount,
+  outAmount,
+  inToken,
+  outToken,
   account,
   quote,
-  dstAmountUsd,
-  srcAmountUsd,
+  outAmountUsd,
+  inAmountUsd,
 }: SwapConfirmationDialogProps) {
   const [open, setOpen] = useState(false)
 
   const priceImpact = usePriceImpact({
-    dstAmountUsd,
-    srcAmountUsd,
+    outAmountUsd,
+    inAmountUsd,
   })
 
-  const { data: requiresApproval } = useRequiresApproval({
-    account,
-    tokenAddress: srcToken?.address || '',
-    srcToken,
-    srcAmount: Number(srcAmount),
-  })
+  const requiresApproval = useGetRequiresApproval(quote)
 
-  const _steps = useSwapStore((state) => state.steps)
+  const {
+    state: { steps: _steps, currentStep, status },
+    beginSwap,
+  } = useLiquidityHub()
 
   const steps = useMemo(() => {
-    if (!dstToken || !srcToken) return []
-
-    if (_steps) return _steps
-
-    return getSteps({ dstToken, requiresApproval, srcToken })
-  }, [_steps, dstToken, requiresApproval, srcToken])
-
-  const beginSwap = useSwapStore((state) => state.beginSwap)
+    return getSteps({ inTokenAddress: inToken.address, requiresApproval })
+  }, [inToken.address, requiresApproval])
 
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,
     quote,
-    srcToken,
+    inToken,
     requiresApproval,
   })
 
-  const confirmSwap = useCallback(() => {
-    if (!quote || !srcToken || !dstToken) return
+  const { mutate: swap } = useSwap()
 
+  const confirmSwap = useCallback(() => {
     console.log('confirm swap')
-    beginSwap(steps, quote, srcToken, dstToken)
+    beginSwap(quote, inToken, outToken, steps)
+    swap({ quote, status, inTokenAddress: inToken.address })
     setOpen(false)
-  }, [beginSwap, steps, quote, srcToken, dstToken])
+  }, [beginSwap, quote, inToken, outToken, steps, swap, status])
 
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
@@ -95,7 +90,7 @@ export function SwapConfirmationDialog({
           className="mt-2"
           size="lg"
           disabled={Boolean(
-            quoteError || inputError || !srcAmount || !dstAmount || _steps
+            quoteError || inputError || !inAmount || !outAmount || _steps
           )}
         >
           {inputError === ErrorCodes.InsufficientBalance
@@ -106,10 +101,10 @@ export function SwapConfirmationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Buy {format.crypto(Number(dstAmount))} {dstToken?.symbol}
+            Buy {format.crypto(Number(outAmount))} {outToken?.symbol}
           </DialogTitle>
           <DialogDescription>
-            Sell {format.crypto(Number(srcAmount))} {srcToken?.symbol}
+            Sell {format.crypto(Number(inAmount))} {inToken?.symbol}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
@@ -136,19 +131,25 @@ export function SwapConfirmationDialog({
               />
             </div>
           </Card>
-          {srcToken && dstToken && (
+          {steps && (
             <Card className="bg-slate-900">
               <div className="p-4">
                 <DataDetails
                   data={{
-                    Steps: <SwapSteps steps={steps} />,
+                    Steps: (
+                      <SwapSteps
+                        steps={steps}
+                        currentStep={currentStep}
+                        status={SwapStatus.Idle}
+                      />
+                    ),
                   }}
                 />
               </div>
             </Card>
           )}
           <Button size="lg" onClick={confirmSwap}>
-            Swap {srcToken?.symbol} for {dstToken?.symbol}
+            Swap {inToken?.symbol} for {outToken?.symbol}
           </Button>
         </div>
       </DialogContent>

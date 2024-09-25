@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LiquidityHub } from './liquidity-hub/liquidity-hub'
+import { Swap } from './swap/swap'
 
 export function Trade() {
   return (
@@ -13,7 +13,7 @@ export function Trade() {
           <TabsTrigger value="twap">Limit</TabsTrigger>
         </TabsList>
         <TabsContent value="swap">
-          <LiquidityHub />
+          <Swap />
         </TabsContent>
         <TabsContent value="twap">
           <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4">

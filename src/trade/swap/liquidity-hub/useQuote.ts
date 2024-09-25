@@ -30,7 +30,7 @@ export function useQuote(args: QuoteArgs, lock = false) {
     args.toToken,
     args.inAmount,
     args.slippage,
-    lock
+    lock,
   ]
 
   const payload: QuoteArgs = {

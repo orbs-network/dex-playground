@@ -5,7 +5,7 @@ import { Token, TokensWithBalances } from '@/types'
 import { NumericFormat } from 'react-number-format'
 import { format, cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
-import { ErrorCodes } from '@/trade/liquidity-hub/errors'
+import { ErrorCodes } from '@/trade/swap/liquidity-hub/errors'
 
 export type TokenCardProps = {
   label: string

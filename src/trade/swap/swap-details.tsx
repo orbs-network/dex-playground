@@ -1,60 +1,53 @@
 import { DataDetails } from '@/components/ui/data-details'
 import { Separator } from '@/components/ui/separator'
-import { useEstimateTotalGas } from '@/lib/hooks/liquidity-hub/useEstimateTotalGas'
-import { usePriceImpact } from '@/lib/hooks/liquidity-hub/usePriceImpact'
-import { useRequiresApproval } from '@/lib/hooks/liquidity-hub/useRequiresApproval'
+import { useEstimateTotalGas } from '@/trade/swap/liquidity-hub/gas/useEstimateTotalGas'
+import { usePriceImpact } from '@/trade/swap/liquidity-hub/usePriceImpact'
 import { format, fromBigNumber } from '@/lib/utils'
 import { Token } from '@/types'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import { useGetRequiresApproval } from './liquidity-hub/swap-flow/getRequiresApproval'
 
 export type SwapDetailsProps = {
-  srcToken: Token
-  srcPriceUsd: number
-  dstToken: Token
-  dstAmount: string
-  srcAmountUsd: string
-  dstAmountUsd: string
+  inToken: Token
+  inPriceUsd: number
+  outToken: Token
+  outAmount: string
+  inAmountUsd: string
+  outAmountUsd: string
   quote: Quote
-  dstPriceUsd: number
+  outPriceUsd: number
   account: string
-  srcAmount: string
 }
 
 export function SwapDetails({
-  srcToken,
-  srcPriceUsd,
-  dstAmount,
-  dstAmountUsd,
-  dstToken,
-  srcAmountUsd,
+  inToken,
+  inPriceUsd,
+  outAmount,
+  outAmountUsd,
+  outToken,
+  inAmountUsd,
   quote,
-  dstPriceUsd,
+  outPriceUsd,
   account,
-  srcAmount,
 }: SwapDetailsProps) {
   const priceImpact = usePriceImpact({
-    dstAmountUsd,
-    srcAmountUsd,
+    outAmountUsd,
+    inAmountUsd,
   })
 
-  const { data: requiresApproval } = useRequiresApproval({
-    account,
-    tokenAddress: srcToken?.address || '',
-    srcToken,
-    srcAmount: Number(srcAmount),
-  })
+  const requiresApproval = useGetRequiresApproval(quote)
 
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,
     quote,
-    srcToken,
+    inToken,
     requiresApproval,
   })
 
-  const rate = srcPriceUsd / dstPriceUsd
+  const rate = inPriceUsd / outPriceUsd
 
   let data: Record<string, React.ReactNode> = {
-    Rate: `1 ${srcToken.symbol} ≈ ${format.crypto(rate)} ${dstToken.symbol}`,
+    Rate: `1 ${inToken.symbol} ≈ ${format.crypto(rate)} ${outToken.symbol}`,
   }
 
   if (priceImpact) {
@@ -65,11 +58,11 @@ export function SwapDetails({
   }
 
   if (quote) {
-    const minDstAmount = fromBigNumber(quote.minAmountOut, dstToken.decimals)
+    const minoutAmount = fromBigNumber(quote.minAmountOut, outToken.decimals)
     data = {
       ...data,
-      'Est. Received': `${format.crypto(Number(dstAmount))} ${dstToken.symbol}`,
-      'Min. Received': `${format.crypto(minDstAmount)} ${dstToken.symbol}`,
+      'Est. Received': `${format.crypto(Number(outAmount))} ${outToken.symbol}`,
+      'Min. Received': `${format.crypto(minoutAmount)} ${outToken.symbol}`,
     }
 
     data = {

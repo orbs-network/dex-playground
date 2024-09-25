@@ -1,6 +1,6 @@
 import { networks } from '@/lib/networks'
 import { isNativeAddress, fromBigNumber } from '@/lib/utils'
-import { usePriceUSD } from '../balances/usePriceUsd'
+import { usePriceUSD } from '../../../../lib/hooks/balances/usePriceUsd'
 import { useEstimateGasForWrapToken } from './useEstimateGasForWrapToken'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import { Token } from '@/types'
@@ -9,14 +9,14 @@ import { useEstimateGasForApproval } from './useEstimateGasForApproval'
 type UseEstimateTotalGas = {
   account: string
   quote?: Quote
-  srcToken: Token | null
+  inToken: Token | null
   requiresApproval: boolean
 }
 
 export function useEstimateTotalGas({
   account,
   quote,
-  srcToken,
+  inToken,
   requiresApproval,
 }: UseEstimateTotalGas) {
   const { data: nativePriceUsd } = usePriceUSD(
@@ -27,7 +27,7 @@ export function useEstimateTotalGas({
   const { data: gasForWrap } = useEstimateGasForWrapToken({
     account,
     value: BigInt(quote?.inAmount || '0'),
-    enabled: Boolean(srcToken && isNativeAddress(srcToken.address)),
+    enabled: Boolean(inToken && isNativeAddress(inToken.address)),
   })
 
   const { data: gasForApproval } = useEstimateGasForApproval({

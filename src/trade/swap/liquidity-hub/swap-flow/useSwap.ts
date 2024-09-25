@@ -1,31 +1,57 @@
 import { wagmiConfig } from '@/lib/wagmi-config'
-import {
-  SwapStepId,
-  SwapStepStatus,
-  useSwapStore,
-} from '@/trade/liquidity-hub/useSwapStore'
+
 import { useMutation } from '@tanstack/react-query'
 import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import { toast } from 'sonner'
 import { getTxDetails, Quote, swap } from '@orbs-network/liquidity-hub-sdk'
 import { networks } from '@/lib/networks'
+import { useLiquidityHub } from '../provider/useLiquidityHub'
+import { Steps, SwapStatus } from '../types'
+import { getSteps } from './getSteps'
+import { getRequiresApproval } from './getRequiresApproval'
+import { approveAllowance } from './approveAllowance'
+import { wrapToken } from './wrapToken'
 
-type UseSwapProps = {
-  quote: Quote | null
-}
-
-export function useSwap({ quote }: UseSwapProps) {
-  const updateStatus = useSwapStore((state) => state.updateStatus)
-  // const setSwapSignature = useSwapStore((state) => state.setSwapSignature)
+export function useSwap() {
+  const { updateStatus, setCurrentStep, setSteps } = useLiquidityHub()
 
   return useMutation({
-    mutationKey: ['useSwap', ...Object.values(quote || {})],
-    mutationFn: async () => {
-      if (!quote) return
+    mutationFn: async ({
+      quote,
+      status,
+      inTokenAddress,
+    }: {
+      quote: Quote
+      status: SwapStatus
+      inTokenAddress: string
+    }) => {
+      console.log('swapping', quote, status)
+      console.log('inside', quote, status)
+      if (!quote || status === SwapStatus.Loading) return
 
-      console.log('starting swap', quote.permitData)
-      updateStatus(SwapStepId.Swap, SwapStepStatus.Loading)
+      updateStatus(SwapStatus.Loading)
+
+      // requiresApproval
+      const requiresApproval = await getRequiresApproval(quote)
+      // getSteps
+      const steps = getSteps({ inTokenAddress, requiresApproval })
+      setSteps(steps)
+
+      // wrapToken
+      if (steps.includes(Steps.Wrap)) {
+        setCurrentStep(Steps.Wrap)
+        await wrapToken(quote)
+      }
+
+      // approveAllowance
+      if (steps.includes(Steps.Approve)) {
+        setCurrentStep(Steps.Approve)
+        await approveAllowance(quote.user, quote.inToken)
+      }
+
+      // swap
+      setCurrentStep(Steps.Swap)
 
       const { permitData } = quote
 
@@ -57,12 +83,12 @@ export function useSwap({ quote }: UseSwapProps) {
 
         const txDetails = await getTxDetails(txHash, networks.poly.id, quote)
         console.log('txDetails', txDetails)
-        updateStatus(SwapStepId.Swap, SwapStepStatus.Complete)
+        updateStatus(SwapStatus.Success)
 
         return txDetails
       } catch (error) {
         console.log(error)
-        updateStatus(SwapStepId.Swap, SwapStepStatus.Error)
+        updateStatus(SwapStatus.Failed)
 
         const err = error as Error
         toast.error(
