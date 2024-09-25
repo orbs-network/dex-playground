@@ -93,6 +93,8 @@ export function useSwap() {
 
         setSwapStatus(SwapStatus.SUCCESS)
 
+        // TODO: maybe add a onSuccess callback so we can reset UI and fetch balances?
+
         return txDetails
       } catch (error) {
         console.error(error)
