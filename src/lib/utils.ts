@@ -49,8 +49,8 @@ export function eqIgnoreCase(a: string, b: string) {
   return a == b || a.toLowerCase() == b.toLowerCase()
 }
 
-export const isNativeAddress = (address: string) =>
-  !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address))
+export const isNativeAddress = (address?: string) =>
+  !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ''))
 
 const dollarDisplay = Intl.NumberFormat('en-US', {
   style: 'currency',

@@ -19,15 +19,18 @@ export async function getRequiresApproval(quote: Quote) {
   return (allowance || 0n) < BigInt(quote.inAmount)
 }
 
-export function useGetRequiresApproval(quote: Quote) {
-  const { data: allowance } = useReadContract({
-    address: (isNativeAddress(quote.inToken)
+export function useGetRequiresApproval(quote?: Quote) {
+  const { data: allowance, isLoading } = useReadContract({
+    address: (isNativeAddress(quote?.inToken)
       ? networks.poly.wToken.address
-      : quote.inToken) as Address,
+      : quote?.inToken) as Address,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: [quote.user as Address, permit2Address],
+    args: [quote?.user as Address, permit2Address],
   })
 
-  return (allowance || 0n) < BigInt(quote.inAmount)
+  return {
+    requiresApproval: (allowance || 0n) < BigInt(quote?.inAmount || 0),
+    approvalLoading: isLoading,
+  }
 }

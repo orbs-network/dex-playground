@@ -1,10 +1,11 @@
-import { Steps, SwapStatus } from './liquidity-hub/types'
+import { Steps } from './liquidity-hub/types'
 import { SwapStep } from './swap-step'
+import {SwapStatus} from "@orbs-network/swap-ui"
 
 type SwapStepsProps = {
   steps: Steps[]
   currentStep: Steps | null
-  status: SwapStatus
+  status?: SwapStatus
 }
 
 export function SwapSteps({ steps, currentStep, status }: SwapStepsProps) {
@@ -19,10 +20,10 @@ export function SwapSteps({ steps, currentStep, status }: SwapStepsProps) {
           isCurrent={step === currentStep}
           isSuccess={
             index === steps.length - 1
-              ? status === SwapStatus.Success
+              ? status === SwapStatus.SUCCESS
               : index < currentStepIndex && currentStep !== null
           }
-          isFailed={status === SwapStatus.Failed && step === currentStep}
+          isFailed={status === SwapStatus.FAILED && step === currentStep}
         />
       ))}
     </div>

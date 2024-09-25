@@ -35,7 +35,7 @@ export function SwapDetails({
     inAmountUsd,
   })
 
-  const requiresApproval = useGetRequiresApproval(quote)
+  const {requiresApproval} = useGetRequiresApproval(quote)
 
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,

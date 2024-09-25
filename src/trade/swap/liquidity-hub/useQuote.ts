@@ -1,50 +1,58 @@
-import { fetchQuote, QuoteArgs } from '@orbs-network/liquidity-hub-sdk'
-import { useQuery } from '@tanstack/react-query'
-import { useWrapOrUnwrapOnly } from './useWrapOrUnwrapOnly'
-import { isNativeAddress } from '@/lib/utils'
-import { networks } from '@/lib/networks'
+import { QuoteArgs } from "@orbs-network/liquidity-hub-sdk";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWrapOrUnwrapOnly } from "./useWrapOrUnwrapOnly";
+import { isNativeAddress } from "@/lib/utils";
+import { networks } from "@/lib/networks";
+import { useLiquidityHubSDK } from "./liquidity-hub-sdk";
+import { useAccount } from "wagmi";
+import { useCallback, useMemo } from "react";
 
-export const QUOTE_REFETCH_INTERVAL = 20_000
+export const QUOTE_REFETCH_INTERVAL = 20_000;
 
-export function useQuote(args: QuoteArgs, lock = false) {
+export function useQuote(args: QuoteArgs) {
+  const sdk = useLiquidityHubSDK();
+  const queryClient = useQueryClient();
+  const { chainId } = useAccount();
   const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(
     args.fromToken,
     args.toToken
-  )
+  );
 
   const enabled =
-    !lock &&
     Boolean(
-      args.chainId &&
+      chainId &&
         args.fromToken &&
         args.toToken &&
         Number(args.inAmount) > 0 &&
-        args.partner &&
         !isUnwrapOnly &&
         !isWrapOnly
-    )
+    );
 
   const queryKey = [
-    'quote',
+    "quote",
     args.fromToken,
     args.toToken,
     args.inAmount,
     args.slippage,
-    lock,
-  ]
+  ];
 
-  const payload: QuoteArgs = {
-    ...args,
-    fromToken: isNativeAddress(args.fromToken)
-      ? networks.poly.wToken.address
-      : args.fromToken,
-  }
-
-  return useQuery({
+  const getQuote = useCallback(
+    (signal: AbortSignal) => {
+      const payload: QuoteArgs = {
+        ...args,
+        fromToken: isNativeAddress(args.fromToken)
+          ? networks.poly.wToken.address
+          : args.fromToken,
+      };
+      return sdk.getQuote({ ...payload, signal });
+    },
+    [sdk, args]
+  );
+  const query = useQuery({
     queryKey,
-    queryFn: () => {
-      console.log('fetching quote')
-      return fetchQuote(payload)
+    queryFn: ({ signal }) => {
+      console.log("fetching quote");
+      return getQuote(signal);
     },
     enabled,
     refetchOnWindowFocus: false,
@@ -52,5 +60,16 @@ export function useQuote(args: QuoteArgs, lock = false) {
     gcTime: 0,
     retry: 2,
     refetchInterval: QUOTE_REFETCH_INTERVAL,
-  })
+  });
+
+  return useMemo(() => {
+    return {
+      ...query,
+      getLatestQuote: () =>
+        queryClient.ensureQueryData({
+          queryKey,
+          queryFn: ({ signal }) => getQuote(signal),
+        }),
+    };
+  }, [query, queryClient, queryKey, getQuote]);
 }

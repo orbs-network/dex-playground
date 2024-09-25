@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {SwapStatus} from "@orbs-network/swap-ui"
 import { Card } from '@/components/ui/card'
 import { DataDetails } from '@/components/ui/data-details'
 import { format, fromBigNumber } from '@/lib/utils'
@@ -13,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import { XIcon } from 'lucide-react'
 import { useLiquidityHub } from './liquidity-hub/provider/useLiquidityHub'
 import { useMemo } from 'react'
-import { SwapStatus } from './liquidity-hub/types'
 
 export function SwapFlow() {
   const {
@@ -29,7 +29,7 @@ export function SwapFlow() {
   } = useLiquidityHub()
 
   const canCancel = useMemo(() => {
-    return status !== SwapStatus.Loading
+    return status !== SwapStatus.LOADING
   }, [status])
 
   console.log('swap flow')
@@ -40,7 +40,7 @@ export function SwapFlow() {
   console.log('show swap flow')
 
   return (
-    <Dialog modal open={Boolean(status !== SwapStatus.Idle)}>
+    <Dialog modal open={Boolean(status)}>
       <DialogContent hideClose>
         {canCancel && (
           <div
@@ -90,12 +90,12 @@ export function SwapFlow() {
               />
             </div>
           </Card>
-          {status === SwapStatus.Failed && (
+          {status === SwapStatus.FAILED && (
             <Button variant="secondary" onClick={reset}>
               Start over
             </Button>
           )}
-          {status === SwapStatus.Success && (
+          {status === SwapStatus.SUCCESS && (
             <Button variant="secondary" onClick={reset}>
               Done
             </Button>

@@ -1,17 +1,11 @@
 import { createContext } from 'react'
-
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import {SwapStatus} from "@orbs-network/swap-ui"
 import { useReducer } from 'react'
-import { SwapStatus, Actions, State, Steps } from '../types'
-import { Token } from '@/types'
+import { Actions, State, Steps } from '../types'
 
 const initialState: State = {
   steps: null,
-  acceptedQuote: null,
   currentStep: null,
-  inToken: null,
-  outToken: null,
-  status: SwapStatus.Idle,
 }
 
 function reducer(
@@ -42,22 +36,6 @@ const useLiquidityHubState = () => {
   const setSteps = (steps: Steps[]) =>
     dispatch({ type: Actions.SetSteps, payload: { steps } })
 
-  const beginSwap = (
-    quote: Quote,
-    inToken: Token,
-    outToken: Token,
-    steps: Steps[]
-  ) =>
-    dispatch({
-      type: Actions.BeginSwap,
-      payload: {
-        acceptedQuote: quote,
-        inToken,
-        outToken,
-        steps,
-        currentStep: steps[0],
-      },
-    })
 
   const updateStatus = (status: SwapStatus) =>
     dispatch({ type: Actions.UpdateStatus, payload: { status } })
@@ -67,7 +45,6 @@ const useLiquidityHubState = () => {
     reset,
     setCurrentStep,
     setSteps,
-    beginSwap,
     updateStatus,
   }
 }
@@ -76,12 +53,6 @@ type LiquidityHubContextValues = {
   state: State
   reset: () => void
   setCurrentStep: (step: Steps) => void
-  beginSwap: (
-    quote: Quote,
-    inToken: Token,
-    outToken: Token,
-    steps: Steps[]
-  ) => void
   setSteps: (steps: Steps[]) => void
   updateStatus: (status: SwapStatus) => void
 }
