@@ -52,7 +52,6 @@ export function useQuote(args: QuoteArgs) {
           ? networks.poly.wToken.address
           : args.fromToken,
       }
-      console.log('Fetching Liquidity Hub quote...')
       return liquidityHub.getQuote({ ...payload, signal })
     },
     [liquidityHub, args]

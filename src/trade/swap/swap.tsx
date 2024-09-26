@@ -26,11 +26,13 @@ import {
   useTokensWithBalances,
 } from '@/lib'
 import './style.css'
+import { useQueryClient } from '@tanstack/react-query'
 
 const slippage = 0.5
 
 export function Swap() {
-  const { tokensWithBalances, isLoading, refetch } = useTokensWithBalances()
+  const queryClient = useQueryClient()
+  const { tokensWithBalances, isLoading, queryKey } = useTokensWithBalances()
   const [inToken, setInToken] = useState<Token | null>(null)
   const [outToken, setOutToken] = useState<Token | null>(null)
   const [inputAmount, setInputAmount] = useState<string>('')
@@ -80,8 +82,8 @@ export function Swap() {
     setInputError(null)
     setCurrentStep(undefined)
     setSwapStatus(undefined)
-    refetch()
-  }, [refetch])
+    queryClient.invalidateQueries({ queryKey })
+  }, [queryClient, queryKey])
 
   /* --------- Quote ---------- */
   // The entered input amount has to be converted to a big int string

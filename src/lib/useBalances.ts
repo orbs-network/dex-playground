@@ -23,8 +23,6 @@ export const queryFnUseBalances = async ({
 }: QueryBalanceParams) => {
   if (!account || !chainId || !tokens) return null
 
-  console.log('Fetching balances...')
-
   let native = nativeBalance
   if (typeof native === 'undefined') {
     native = await getBalance(config, {
@@ -92,7 +90,7 @@ export const useBalances = ({
   account,
   enabled = true,
 }: UseBalanceParams) => {
-  const { data: nativeBalance } = useBalance({
+  const { data: nativeBalance, queryKey } = useBalance({
     chainId,
     address: account,
     query: { enabled, refetchInterval: 10000, staleTime: 10000 },
@@ -100,21 +98,24 @@ export const useBalances = ({
 
   const config = useConfig()
 
-  return useQuery({
-    queryKey: [
-      'useBalances',
-      { chainId, tokens, account, nativeBalance: serialize(nativeBalance) },
-    ],
-    queryFn: () =>
-      queryFnUseBalances({
-        chainId,
-        tokens,
-        account,
-        nativeBalance,
-        config,
-      }),
-    refetchInterval: 10000,
-    staleTime: 10000,
-    enabled: Boolean(chainId && account && enabled && tokens),
-  })
+  return {
+    query: useQuery({
+      queryKey: [
+        'useBalances',
+        { chainId, tokens, account, nativeBalance: serialize(nativeBalance) },
+      ],
+      queryFn: () =>
+        queryFnUseBalances({
+          chainId,
+          tokens,
+          account,
+          nativeBalance,
+          config,
+        }),
+      refetchInterval: 10000,
+      staleTime: 10000,
+      enabled: Boolean(chainId && account && enabled && tokens),
+    }),
+    queryKey: [...queryKey, 'useBalances'],
+  }
 }
