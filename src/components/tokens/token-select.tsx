@@ -27,9 +27,16 @@ export function TokenSelect({
   onSelectToken,
 }: TokenSelectProps) {
   const [open, setOpen] = useState(false)
+  const [filterInput, setFilterInput] = useState('')
 
   const SortedTokens = useMemo(() => {
     return Object.values(tokens)
+      .filter((t) => {
+        return (
+          t.token.symbol.toLowerCase().includes(filterInput.toLowerCase()) ||
+          t.token.address.toLowerCase().includes(filterInput.toLowerCase())
+        )
+      })
       .sort(
         (a, b) =>
           fromBigNumber(b.balance, b.token.decimals) -
@@ -59,7 +66,7 @@ export function TokenSelect({
           <div>{fromBigNumber(t.balance, t.token.decimals).toFixed(5)}</div>
         </Card>
       ))
-  }, [onSelectToken, tokens])
+  }, [filterInput, onSelectToken, tokens])
 
   return (
     <Dialog modal={true} open={open} onOpenChange={(o) => setOpen(o)}>
@@ -86,14 +93,17 @@ export function TokenSelect({
           <ChevronDownIcon className="h-6 w-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="lg:max-w-screen-sm max-h-[80vh] flex flex-col justify-start">
+      <DialogContent className="lg:max-w-screen-sm h-[80vh] flex flex-col justify-start">
         <DialogHeader>
           <DialogTitle>Select a token</DialogTitle>
           <DialogDescription>
             Select a token from our default list or search for a token by symbol
             or address.
           </DialogDescription>
-          <Input />
+          <Input
+            value={filterInput}
+            onChange={(e) => setFilterInput(e.target.value)}
+          />
         </DialogHeader>
         <div className="relative flex flex-1 flex-col flex-grow gap-2 overflow-y-scroll pr-3">
           {SortedTokens}
