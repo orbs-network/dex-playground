@@ -22,6 +22,7 @@ export async function wrapToken(quote: Quote) {
       value: BigInt(quote.inAmount),
     })
 
+    // Perform the deposit contract function
     const txHash = await writeContract(wagmiConfig, simulatedData.request)
     console.log('wrapToken', txHash)
 

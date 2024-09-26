@@ -1845,15 +1845,15 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@orbs-network/liquidity-hub-sdk@^1.0.10":
-  version "1.0.10"
-  resolved "https://registry.npmjs.org/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.10.tgz"
-  integrity sha512-hqrZEuXyJ6qWxk5fgHM5iPHjJXzKeKpH8pQMTBgJmlKH3MVcpqdIZtt3sNpNjHsfnOOezi7hZ1RrsX6F9Al4VA==
+"@orbs-network/liquidity-hub-sdk@^1.0.39":
+  version "1.0.39"
+  resolved "https://registry.npmjs.org/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.39.tgz"
+  integrity sha512-cVTdRY1o8Vqf8iYBSwdZi8rZphNWEjjQ4xlgb3wNF/WKCxB27Zw5y6/CqTjRbC+0Oexny6vxKQ9mnF01nUsnRA==
 
-"@orbs-network/swap-ui@^0.0.9":
-  version "0.0.9"
-  resolved "https://registry.npmjs.org/@orbs-network/swap-ui/-/swap-ui-0.0.9.tgz"
-  integrity sha512-sAuAwuH/PAq/+xMFuHC0WByTr27Yc4hUgAhkZ1GiwW94HsADQRRhHst8jdZdUARZbyaaEQtpE4OrPVtMrlvUxA==
+"@orbs-network/swap-ui@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.npmjs.org/@orbs-network/swap-ui/-/swap-ui-0.0.10.tgz"
+  integrity sha512-2WCthM9sT/7RnzU2eRAvOyFnYGCrpLtBDl1XId4pOaWTx6797vrwN3g2E2XraDe1iFzUhrN5lFY4lrW31bfxZw==
 
 "@paraswap/core@2.2.0":
   version "2.2.0"

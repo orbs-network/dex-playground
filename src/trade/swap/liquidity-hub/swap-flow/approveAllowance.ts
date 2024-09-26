@@ -25,6 +25,7 @@ export async function approveAllowance(account: string, inToken: string) {
         : inToken) as Address,
     })
 
+    // Perform the approve contract function
     const txHash = await writeContract(wagmiConfig, simulatedData.request)
     console.log('approve', txHash)
 

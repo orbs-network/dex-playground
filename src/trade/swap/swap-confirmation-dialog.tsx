@@ -1,71 +1,91 @@
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { ErrorCodes } from './liquidity-hub/errors'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Token } from '@/types'
 import { format } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
-import { DataDetails } from '@/components/ui/data-details'
 import { usePriceImpact } from '@/trade/swap/liquidity-hub/usePriceImpact'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
-import { SwapSteps } from './swap-steps'
-import { useCallback, useMemo, useState } from 'react'
+import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
+import { useMemo } from 'react'
 import { useEstimateTotalGas } from '@/trade/swap/liquidity-hub/gas/useEstimateTotalGas'
-import { useLiquidityHub } from './liquidity-hub/provider/useLiquidityHub'
-import { useGetRequiresApproval } from './liquidity-hub/swap-flow/getRequiresApproval'
+import { DataDetails } from '@/components/ui/data-details'
+import { Steps } from './liquidity-hub/types'
 import { getSteps } from './liquidity-hub/swap-flow/getSteps'
-import { SwapStatus } from './liquidity-hub/types'
-import { useSwap } from './liquidity-hub/swap-flow/useSwap'
 
 export type SwapConfirmationDialogProps = {
   inToken: Token
   outToken: Token
-  outAmount: string
   inAmount: string
+  outAmount: string
   inAmountUsd: string
   outAmountUsd: string
-  quote: Quote
+  quote?: Quote
   outPriceUsd?: number
   account: string
-  quoteError: Error | null
-  inputError: string | null
+  isOpen: boolean
+  onClose: () => void
+  confirmSwap: () => void
+  requiresApproval: boolean
+  approvalLoading: boolean
+  swapStatus?: SwapStatus
+  currentStep?: Steps
+}
+
+// Construct steps for swap to display in UI
+const useSteps = (requiresApproval: boolean, inToken?: Token) => {
+  return useMemo((): SwapStep[] => {
+    if (!inToken) return []
+
+    const steps = getSteps({
+      inTokenAddress: inToken.address,
+      requiresApproval,
+    })
+    return steps.map((step) => {
+      if (step === Steps.Wrap) {
+        return {
+          id: Steps.Wrap,
+          title: 'Wrap',
+          description: `Wrap ${inToken.symbol}`,
+          image: inToken?.logoUrl,
+        }
+      }
+      if (step === Steps.Approve) {
+        return {
+          id: Steps.Approve,
+          title: 'Approve',
+          description: `Approve ${inToken.symbol}`,
+          image: inToken?.logoUrl,
+        }
+      }
+      return {
+        id: Steps.Swap,
+        title: 'Swap',
+        description: `Swap ${inToken.symbol}`,
+        image: inToken?.logoUrl,
+        timeout: 40_000,
+      }
+    })
+  }, [inToken, requiresApproval])
 }
 
 export function SwapConfirmationDialog({
-  quoteError,
-  inputError,
-  inAmount,
-  outAmount,
   inToken,
   outToken,
   account,
   quote,
   outAmountUsd,
   inAmountUsd,
+  isOpen,
+  onClose,
+  inAmount,
+  outAmount,
+  confirmSwap,
+  requiresApproval,
+  approvalLoading,
+  swapStatus,
+  currentStep,
 }: SwapConfirmationDialogProps) {
-  const [open, setOpen] = useState(false)
-
-  const priceImpact = usePriceImpact({
-    outAmountUsd,
-    inAmountUsd,
-  })
-
-  const requiresApproval = useGetRequiresApproval(quote)
-
-  const {
-    state: { steps: _steps, currentStep, status },
-    beginSwap,
-  } = useLiquidityHub()
-
-  const steps = useMemo(() => {
-    return getSteps({ inTokenAddress: inToken.address, requiresApproval })
-  }, [inToken.address, requiresApproval])
+  const steps = useSteps(requiresApproval, inToken)
 
   const { totalGasFeeUsd } = useEstimateTotalGas({
     account,
@@ -74,83 +94,79 @@ export function SwapConfirmationDialog({
     requiresApproval,
   })
 
-  const { mutate: swap } = useSwap()
-
-  const confirmSwap = useCallback(() => {
-    console.log('confirm swap')
-    beginSwap(quote, inToken, outToken, steps)
-    swap({ quote, status, inTokenAddress: inToken.address })
-    setOpen(false)
-  }, [beginSwap, quote, inToken, outToken, steps, swap, status])
+  const priceImpact = usePriceImpact({
+    outAmountUsd,
+    inAmountUsd,
+  })
 
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-      <DialogTrigger asChild>
-        <Button
-          className="mt-2"
-          size="lg"
-          disabled={Boolean(
-            quoteError || inputError || !inAmount || !outAmount || _steps
-          )}
-        >
-          {inputError === ErrorCodes.InsufficientBalance
-            ? 'Insufficient balance'
-            : 'Swap'}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            Buy {format.crypto(Number(outAmount))} {outToken?.symbol}
-          </DialogTitle>
-          <DialogDescription>
-            Sell {format.crypto(Number(inAmount))} {inToken?.symbol}
-          </DialogDescription>
-        </DialogHeader>
+        <DialogTitle>Swap</DialogTitle>
         <div className="flex flex-col gap-4">
-          <Card className="bg-slate-900">
-            <div className="p-4">
-              <DataDetails
-                data={{
-                  Network: 'Polygon',
-                  'Price Impact': `${priceImpact}%`,
-                  'Gas Fee':
-                    totalGasFeeUsd > 0.01
-                      ? format.dollar(totalGasFeeUsd)
-                      : '< $0.01',
-                }}
-              />
-            </div>
-          </Card>
-          <Card className="bg-slate-900">
-            <div className="p-4">
-              <DataDetails
-                data={{
-                  Recipient: format.address(account),
-                }}
-              />
-            </div>
-          </Card>
-          {steps && (
-            <Card className="bg-slate-900">
-              <div className="p-4">
-                <DataDetails
-                  data={{
-                    Steps: (
-                      <SwapSteps
-                        steps={steps}
-                        currentStep={currentStep}
-                        status={SwapStatus.Idle}
-                      />
-                    ),
-                  }}
+          <div className="p-4">
+            <SwapFlow
+              inAmount={inAmount}
+              outAmount={outAmount}
+              mainContent={
+                <SwapFlow.Main
+                  fromTitle="Sell"
+                  toTitle="Buy"
+                  steps={steps}
+                  inUsd={inAmountUsd}
+                  outUsd={outAmountUsd}
+                  currentStep={currentStep as number}
                 />
-              </div>
-            </Card>
+              }
+              swapStatus={swapStatus}
+              successContent={<SwapFlow.Success explorerUrl="/" />}
+              failedContent={<SwapFlow.Failed />}
+              inToken={{
+                symbol: inToken.symbol,
+                logo: inToken.logoUrl,
+              }}
+              outToken={{
+                symbol: outToken.symbol,
+                logo: outToken.logoUrl,
+              }}
+            />
+          </div>
+
+          {!swapStatus && (
+            <>
+              <Card className="bg-slate-900">
+                <div className="p-4">
+                  <DataDetails
+                    data={{
+                      Network: 'Polygon',
+                      'Price Impact': `${priceImpact}%`,
+                      'Gas Fee':
+                        totalGasFeeUsd > 0.01
+                          ? format.dollar(totalGasFeeUsd)
+                          : '< $0.01',
+                    }}
+                  />
+                </div>
+              </Card>
+              <Card className="bg-slate-900">
+                <div className="p-4">
+                  <DataDetails
+                    data={{
+                      Recipient: format.address(account),
+                    }}
+                  />
+                </div>
+              </Card>
+
+              <Button
+                size="lg"
+                onClick={() => confirmSwap()}
+                disabled={approvalLoading}
+              >
+                Swap {inToken?.symbol} for {outToken?.symbol}
+              </Button>
+            </>
           )}
-          <Button size="lg" onClick={confirmSwap}>
-            Swap {inToken?.symbol} for {outToken?.symbol}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
