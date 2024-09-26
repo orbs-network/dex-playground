@@ -6,7 +6,6 @@ import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { SwapSteps } from '@/types'
-
 import { Address, erc20Abi, maxUint256 } from 'viem'
 import {
   wagmiConfig,
@@ -16,11 +15,20 @@ import {
   isNativeAddress,
   promiseWithTimeout,
   getSteps,
+  getErrorMessage,
 } from '@/lib'
 
-async function wrapToken(quote: Quote) {
+// Analytics events are optional for integration but are useful for your business insights
+type AnalyticsEvents = {
+  onRequest: () => void
+  onSuccess: (result?: string) => void
+  onFailure: (error: string) => void
+}
+
+async function wrapToken(quote: Quote, analyticsEvents: AnalyticsEvents) {
   try {
     console.log('Wrapping token...')
+    analyticsEvents.onRequest()
     // Simulate the contract to check if there would be any errors
     const simulatedData = await simulateContract(wagmiConfig, {
       abi: IWETHabi,
@@ -36,26 +44,29 @@ async function wrapToken(quote: Quote) {
     // Check for confirmations for a maximum of 20 seconds
     await waitForConfirmations(txHash, 1, 20)
     console.log('Token wrapped')
+    analyticsEvents.onSuccess()
 
     return txHash
   } catch (error) {
     console.error(error)
-
-    const err = error as Error
-    toast.error(
-      'message' in err
-        ? err.message.length > 100
-          ? `${err.message.slice(0, 100)}...`
-          : err.message
-        : 'An error occurred while wrapping your token'
+    const errorMessage = getErrorMessage(
+      error,
+      'An error occurred while wrapping your token'
     )
+    toast.error(errorMessage)
+    analyticsEvents.onFailure(errorMessage)
     throw error
   }
 }
 
-async function approveAllowance(account: string, inToken: string) {
+async function approveAllowance(
+  account: string,
+  inToken: string,
+  analyticsEvents: AnalyticsEvents
+) {
   try {
     console.log('Approving allowance...')
+    analyticsEvents.onRequest()
     // Simulate the contract to check if there would be any errors
     const simulatedData = await simulateContract(wagmiConfig, {
       abi: erc20Abi,
@@ -74,22 +85,22 @@ async function approveAllowance(account: string, inToken: string) {
     // Check for confirmations for a maximum of 20 seconds
     await waitForConfirmations(txHash, 1, 20)
 
+    analyticsEvents.onSuccess(txHash)
     return txHash
   } catch (error) {
     console.error(error)
 
-    const err = error as Error
-    toast.error(
-      'message' in err
-        ? err.message.length > 100
-          ? `${err.message.slice(0, 100)}...`
-          : err.message
-        : 'An error occurred while wrapping your token'
+    const errorMessage = getErrorMessage(
+      error,
+      'An error occurred while approving your allowance'
     )
+    toast.error(errorMessage)
+    analyticsEvents.onFailure(errorMessage)
+    throw error
   }
 }
 
-async function signTransaction(quote: Quote) {
+async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
   // Encode the payload to get signature
   const { permitData } = quote
   const populated = await _TypedDataEncoder.resolveNames(
@@ -106,6 +117,7 @@ async function signTransaction(quote: Quote) {
 
   try {
     console.log('Signing transaction...')
+    analyticsEvents.onRequest()
 
     // Sign transaction and get signature
     const signature = await promiseWithTimeout(
@@ -114,19 +126,19 @@ async function signTransaction(quote: Quote) {
     )
 
     console.log('Transaction signed')
+    analyticsEvents.onSuccess(signature)
 
     return signature
   } catch (error) {
     console.error(error)
 
-    const err = error as Error
-    toast.error(
-      'message' in err
-        ? err.message.length > 100
-          ? `${err.message.slice(0, 100)}...`
-          : err.message
-        : 'An error occurred while getting the signature'
+    const errorMessage = getErrorMessage(
+      error,
+      'An error occurred while getting the signature'
     )
+    toast.error(errorMessage)
+    analyticsEvents.onFailure(errorMessage)
+    throw error
   }
 }
 
@@ -166,14 +178,22 @@ export function useSwap() {
       // If the inToken needs to be wrapped then wrap
       if (steps.includes(SwapSteps.Wrap)) {
         setCurrentStep(SwapSteps.Wrap)
-        await wrapToken(quote)
+        await wrapToken(quote, {
+          onRequest: liquidityHub.analytics.onWrapRequest,
+          onSuccess: liquidityHub.analytics.onWrapSuccess,
+          onFailure: liquidityHub.analytics.onWrapFailure,
+        })
       }
 
       // If an appropriate allowance for inToken has not been approved
       // then get user to approve
       if (steps.includes(SwapSteps.Approve)) {
         setCurrentStep(SwapSteps.Approve)
-        await approveAllowance(quote.user, quote.inToken)
+        await approveAllowance(quote.user, quote.inToken, {
+          onRequest: liquidityHub.analytics.onApprovalRequest,
+          onSuccess: liquidityHub.analytics.onApprovalSuccess,
+          onFailure: liquidityHub.analytics.onApprovalFailed,
+        })
       }
 
       // Fetch the latest quote again after the approval
@@ -184,7 +204,12 @@ export function useSwap() {
       setCurrentStep(SwapSteps.Swap)
 
       // Sign the transaction for the swap
-      const signature = await signTransaction(latestQuote)
+      const signature = await signTransaction(latestQuote, {
+        onRequest: liquidityHub.analytics.onSignatureRequest,
+        onSuccess: (signature) =>
+          liquidityHub.analytics.onSignatureSuccess(signature || ''),
+        onFailure: liquidityHub.analytics.onSignatureFailed,
+      })
 
       try {
         console.log('Swapping...')
@@ -204,14 +229,12 @@ export function useSwap() {
       } catch (error) {
         console.error(error)
         setSwapStatus(SwapStatus.FAILED)
-        const err = error as Error
-        toast.error(
-          'message' in err
-            ? err.message.length > 100
-              ? `${err.message.slice(0, 100)}...`
-              : err.message
-            : 'An error occurred while swapping your token'
+
+        const errorMessage = getErrorMessage(
+          error,
+          'An error occurred while swapping your tokens'
         )
+        toast.error(errorMessage)
         if (onFailure) onFailure()
       }
 

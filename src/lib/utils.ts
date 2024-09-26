@@ -173,3 +173,13 @@ export async function waitForConfirmations(
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 }
+
+export function getErrorMessage(
+  error: unknown,
+  placeholder = 'An unknown error occurred'
+) {
+  const err = error as Error
+  const errorMessage = 'message' in err ? err.message : placeholder
+
+  return errorMessage
+}

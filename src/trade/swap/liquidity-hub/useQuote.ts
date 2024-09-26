@@ -10,7 +10,7 @@ export const QUOTE_REFETCH_INTERVAL = 20_000
 
 // Fetches quote using Liquidity Hub sdk
 export function useQuote(args: QuoteArgs) {
-  const sdk = useLiquidityHubSDK()
+  const liquidityHub = useLiquidityHubSDK()
   const queryClient = useQueryClient()
   const { chainId } = useAccount()
 
@@ -53,9 +53,9 @@ export function useQuote(args: QuoteArgs) {
           : args.fromToken,
       }
       console.log('Fetching Liquidity Hub quote...')
-      return sdk.getQuote({ ...payload, signal })
+      return liquidityHub.getQuote({ ...payload, signal })
     },
-    [sdk, args]
+    [liquidityHub, args]
   )
 
   // result from getQuote
