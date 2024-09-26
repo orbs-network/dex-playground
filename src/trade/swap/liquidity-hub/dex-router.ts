@@ -43,6 +43,10 @@ export const useDexRouter = ({
             : outToken!,
           amount: inAmount!,
           side: SwapSide.SELL,
+          options: {
+            includeDEXS: ['quickswap','quickswapv3','quickswapv3.1','quickperps'],
+            partner: 'quickswapv3',
+          }
         },
         signal
       )
