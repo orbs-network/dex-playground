@@ -1,10 +1,9 @@
 import { QuoteArgs } from '@orbs-network/liquidity-hub-sdk'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { useAccount } from 'wagmi'
 import { useCallback, useMemo } from 'react'
-import { eqIgnoreCase, networks, isNativeAddress } from '@/lib'
+import { networks, isNativeAddress, useWrapOrUnwrapOnly } from '@/lib'
 
 export const QUOTE_REFETCH_INTERVAL = 20_000
 
@@ -14,19 +13,11 @@ export function useQuote(args: QuoteArgs) {
   const queryClient = useQueryClient()
   const { chainId } = useAccount()
 
-  // Evaluates whether tokens are to be wrapped/unwrapped only
-  const { isUnwrapOnly, isWrapOnly } = useMemo(() => {
-    return {
-      isWrapOnly:
-        eqIgnoreCase(networks.poly.wToken.address || '', args.toToken || '') &&
-        isNativeAddress(args.fromToken || ''),
-      isUnwrapOnly:
-        eqIgnoreCase(
-          networks.poly.wToken.address || '',
-          args.fromToken || ''
-        ) && isNativeAddress(args.toToken || ''),
-    }
-  }, [args.fromToken, args.toToken])
+  // Check if the swap is wrap or unwrap only
+  const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(
+    args.fromToken,
+    args.toToken
+  )
 
   // Flag to determine whether to getQuote
   const enabled = Boolean(
@@ -59,13 +50,7 @@ export function useQuote(args: QuoteArgs) {
 
   // result from getQuote
   const query = useQuery({
-    queryKey: [
-      'quote',
-      args.fromToken,
-      args.toToken,
-      args.inAmount,
-      args.slippage,
-    ],
+    queryKey,
     queryFn: getQuote,
     enabled,
     refetchOnWindowFocus: false,
