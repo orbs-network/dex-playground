@@ -72,13 +72,11 @@ export function Swap() {
     setInputAmount('')
   }, [inToken, outToken])
 
-  // Handle Swap Confirmation Dialog
+  // Handle Swap Confirmation Dialog Close
   const onSwapConfirmClose = useCallback(() => {
     setSwapConfirmOpen(false)
-    setInputAmount('')
     setAcceptedQuote(undefined)
     setInputAmount('')
-    setAcceptedQuote(undefined)
     setInputError(null)
     setCurrentStep(undefined)
     setSwapStatus(undefined)
@@ -129,17 +127,6 @@ export function Swap() {
   const onAcceptQuote = useCallback((quote?: Quote) => {
     setAcceptedQuote(quote)
   }, [])
-  const onFailure = useCallback(() => {
-    console.log('onFailure')
-    setSwapConfirmOpen(false)
-
-    setInputAmount('')
-    setAcceptedQuote(undefined)
-    setInputError(null)
-    setCurrentStep(undefined)
-    setSwapStatus(undefined)
-    refetch()
-  }, [refetch])
   const { mutate: swap } = useSwap()
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(quote)
   const confirmSwap = useCallback(() => {
@@ -151,7 +138,7 @@ export function Swap() {
       onAcceptQuote,
       setSwapStatus,
       setCurrentStep,
-      onFailure,
+      onFailure: onSwapConfirmClose,
     })
   }, [
     inToken,
@@ -159,7 +146,7 @@ export function Swap() {
     getLatestQuote,
     requiresApproval,
     onAcceptQuote,
-    onFailure,
+    onSwapConfirmClose,
   ])
   /* --------- End Swap ---------- */
 
