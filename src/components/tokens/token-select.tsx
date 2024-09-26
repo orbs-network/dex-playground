@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react'
 import { fromBigNumber } from '@/lib/utils'
 
 type TokenSelectProps = {
-  selectedToken: Token
+  selectedToken: Token | undefined
   tokens: TokensWithBalances
   onSelectToken: (token: Token) => void
 }
@@ -70,15 +70,19 @@ export function TokenSelect({
           onClick={() => setOpen(true)}
         >
           <Avatar>
-            <AvatarImage
-              src={selectedToken.logoUrl}
-              alt={selectedToken.symbol}
-            />
+            {selectedToken && (
+              <AvatarImage
+                src={selectedToken.logoUrl}
+                alt={selectedToken.symbol}
+              />
+            )}
             <AvatarFallback className="bg-slate-200 dark:bg-slate-700">
-              {selectedToken.symbol.charAt(0)}
+              {selectedToken ? selectedToken.symbol.charAt(0) : '-'}
             </AvatarFallback>
           </Avatar>
-          <div className="text-xl">{selectedToken.symbol}</div>
+          <div className="text-xl">
+            {selectedToken ? selectedToken.symbol : '-'}
+          </div>
           <ChevronDownIcon className="h-6 w-6" />
         </Button>
       </DialogTrigger>

@@ -11,7 +11,6 @@ import { useAccount } from 'wagmi'
 import { useDebounce } from '@/lib/hooks/utils'
 import { toBigNumber, fromBigNumber, format, toBigInt } from '@/lib/utils'
 import { ErrorCodes, getSDKErrorMessage } from './liquidity-hub/errors'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { SwapDetails } from './swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
 import { useDexRouter } from '@/trade/swap/liquidity-hub/dex-router'
@@ -196,14 +195,6 @@ export function Swap() {
     )
   }
 
-  if (!tokensWithBalances) {
-    return (
-      <div className="flex justify-center items-center p-6">
-        <div className="text-red-600">Failed to load tokens</div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-2 pt-2">
       <TokenCard
@@ -219,7 +210,7 @@ export function Swap() {
             : 0
         }
         selectedToken={inToken || initialTokens[0]}
-        tokens={tokensWithBalances}
+        tokens={tokensWithBalances || {}}
         onSelectToken={setInToken}
         onValueChange={setInputAmount}
         inputError={inputError}
@@ -240,7 +231,7 @@ export function Swap() {
             : 0
         }
         selectedToken={outToken || initialTokens[1]}
-        tokens={tokensWithBalances}
+        tokens={tokensWithBalances || {}}
         onSelectToken={setOutToken}
         isAmountEditable={false}
         amountLoading={isFetching}
@@ -280,7 +271,9 @@ export function Swap() {
           </Button>
         </>
       ) : (
-        <ConnectButton />
+        <Button className="mt-2" size="lg" disabled>
+          Wallet not connected
+        </Button>
       )}
       {quoteError && (
         <div className="text-red-600">
