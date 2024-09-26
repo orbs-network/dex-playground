@@ -1,5 +1,9 @@
+import { zeroAddress } from '@orbs-network/liquidity-hub-sdk'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { wagmiConfig } from '@/lib/wagmi-config'
+import { SwapSteps } from '@/types'
+import { getTransactionConfirmations } from 'wagmi/actions'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -11,6 +15,8 @@ export const toBigInt = (amount: string | number, decimals?: number) => {
 }
 
 export const toBigNumber = (amount: string | number, decimals?: number) => {
+  if (amount === '') return '0'
+
   return toBigInt(amount, decimals).toString()
 }
 
@@ -31,11 +37,14 @@ export const fromBigNumberToStr = (
   }
 }
 
-export const fromBigNumber = (amount: bigint | string, decimals?: number) => {
+export const fromBigNumber = (
+  amount: bigint | string | undefined | null,
+  decimals?: number
+) => {
+  if (amount === null || typeof amount === 'undefined') return 0
+
   return Number(fromBigNumberToStr(amount, decimals))
 }
-
-export const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 export const nativeTokenAddresses = [
   zeroAddress,
@@ -75,4 +84,92 @@ export const format = {
   dollar: dollarDisplay.format,
   crypto: cryptoDisplay.format,
   address: formatAddress,
+}
+
+export const getDexMinAmountOut = (slippage: number, _destAmount: string) => {
+  const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)) // 0.5% becomes 995
+
+  // Convert priceRoute.destAmount to BigInt
+  const destAmount = BigInt(_destAmount)
+
+  // Calculate the minimum amount considering slippage
+  return ((destAmount * slippageFactor) / BigInt(1000)).toString()
+}
+
+export const enum ErrorCodes {
+  InsufficientBalance = 'InsufficientBalance',
+}
+
+export function getQuoteErrorMessage(errorCode: string) {
+  switch (errorCode) {
+    case 'ldv':
+      return 'Minimum trade amount is $30'
+    default:
+      return 'An unknown error occurred'
+  }
+}
+
+type GetStepsArgs = {
+  inTokenAddress: string
+  requiresApproval: boolean
+}
+
+export function getSteps({ inTokenAddress, requiresApproval }: GetStepsArgs) {
+  const steps: SwapSteps[] = []
+
+  if (isNativeAddress(inTokenAddress)) {
+    steps.push(SwapSteps.Wrap)
+  }
+
+  if (requiresApproval) {
+    steps.push(SwapSteps.Approve)
+  }
+
+  steps.push(SwapSteps.Swap)
+
+  return steps
+}
+
+export async function promiseWithTimeout<T>(
+  promise: Promise<T>,
+  timeout: number
+): Promise<T> {
+  let timer: NodeJS.Timeout | null = null
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error('timeout'))
+    }, timeout)
+  })
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise])
+    if (timer) clearTimeout(timer)
+    return result
+  } catch (error) {
+    if (timer) clearTimeout(timer)
+    throw error
+  }
+}
+
+export async function waitForConfirmations(
+  txHash: `0x${string}`,
+  maxConfirmations: number,
+  maxTries: number
+) {
+  for (let i = 0; i < maxTries; i++) {
+    try {
+      const confirmations = await getTransactionConfirmations(wagmiConfig, {
+        hash: txHash,
+      })
+
+      if (confirmations >= maxConfirmations) {
+        break
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      /// console.error(error)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
 }

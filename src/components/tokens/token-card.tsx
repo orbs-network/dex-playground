@@ -3,9 +3,8 @@ import { Card } from '../ui/card'
 import { TokenSelect } from './token-select'
 import { Token, TokensWithBalances } from '@/types'
 import { NumericFormat } from 'react-number-format'
-import { format, cn } from '@/lib/utils'
+import { format, cn, ErrorCodes } from '@/lib'
 import { Skeleton } from '../ui/skeleton'
-import { ErrorCodes } from '@/trade/swap/liquidity-hub/errors'
 import { Button } from '../ui/button'
 
 export type TokenCardProps = {

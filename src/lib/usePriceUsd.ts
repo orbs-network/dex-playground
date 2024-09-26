@@ -1,5 +1,4 @@
-import { networks } from '@/lib/networks'
-import { isNativeAddress } from '@/lib/utils'
+import { networks, isNativeAddress } from '@/lib'
 import { useQuery } from '@tanstack/react-query'
 
 export const usePriceUSD = (chainId: number, address?: string) => {

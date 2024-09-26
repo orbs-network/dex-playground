@@ -12,3 +12,9 @@ export type TokenWithBalance = {
 }
 
 export type TokensWithBalances = Record<string, TokenWithBalance>
+
+export enum SwapSteps {
+  Wrap,
+  Approve,
+  Swap,
+}

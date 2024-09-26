@@ -1,80 +1,105 @@
 import { Spinner } from '@/components/spinner'
 import { TokenCard } from '@/components/tokens/token-card'
 import { SwitchButton } from '@/components/ui/switch-button'
-import { Token } from '@/types'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useTokensWithBalances } from '@/lib/hooks/tokens/useTokensWithBalances'
+import { SwapSteps, Token } from '@/types'
+import { useCallback, useMemo, useState } from 'react'
 import { SwapStatus } from '@orbs-network/swap-ui'
-import { zeroAddress } from 'viem'
-import { usePriceUSD } from '@/lib/hooks/balances/usePriceUsd'
 import { useAccount } from 'wagmi'
-import { useDebounce } from '@/lib/hooks/utils'
-import { toBigNumber, fromBigNumber, format, toBigInt } from '@/lib/utils'
-import { ErrorCodes, getSDKErrorMessage } from './liquidity-hub/errors'
 import { SwapDetails } from './swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
-import { useDexRouter } from '@/trade/swap/liquidity-hub/dex-router'
 import { useQuote } from './liquidity-hub/useQuote'
 import { Button } from '@/components/ui/button'
-import { useSwap } from './liquidity-hub/swap-flow/useSwap'
-import { useGetRequiresApproval } from './liquidity-hub/swap-flow/useGetRequiresApproval'
-import './style.css'
+import { useSwap } from './liquidity-hub/useSwap'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
-import { Steps } from './liquidity-hub/types'
+import {
+  useDefaultTokens,
+  useAmounts,
+  useDexMinAmountOut,
+  useGetRequiresApproval,
+  useHandleInputError,
+  ErrorCodes,
+  format,
+  fromBigNumber,
+  getQuoteErrorMessage,
+  toBigNumber,
+  useDebounce,
+  useTokensWithBalances,
+} from '@/lib'
+import './style.css'
 
 const slippage = 0.5
 
-const getDexMinAmountOut = (slippage: number, _destAmount: string) => {
-  const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)) // 0.5% becomes 995
-
-  // Convert priceRoute.destAmount to BigInt
-  const destAmount = BigInt(_destAmount)
-
-  // Calculate the minimum amount considering slippage
-  return ((destAmount * slippageFactor) / BigInt(1000)).toString()
-}
-
 export function Swap() {
-  const { tokensWithBalances, isLoading } = useTokensWithBalances()
+  const { tokensWithBalances, isLoading, refetch } = useTokensWithBalances()
   const [inToken, setInToken] = useState<Token | null>(null)
   const [outToken, setOutToken] = useState<Token | null>(null)
   const [inputAmount, setInputAmount] = useState<string>('')
   const [inputError, setInputError] = useState<string | null>(null)
   const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>()
-  const debouncedInAmount = useDebounce(inputAmount, 300)
-  const [currentStep, setCurrentStep] = useState<Steps | undefined>(undefined)
+  const debouncedInputAmount = useDebounce(inputAmount, 300)
+  const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
+    undefined
+  )
+  const [swapStatus, setSwapStatus] = useState<SwapStatus | undefined>(
+    undefined
+  )
+  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
+
+  // Get wagmi account
   const account = useAccount()
 
-  const initialTokens = useMemo(() => {
-    if (!tokensWithBalances) return []
-
-    return [
-      tokensWithBalances[zeroAddress].token,
-      Object.values(tokensWithBalances).find((t) => t.token.symbol === 'USDT')
-        ?.token || null,
-    ].filter(Boolean) as Token[]
-  }, [tokensWithBalances])
-
-  const { data: inPriceUsd } = usePriceUSD(137, inToken?.address)
-  const { data: outPriceUsd } = usePriceUSD(137, outToken?.address)
-
-  const inAmount = useMemo(() => {
-    return debouncedInAmount
-      ? toBigNumber(debouncedInAmount, inToken?.decimals)
-      : '0'
-  }, [debouncedInAmount, inToken?.decimals])
-
-  const { data: dexQuote } = useDexRouter({
-    inToken: inToken?.address || '',
-    outToken: outToken?.address || '',
-    inAmount: inAmount,
+  // Set Initial Tokens
+  const defaultTokens = useDefaultTokens({
+    inToken,
+    outToken,
+    tokensWithBalances,
+    setInToken,
+    setOutToken,
   })
 
-  const dexMinAmountOut = useMemo(
-    () => getDexMinAmountOut(slippage, dexQuote?.destAmount || '0'),
-    [dexQuote?.destAmount]
-  )
+  // Handle Amount Input Error
+  useHandleInputError({
+    debouncedInputAmount,
+    inToken,
+    tokensWithBalances,
+    setInputError,
+  })
 
+  // Handle Token Switch
+  const handleSwitch = useCallback(() => {
+    setInToken(outToken)
+    setOutToken(inToken)
+    setInputAmount('')
+  }, [inToken, outToken])
+
+  // Handle Swap Confirmation Dialog
+  const onSwapConfirmClose = useCallback(() => {
+    setSwapConfirmOpen(false)
+    setInputAmount('')
+    setAcceptedQuote(undefined)
+    setInputAmount('')
+    setAcceptedQuote(undefined)
+    setInputError(null)
+    setCurrentStep(undefined)
+    setSwapStatus(undefined)
+    refetch()
+  }, [refetch])
+
+  /* --------- Quote ---------- */
+  // The entered input amount has to be converted to a big int string
+  // to be used for getting quotes
+  const inAmountBigIntStr = useMemo(() => {
+    return toBigNumber(debouncedInputAmount, inToken?.decimals)
+  }, [debouncedInputAmount, inToken?.decimals])
+
+  const { data: dexMinAmountOut } = useDexMinAmountOut({
+    slippage,
+    inToken: inToken?.address || '',
+    outToken: outToken?.address || '',
+    inAmount: inAmountBigIntStr,
+  })
+
+  // Fetch Liquidity Hub Quote
   const {
     data: _quote,
     isFetching,
@@ -83,17 +108,12 @@ export function Swap() {
   } = useQuote({
     fromToken: inToken?.address || '',
     toToken: outToken?.address || '',
-    inAmount,
+    inAmount: inAmountBigIntStr,
     slippage,
     account: account.address,
     dexMinAmountOut,
   })
-
   const quote = acceptedQuote || _quote
-
-  const onAcceptQuote = useCallback((quote?: Quote) => {
-    setAcceptedQuote(quote)
-  }, [])
 
   // Comparing Liquidity Hub min amount out with dex min amount out
   // this comparison allows the dex to determine whether they should
@@ -103,39 +123,25 @@ export function Swap() {
     return toBigInt(quote?.minAmountOut || 0) > BigInt(dexMinAmountOut)
   }, [quote?.minAmountOut, dexMinAmountOut])
   */
+  /* --------- End Quote ---------- */
 
-  const { inAmountUsd, outAmountUsd, outAmount } = useMemo(() => {
-    const inAmountUsd = (Number(debouncedInAmount || 0) * (inPriceUsd || 0))
-      .toFixed(2)
-      .toString()
+  /* --------- Swap ---------- */
+  const onAcceptQuote = useCallback((quote?: Quote) => {
+    setAcceptedQuote(quote)
+  }, [])
+  const onFailure = useCallback(() => {
+    console.log('onFailure')
+    setSwapConfirmOpen(false)
 
-    const outAmount = quote?.outAmount
-      ? fromBigNumber(quote.outAmount, outToken?.decimals).toString()
-      : ''
-
-    const outAmountUsd = (Number(outAmount || 0) * (outPriceUsd || 0))
-      .toFixed(2)
-      .toString()
-
-    return {
-      inAmountUsd,
-      outAmountUsd,
-      outAmount,
-    }
-  }, [
-    debouncedInAmount,
-    inPriceUsd,
-    quote?.outAmount,
-    outToken?.decimals,
-    outPriceUsd,
-  ])
+    setInputAmount('')
+    setAcceptedQuote(undefined)
+    setInputError(null)
+    setCurrentStep(undefined)
+    setSwapStatus(undefined)
+    refetch()
+  }, [refetch])
   const { mutate: swap } = useSwap()
-
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(quote)
-  const [swapStatus, setSwapStatus] = useState<SwapStatus | undefined>(
-    undefined
-  )
-
   const confirmSwap = useCallback(() => {
     if (!inToken) return
     swap({
@@ -145,47 +151,21 @@ export function Swap() {
       onAcceptQuote,
       setSwapStatus,
       setCurrentStep,
+      onFailure,
     })
-  }, [inToken, swap, getLatestQuote, requiresApproval, onAcceptQuote])
+  }, [
+    inToken,
+    swap,
+    getLatestQuote,
+    requiresApproval,
+    onAcceptQuote,
+    onFailure,
+  ])
+  /* --------- End Swap ---------- */
 
-  const handleSwitch = useCallback(() => {
-    setInToken(outToken)
-    setOutToken(inToken)
-
-    setInputAmount('')
-  }, [inToken, outToken])
-
-  useEffect(() => {
-    if (!inToken && tokensWithBalances) {
-      setInToken(initialTokens[0])
-    }
-
-    if (!outToken && tokensWithBalances) {
-      setOutToken(initialTokens[1])
-    }
-  }, [inToken, initialTokens, outToken, tokensWithBalances])
-
-  useEffect(() => {
-    if (!inToken || !tokensWithBalances) return
-
-    const valueBN = toBigInt(debouncedInAmount, inToken.decimals)
-    const balance = tokensWithBalances[inToken.address].balance
-
-    if (valueBN > balance) {
-      setInputError(ErrorCodes.InsufficientBalance)
-      return
-    }
-
-    setInputError(null)
-  }, [debouncedInAmount, inToken, tokensWithBalances])
-
-  const [isOpen, setIsOpen] = useState(false)
-
-  const onClose = useCallback(() => {
-    setIsOpen(false)
-    setInputAmount('')
-    setAcceptedQuote(undefined)
-  }, [])
+  // Calculate all amounts for display purposes
+  const { inAmountUsd, inPriceUsd, outAmount, outAmountUsd, outPriceUsd } =
+    useAmounts({ inToken, outToken, inAmount: debouncedInputAmount, quote })
 
   if (isLoading) {
     return (
@@ -201,15 +181,13 @@ export function Swap() {
         label="Sell"
         amount={inputAmount}
         amountUsd={inAmountUsd}
-        balance={
-          tokensWithBalances && inToken
-            ? fromBigNumber(
-                tokensWithBalances[inToken.address]?.balance,
-                inToken.decimals
-              )
-            : 0
-        }
-        selectedToken={inToken || initialTokens[0]}
+        balance={fromBigNumber(
+          tokensWithBalances &&
+            inToken &&
+            tokensWithBalances[inToken.address].balance,
+          inToken?.decimals
+        )}
+        selectedToken={inToken || defaultTokens[0]}
         tokens={tokensWithBalances || {}}
         onSelectToken={setInToken}
         onValueChange={setInputAmount}
@@ -222,15 +200,13 @@ export function Swap() {
         label="Buy"
         amount={outAmount ? format.crypto(Number(outAmount)) : ''}
         amountUsd={outAmountUsd}
-        balance={
-          tokensWithBalances && outToken
-            ? fromBigNumber(
-                tokensWithBalances[outToken.address]?.balance || 0n,
-                outToken.decimals
-              )
-            : 0
-        }
-        selectedToken={outToken || initialTokens[1]}
+        balance={fromBigNumber(
+          tokensWithBalances &&
+            outToken &&
+            tokensWithBalances[outToken.address].balance,
+          outToken?.decimals
+        )}
+        selectedToken={outToken || defaultTokens[1]}
         tokens={tokensWithBalances || {}}
         onSelectToken={setOutToken}
         isAmountEditable={false}
@@ -244,12 +220,11 @@ export function Swap() {
             outAmountUsd={outAmountUsd}
             outPriceUsd={outPriceUsd}
             outToken={outToken}
-            quote={quote}
             inToken={inToken}
             inAmount={inputAmount}
             inAmountUsd={inAmountUsd}
-            onClose={onClose}
-            isOpen={isOpen}
+            onClose={onSwapConfirmClose}
+            isOpen={swapConfirmOpen}
             confirmSwap={confirmSwap}
             requiresApproval={requiresApproval}
             approvalLoading={approvalLoading}
@@ -260,10 +235,8 @@ export function Swap() {
           <Button
             className="mt-2"
             size="lg"
-            onClick={() => setIsOpen(true)}
-            disabled={Boolean(
-              quoteError || inputError || !inAmount || !outAmount || !quote
-            )}
+            onClick={() => setSwapConfirmOpen(true)}
+            disabled={Boolean(quoteError || inputError || !quote)}
           >
             {inputError === ErrorCodes.InsufficientBalance
               ? 'Insufficient balance'
@@ -277,28 +250,19 @@ export function Swap() {
       )}
       {quoteError && (
         <div className="text-red-600">
-          {getSDKErrorMessage(quoteError.message)}
+          {getQuoteErrorMessage(quoteError.message)}
         </div>
       )}
-      {outToken &&
-        inToken &&
-        outAmount &&
-        quote &&
-        inPriceUsd &&
-        outPriceUsd &&
-        account.address && (
-          <SwapDetails
-            inToken={inToken}
-            outAmount={outAmount}
-            outToken={outToken}
-            outAmountUsd={outAmountUsd}
-            inAmountUsd={inAmountUsd}
-            quote={quote}
-            inPriceUsd={inPriceUsd}
-            outPriceUsd={outPriceUsd}
-            account={format.address(account.address)}
-          />
-        )}
+
+      <SwapDetails
+        inToken={inToken}
+        outAmount={outAmount}
+        outToken={outToken}
+        quote={quote}
+        inPriceUsd={inPriceUsd}
+        outPriceUsd={outPriceUsd}
+        account={account.address}
+      />
     </div>
   )
 }

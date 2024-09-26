@@ -1,5 +1,6 @@
-import { zeroAddress } from '@/lib/utils'
+import { networks } from '@/lib/networks'
 import { Token } from '@/types'
+import { zeroAddress } from '@orbs-network/liquidity-hub-sdk'
 import { useQuery } from '@tanstack/react-query'
 
 type PolygonToken = {
@@ -22,7 +23,7 @@ const getPolygonTokens = async (): Promise<Token[]> => {
 
   const polyTokens = (await res.json()).tokens as PolygonToken[]
 
-  const tokens = polyTokens.filter((it) => it.chainId === 137)
+  const tokens = polyTokens.filter((it) => it.chainId === networks.poly.id)
 
   const candiesAddresses = [
     zeroAddress,

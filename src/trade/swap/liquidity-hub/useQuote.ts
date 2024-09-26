@@ -1,10 +1,10 @@
 import { QuoteArgs } from '@orbs-network/liquidity-hub-sdk'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { eqIgnoreCase, isNativeAddress } from '@/lib/utils'
-import { networks } from '@/lib/networks'
+
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { useAccount } from 'wagmi'
 import { useCallback, useMemo } from 'react'
+import { eqIgnoreCase, networks, isNativeAddress } from '@/lib'
 
 export const QUOTE_REFETCH_INTERVAL = 20_000
 

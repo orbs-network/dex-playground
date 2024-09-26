@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Token, TokensWithBalances } from '@/types'
 import { Card } from '../ui/card'
 import { useMemo, useState } from 'react'
-import { fromBigNumber } from '@/lib/utils'
+import { fromBigNumber } from '@/lib'
 
 type TokenSelectProps = {
   selectedToken: Token | undefined

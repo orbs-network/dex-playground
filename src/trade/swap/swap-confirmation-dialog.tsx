@@ -5,17 +5,12 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Token } from '@/types'
-import { format } from '@/lib/utils'
+import { SwapSteps, Token } from '@/types'
 import { Card } from '@/components/ui/card'
-import { usePriceImpact } from '@/trade/swap/liquidity-hub/usePriceImpact'
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
 import { useMemo } from 'react'
-import { useEstimateTotalGas } from '@/trade/swap/liquidity-hub/gas/useEstimateTotalGas'
 import { DataDetails } from '@/components/ui/data-details'
-import { Steps } from './liquidity-hub/types'
-import { getSteps } from './liquidity-hub/swap-flow/getSteps'
+import { format, getSteps } from '@/lib'
 
 export type SwapConfirmationDialogProps = {
   inToken: Token
@@ -24,7 +19,6 @@ export type SwapConfirmationDialogProps = {
   outAmount: string
   inAmountUsd: string
   outAmountUsd: string
-  quote?: Quote
   outPriceUsd?: number
   account: string
   isOpen: boolean
@@ -33,7 +27,7 @@ export type SwapConfirmationDialogProps = {
   requiresApproval: boolean
   approvalLoading: boolean
   swapStatus?: SwapStatus
-  currentStep?: Steps
+  currentStep?: SwapSteps
 }
 
 // Construct steps for swap to display in UI
@@ -46,25 +40,25 @@ const useSteps = (requiresApproval: boolean, inToken?: Token) => {
       requiresApproval,
     })
     return steps.map((step) => {
-      if (step === Steps.Wrap) {
+      if (step === SwapSteps.Wrap) {
         return {
-          id: Steps.Wrap,
-          title: 'Wrap',
+          id: SwapSteps.Wrap,
+          title: `Wrap ${inToken.symbol}`,
           description: `Wrap ${inToken.symbol}`,
           image: inToken?.logoUrl,
         }
       }
-      if (step === Steps.Approve) {
+      if (step === SwapSteps.Approve) {
         return {
-          id: Steps.Approve,
-          title: 'Approve',
+          id: SwapSteps.Approve,
+          title: `Approve ${inToken.symbol}`,
           description: `Approve ${inToken.symbol}`,
           image: inToken?.logoUrl,
         }
       }
       return {
-        id: Steps.Swap,
-        title: 'Swap',
+        id: SwapSteps.Swap,
+        title: `Swap ${inToken.symbol}`,
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
         timeout: 40_000,
@@ -77,7 +71,6 @@ export function SwapConfirmationDialog({
   inToken,
   outToken,
   account,
-  quote,
   outAmountUsd,
   inAmountUsd,
   isOpen,
@@ -91,18 +84,6 @@ export function SwapConfirmationDialog({
   currentStep,
 }: SwapConfirmationDialogProps) {
   const steps = useSteps(requiresApproval, inToken)
-
-  const { totalGasFeeUsd } = useEstimateTotalGas({
-    account,
-    quote,
-    inToken,
-    requiresApproval,
-  })
-
-  const priceImpact = usePriceImpact({
-    outAmountUsd,
-    inAmountUsd,
-  })
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -145,11 +126,6 @@ export function SwapConfirmationDialog({
                   <DataDetails
                     data={{
                       Network: 'Polygon',
-                      'Price Impact': `${priceImpact}%`,
-                      'Gas Fee':
-                        totalGasFeeUsd > 0.01
-                          ? format.dollar(totalGasFeeUsd)
-                          : '< $0.01',
                     }}
                   />
                 </div>

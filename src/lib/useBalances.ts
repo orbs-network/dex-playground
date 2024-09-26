@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { getBalance, multicall } from '@wagmi/core'
 import { Config, serialize, useBalance, useConfig } from 'wagmi'
 import { GetBalanceReturnType } from 'wagmi/actions'
-import { useWatchByInterval } from '../watch/useWatchByInterval'
 import { Token, TokensWithBalances } from '@/types'
 import { erc20Abi, isAddress, Address } from 'viem'
-import { zeroAddress } from '@/lib/utils'
+import { zeroAddress } from '@orbs-network/liquidity-hub-sdk'
 
 interface QueryBalanceParams {
   chainId: number | undefined
@@ -23,6 +22,8 @@ export const queryFnUseBalances = async ({
   config,
 }: QueryBalanceParams) => {
   if (!account || !chainId || !tokens) return null
+
+  console.log('Fetching balances...')
 
   let native = nativeBalance
   if (typeof native === 'undefined') {
@@ -91,15 +92,13 @@ export const useBalances = ({
   account,
   enabled = true,
 }: UseBalanceParams) => {
-  const { data: nativeBalance, queryKey } = useBalance({
+  const { data: nativeBalance } = useBalance({
     chainId,
     address: account,
-    query: { enabled },
+    query: { enabled, refetchInterval: 10000, staleTime: 10000 },
   })
 
   const config = useConfig()
-
-  useWatchByInterval({ key: queryKey, interval: 10000 })
 
   return useQuery({
     queryKey: [
@@ -115,6 +114,7 @@ export const useBalances = ({
         config,
       }),
     refetchInterval: 10000,
+    staleTime: 10000,
     enabled: Boolean(chainId && account && enabled && tokens),
   })
 }
