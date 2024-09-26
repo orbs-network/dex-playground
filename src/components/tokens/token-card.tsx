@@ -6,6 +6,7 @@ import { NumericFormat } from 'react-number-format'
 import { format, cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
 import { ErrorCodes } from '@/trade/swap/liquidity-hub/errors'
+import { Button } from '../ui/button'
 
 export type TokenCardProps = {
   label: string
@@ -42,7 +43,32 @@ export function TokenCard({
           'mix-blend-multiply bg-red-50 dark:mix-blend-screen dark:bg-red-950'
       )}
     >
-      <h2 className="text-gray-500 dark:text-gray-400">{label}</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-gray-500 dark:text-gray-400">{label}</h2>
+        {isAmountEditable && (
+          <div className="flex items-center">
+            <Button
+              onClick={() =>
+                onValueChange && onValueChange((balance / 2).toString())
+              }
+              size="sm"
+              variant="link"
+              className="text-xs"
+            >
+              50%
+            </Button>
+
+            <Button
+              onClick={() => onValueChange && onValueChange(balance.toString())}
+              size="sm"
+              variant="link"
+              className="text-xs"
+            >
+              MAX
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="flex justify-between items-center">
         <div className="text-4xl">
           {amountLoading ? (
@@ -56,11 +82,9 @@ export function TokenCard({
               decimalScale={5}
               readOnly={!isAmountEditable}
               thousandSeparator={true}
-              onValueChange={({ value }) => {
-                if (!onValueChange) return
-
-                onValueChange(value)
-              }}
+              onValueChange={({ value }) =>
+                onValueChange && onValueChange(value)
+              }
             />
           )}
         </div>
