@@ -6,7 +6,7 @@ export function Header() {
     <div className="p-4 flex w-full justify-between items-center fixed bg-slate-950 shadow">
       <div className="flex gap-2 items-center">
         <img src="/orbslogo.svg" className="w-6 h-6" />
-        <span>ORBS Playground</span>
+        <span>Orbs Demo</span>
       </div>
       <div className="flex gap-4">
         <ThemeToggle />
