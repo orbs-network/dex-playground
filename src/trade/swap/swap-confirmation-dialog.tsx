@@ -1,5 +1,10 @@
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Token } from '@/types'
 import { format } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
@@ -103,6 +108,7 @@ export function SwapConfirmationDialog({
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent>
         <DialogTitle>Swap</DialogTitle>
+        <DialogDescription></DialogDescription>
         <div className="flex flex-col gap-4">
           <div className="p-4">
             <SwapFlow

@@ -43,7 +43,7 @@ export function useQuote(args: QuoteArgs) {
     [args.fromToken, args.inAmount, args.slippage, args.toToken]
   )
 
-  // Callback to call liquidity hub sdk getQuote
+  // Callback to call Liquidity Hub sdk getQuote
   const getQuote = useCallback(
     ({ signal }: { signal: AbortSignal }) => {
       const payload: QuoteArgs = {

@@ -10,6 +10,7 @@ import { getSteps } from './getSteps'
 import { approveAllowance } from './approveAllowance'
 import { wrapToken } from './wrapToken'
 import { useLiquidityHubSDK } from '../useLiquidityHubSDK'
+import { promiseWithTimeout } from './utils'
 
 export function useSwap() {
   const liquidityHub = useLiquidityHubSDK()
@@ -78,7 +79,7 @@ export function useSwap() {
           40_000
         )
 
-        // Call liquidity hub sdk swap and wait for transaction hash
+        // Call Liquidity Hub sdk swap and wait for transaction hash
         const txHash = await liquidityHub.swap(latestQuote, signature as string)
 
         if (!txHash) {
@@ -110,26 +111,4 @@ export function useSwap() {
       }
     },
   })
-}
-
-export async function promiseWithTimeout<T>(
-  promise: Promise<T>,
-  timeout: number
-): Promise<T> {
-  let timer: NodeJS.Timeout | null = null
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error('timeout'))
-    }, timeout)
-  })
-
-  try {
-    const result = await Promise.race([promise, timeoutPromise])
-    if (timer) clearTimeout(timer)
-    return result
-  } catch (error) {
-    if (timer) clearTimeout(timer)
-    throw error
-  }
 }

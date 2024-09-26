@@ -19,6 +19,5 @@ export function getSteps({ inTokenAddress, requiresApproval }: GetStepsArgs) {
 
   steps.push(Steps.Swap)
 
-  console.log('steps', steps)
   return steps
 }

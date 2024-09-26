@@ -95,14 +95,14 @@ export function Swap() {
     setAcceptedQuote(quote)
   }, [])
 
-  // comparing liquidity hub min amount out with dex min amount out
+  // Comparing Liquidity Hub min amount out with dex min amount out
   // this comparison allows the dex to determine whether they should
-  // use the liquidity hub or their existing router
+  // use the Liquidity Hub or their existing router
+  /*
   const isLiquidityHubTrade = useMemo(() => {
     return toBigInt(quote?.minAmountOut || 0) > BigInt(dexMinAmountOut)
   }, [quote?.minAmountOut, dexMinAmountOut])
-
-  console.log('isLiquidityHubTrade', isLiquidityHubTrade)
+  */
 
   const { inAmountUsd, outAmountUsd, outAmount } = useMemo(() => {
     const inAmountUsd = (Number(debouncedInAmount || 0) * (inPriceUsd || 0))

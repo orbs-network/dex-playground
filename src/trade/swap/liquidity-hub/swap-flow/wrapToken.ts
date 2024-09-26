@@ -3,15 +3,11 @@ import { networks } from '@/lib/networks'
 import { wagmiConfig } from '@/lib/wagmi-config'
 import { toast } from 'sonner'
 import { Address } from 'viem'
-import {
-  getTransactionConfirmations,
-  simulateContract,
-  writeContract,
-} from 'wagmi/actions'
+import { simulateContract, writeContract } from 'wagmi/actions'
 import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import { waitForConfirmations } from './utils'
 
 export async function wrapToken(quote: Quote) {
-  console.log('wrapToken')
   try {
     // Simulate the contract to check if there would be any errors
     const simulatedData = await simulateContract(wagmiConfig, {
@@ -24,18 +20,9 @@ export async function wrapToken(quote: Quote) {
 
     // Perform the deposit contract function
     const txHash = await writeContract(wagmiConfig, simulatedData.request)
-    console.log('wrapToken', txHash)
 
-    // TODO: change to for loop with max retries
-    const pollConfirmations = setInterval(async () => {
-      const confirmations = await getTransactionConfirmations(wagmiConfig, {
-        hash: txHash,
-      })
-
-      if (confirmations >= 1) {
-        clearInterval(pollConfirmations)
-      }
-    }, 1000)
+    // Check for confirmations for a maximum of 20 seconds
+    await waitForConfirmations(txHash, 1, 20)
 
     return txHash
   } catch (error) {

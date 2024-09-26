@@ -10,7 +10,7 @@ export function Trade() {
         <TabsList>
           <TabsTrigger value="swap">Swap</TabsTrigger>
           <TabsTrigger value="twap">TWAP</TabsTrigger>
-          <TabsTrigger value="twap">Limit</TabsTrigger>
+          <TabsTrigger value="limit">Limit</TabsTrigger>
         </TabsList>
         <TabsContent value="swap">
           <Swap />
