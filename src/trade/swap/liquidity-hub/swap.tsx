@@ -3,18 +3,17 @@ import { TokenCard } from "@/components/tokens/token-card";
 import { SwitchButton } from "@/components/ui/switch-button";
 import { SwapSteps, Token } from "@/types";
 import { useCallback, useMemo, useState } from "react";
-import { SwapStatus } from "@orbs-network/swap-ui";
+import { SwapStatus, SwapStep } from "@orbs-network/swap-ui";
 import { useAccount } from "wagmi";
-import { SwapDetails } from "../../components/swap-details";
-import { SwapConfirmationDialog } from "./swap-confirmation-dialog";
-import { useQuote } from "./liquidity-hub/useQuote";
+import { SwapDetails } from "../../../components/swap-details";
+import { SwapConfirmationDialog } from "../swap-confirmation-dialog";
+import { useQuote } from "./useQuote";
 import { Button } from "@/components/ui/button";
-import { useSwap } from "./liquidity-hub/useSwap";
+import { useSwap } from "./useSwap";
 import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
 import {
   useDefaultTokens,
   useAmounts,
-  useDexMinAmountOut,
   useGetRequiresApproval,
   useHandleInputError,
   ErrorCodes,
@@ -24,8 +23,11 @@ import {
   toBigNumber,
   useDebounce,
   useTokensWithBalances,
+  useDexTrade,
+  getMinAmountOut,
+  getSteps,
 } from "@/lib";
-import "./style.css";
+import "../style.css";
 import { useQueryClient } from "@tanstack/react-query";
 
 const slippage = 0.5;
@@ -39,6 +41,8 @@ export function Swap() {
   const [inputError, setInputError] = useState<string | null>(null);
   const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>();
   const debouncedInputAmount = useDebounce(inputAmount, 300);
+  const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false);
+  const [requiredSteps, setRequiredSteps] = useState<number[] | undefined>(undefined);
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
     undefined
   );
@@ -92,60 +96,81 @@ export function Swap() {
     return toBigNumber(debouncedInputAmount, inToken?.decimals);
   }, [debouncedInputAmount, inToken?.decimals]);
 
-  const { data: dexMinAmountOut } = useDexMinAmountOut({
-    slippage,
+  const { data: dexTrade } = useDexTrade({
     inToken: inToken?.address || "",
     outToken: outToken?.address || "",
     inAmount: inAmountBigIntStr,
   });
-
+  const dexMinAmountOut = useMemo(
+    () => getMinAmountOut(slippage, dexTrade?.destAmount),
+    [dexTrade?.destAmount, slippage]
+  );
   // Fetch Liquidity Hub Quote
   const {
     data: _quote,
     isFetching,
     error: quoteError,
     getLatestQuote,
-  } = useQuote({
-    fromToken: inToken?.address || "",
-    toToken: outToken?.address || "",
-    inAmount: inAmountBigIntStr,
-    slippage,
-    account: account.address,
-    dexMinAmountOut,
-  });
+  } = useQuote(
+    {
+      fromToken: inToken?.address || "",
+      toToken: outToken?.address || "",
+      inAmount: inAmountBigIntStr,
+      slippage,
+      account: account.address,
+      dexMinAmountOut,
+    },
+    liquidityHubDisabled
+  );
+  /* --------- End Quote ---------- */
+
   const quote = acceptedQuote || _quote;
 
   // Comparing Liquidity Hub min amount out with dex min amount out
   // this comparison allows the dex to determine whether they should
   // use the Liquidity Hub or their existing router
   /*
-  const isLiquidityHubTrade = useMemo(() => {
-    return toBigInt(quote?.minAmountOut || 0) > BigInt(dexMinAmountOut)
-  }, [quote?.minAmountOut, dexMinAmountOut])
+
   */
-  /* --------- End Quote ---------- */
 
   /* --------- Swap ---------- */
   const onAcceptQuote = useCallback((quote?: Quote) => {
     setAcceptedQuote(quote);
   }, []);
-  const { mutate: swap } = useSwap();
+  const { mutateAsync: swap } = useSwap();
   const { requiresApproval, approvalLoading } = useGetRequiresApproval({
     inTokenAddress: inToken?.address,
-    inAmount: inAmountBigIntStr.toString(),
+    inAmount: inAmountBigIntStr,
     contractAddress: permit2Address,
   });
-  const confirmSwap = useCallback(() => {
+
+  const proceedWithDexSwap = useCallback(() => {
+    // Proceed with the dex swap
+  }, []);
+
+  const proceedWithLiquidityHubSwap = useCallback(async () => {
     if (!inToken) return;
-    swap({
-      inTokenAddress: inToken.address,
-      getQuote: getLatestQuote,
-      requiresApproval,
-      onAcceptQuote,
-      setSwapStatus,
-      setCurrentStep,
-      onFailure: onSwapConfirmClose,
-    });
+    try {
+      const requiredSteps = getSteps({
+        inTokenAddress: inToken.address,
+        requiresApproval,
+      });
+      setRequiredSteps(requiredSteps);
+      await swap({
+        steps: requiredSteps,
+        getQuote: getLatestQuote,
+        onAcceptQuote,
+        setSwapStatus,
+        setCurrentStep,
+        onFailure: onSwapConfirmClose,
+      });
+    } catch (error) {
+      // If the liquidity hub swap fails, need to set the flag to prevent further attempts, and proceed with the dex swap
+      // stop quotting from liquidity hub
+      // start new flow with dex swap
+      setLiquidityHubDisabled(true);
+      proceedWithDexSwap();
+    }
   }, [
     inToken,
     swap,
@@ -153,12 +178,33 @@ export function Swap() {
     requiresApproval,
     onAcceptQuote,
     onSwapConfirmClose,
+    proceedWithDexSwap,
   ]);
+
+  const confirmSwap = useCallback(async () => {
+    // choose between liquidity hub and dex swap based on the min amount out
+    // this logic is commented out for now, as we are only using the liquidity hub for the example
+    // if (!liquidityHubDisabled &&  toBigInt(quote?.minAmountOut || 0) > BigInt(dexMinAmountOut || 0)) {
+    //   proceedWithLiquidityHubSwap();
+    // } else {
+    //   proceedWithDexSwap();
+    // }
+    proceedWithLiquidityHubSwap();
+  }, [proceedWithDexSwap, proceedWithLiquidityHubSwap, quote, dexMinAmountOut]);
+
   /* --------- End Swap ---------- */
 
   // Calculate all amounts for display purposes
   const { inAmountUsd, inPriceUsd, outAmount, outAmountUsd, outPriceUsd } =
-    useAmounts({ inToken, outToken, inAmount: debouncedInputAmount, quote });
+    useAmounts({
+      inToken,
+      outToken,
+      inAmount: debouncedInputAmount,
+      outAmount: quote?.outAmount,
+    });
+
+
+    const steps = useSteps(requiredSteps, inToken)
 
   if (isLoading) {
     return (
@@ -208,7 +254,6 @@ export function Swap() {
       {account.address && account.isConnected && outToken && inToken ? (
         <>
           <SwapConfirmationDialog
-            account={account.address}
             outAmount={outAmount}
             outAmountUsd={outAmountUsd}
             outPriceUsd={outPriceUsd}
@@ -219,10 +264,9 @@ export function Swap() {
             onClose={onSwapConfirmClose}
             isOpen={swapConfirmOpen}
             confirmSwap={confirmSwap}
-            requiresApproval={requiresApproval}
-            approvalLoading={approvalLoading}
             swapStatus={swapStatus}
             currentStep={currentStep}
+            steps={steps}
           />
 
           <Button
@@ -251,7 +295,7 @@ export function Swap() {
         inToken={inToken}
         outAmount={outAmount}
         outToken={outToken}
-        quote={quote}
+        minAmountOut={quote?.minAmountOut}
         inPriceUsd={inPriceUsd}
         outPriceUsd={outPriceUsd}
         account={account.address}
@@ -259,3 +303,36 @@ export function Swap() {
     </div>
   );
 }
+
+
+const useSteps = (requiredSteps?: number[], inToken?: Token  |null) => {
+  return useMemo((): SwapStep[] => {
+    if (!inToken || !requiredSteps) return []
+    return requiredSteps.map((step) => {
+      if (step === SwapSteps.Wrap) {
+        return {
+          id: SwapSteps.Wrap,
+          title: `Wrap ${inToken.symbol}`,
+          description: `Wrap ${inToken.symbol}`,
+          image: inToken?.logoUrl,
+        }
+      }
+      if (step === SwapSteps.Approve) {
+        return {
+          id: SwapSteps.Approve,
+          title: `Approve ${inToken.symbol}`,
+          description: `Approve ${inToken.symbol}`,
+          image: inToken?.logoUrl,
+        }
+      }
+      return {
+        id: SwapSteps.Swap,
+        title: `Swap ${inToken.symbol}`,
+        description: `Swap ${inToken.symbol}`,
+        image: inToken?.logoUrl,
+        timeout: 40_000,
+      }
+    })
+  }, [inToken, requiredSteps])
+}
+

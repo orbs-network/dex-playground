@@ -12,13 +12,14 @@ export type TokenCardProps = {
   amount: string
   amountUsd: string
   balance: number
-  selectedToken: Token
+  selectedToken?: Token | null
   tokens: TokensWithBalances
   onSelectToken: (token: Token) => void
   isAmountEditable?: boolean
   onValueChange?: (value: string) => void
   amountLoading?: boolean
   inputError?: string | null
+  prefix?: string
 }
 
 export function TokenCard({
@@ -33,6 +34,7 @@ export function TokenCard({
   isAmountEditable = true,
   amountLoading,
   inputError,
+  prefix
 }: TokenCardProps) {
   return (
     <Card
@@ -77,6 +79,7 @@ export function TokenCard({
               className="bg-transparent w-full min-w-0 outline-none"
               value={amount}
               placeholder="0.00"
+              prefix={prefix}
               contentEditable={isAmountEditable}
               decimalScale={5}
               readOnly={!isAmountEditable}

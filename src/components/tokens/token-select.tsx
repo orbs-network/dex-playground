@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react'
 import { fromBigNumber } from '@/lib'
 
 type TokenSelectProps = {
-  selectedToken: Token | undefined
+  selectedToken?: Token | null
   tokens: TokensWithBalances
   onSelectToken: (token: Token) => void
 }

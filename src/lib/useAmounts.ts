@@ -1,5 +1,4 @@
 import { Token } from '@/types'
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import { useMemo } from 'react'
 import { networks } from './networks'
 import { usePriceUSD } from './usePriceUsd'
@@ -10,18 +9,18 @@ type UseAmounts = {
   inToken: Token | null
   outToken: Token | null
   inAmount: string
-  quote: Quote | undefined
+  outAmount?: string
 }
-export function useAmounts({ inToken, outToken, inAmount, quote }: UseAmounts) {
-  const { data: inPriceUsd } = usePriceUSD(networks.poly.id, inToken?.address)
-  const { data: outPriceUsd } = usePriceUSD(networks.poly.id, outToken?.address)
+export function useAmounts(args: UseAmounts) {
+  const { data: inPriceUsd } = usePriceUSD(networks.poly.id, args.inToken?.address)
+  const { data: outPriceUsd } = usePriceUSD(networks.poly.id, args.outToken?.address)
   const { inAmountUsd, outAmountUsd, outAmount } = useMemo(() => {
-    const inAmountUsd = (Number(inAmount || 0) * (inPriceUsd || 0))
+    const inAmountUsd = (Number(args.inAmount || 0) * (inPriceUsd || 0))
       .toFixed(2)
       .toString()
 
-    const outAmount = quote?.outAmount
-      ? fromBigNumber(quote.outAmount, outToken?.decimals).toString()
+    const outAmount = args.outAmount
+      ? fromBigNumber( args.outAmount, args.outToken?.decimals).toString()
       : ''
 
     const outAmountUsd = (Number(outAmount || 0) * (outPriceUsd || 0))
@@ -33,7 +32,7 @@ export function useAmounts({ inToken, outToken, inAmount, quote }: UseAmounts) {
       outAmountUsd,
       outAmount,
     }
-  }, [inAmount, inPriceUsd, outPriceUsd, outToken?.decimals, quote?.outAmount])
+  }, [args.inAmount, args.outAmount, inPriceUsd, outPriceUsd])
 
   return {
     inAmountUsd,

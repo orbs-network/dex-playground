@@ -1,15 +1,14 @@
 import { DataDetails } from '@/components/ui/data-details'
 import { Separator } from '@/components/ui/separator'
-import { format, fromBigNumber } from '@/lib'
+import { format, fromBigNumber, toAmountUi } from '@/lib'
 import { Token } from '@/types'
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 export type SwapDetailsProps = {
   inToken: Token | null
   inPriceUsd?: number
   outToken: Token | null
   outAmount: string
-  quote?: Quote
+  minAmountOut?: string
   outPriceUsd?: number
   account?: string
 }
@@ -19,7 +18,7 @@ export function SwapDetails({
   inPriceUsd,
   outAmount,
   outToken,
-  quote,
+  minAmountOut,
   outPriceUsd,
   account,
 }: SwapDetailsProps) {
@@ -28,8 +27,7 @@ export function SwapDetails({
     !outToken ||
     !inPriceUsd ||
     !outPriceUsd ||
-    !account ||
-    !quote
+    !account
   )
     return null
 
@@ -39,11 +37,11 @@ export function SwapDetails({
     Rate: `1 ${inToken.symbol} ≈ ${format.crypto(rate)} ${outToken.symbol}`,
   }
 
-  const minOutAmount = fromBigNumber(quote.minAmountOut, outToken.decimals)
+  const minOutAmount = toAmountUi(minAmountOut, outToken.decimals)
   data = {
     ...data,
     'Est. Received': `${format.crypto(Number(outAmount))} ${outToken.symbol}`,
-    'Min. Received': `${format.crypto(minOutAmount)} ${outToken.symbol}`,
+    'Min. Received': `${format.crypto(Number(minOutAmount))} ${outToken.symbol}`,
   }
 
   return (

@@ -8,9 +8,9 @@ import {
 import { SwapSteps, Token } from '@/types'
 import { Card } from '@/components/ui/card'
 import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
-import { useMemo } from 'react'
 import { DataDetails } from '@/components/ui/data-details'
-import { format, getSteps } from '@/lib'
+import { format } from '@/lib'
+import { useAccount } from 'wagmi'
 
 export type SwapConfirmationDialogProps = {
   inToken: Token
@@ -20,57 +20,18 @@ export type SwapConfirmationDialogProps = {
   inAmountUsd: string
   outAmountUsd: string
   outPriceUsd?: number
-  account: string
   isOpen: boolean
   onClose: () => void
   confirmSwap: () => void
-  requiresApproval: boolean
-  approvalLoading: boolean
   swapStatus?: SwapStatus
   currentStep?: SwapSteps
+  steps?: SwapStep[]
 }
 
-// Construct steps for swap to display in UI
-const useSteps = (requiresApproval: boolean, inToken?: Token) => {
-  return useMemo((): SwapStep[] => {
-    if (!inToken) return []
-
-    const steps = getSteps({
-      inTokenAddress: inToken.address,
-      requiresApproval,
-    })
-    return steps.map((step) => {
-      if (step === SwapSteps.Wrap) {
-        return {
-          id: SwapSteps.Wrap,
-          title: `Wrap ${inToken.symbol}`,
-          description: `Wrap ${inToken.symbol}`,
-          image: inToken?.logoUrl,
-        }
-      }
-      if (step === SwapSteps.Approve) {
-        return {
-          id: SwapSteps.Approve,
-          title: `Approve ${inToken.symbol}`,
-          description: `Approve ${inToken.symbol}`,
-          image: inToken?.logoUrl,
-        }
-      }
-      return {
-        id: SwapSteps.Swap,
-        title: `Swap ${inToken.symbol}`,
-        description: `Swap ${inToken.symbol}`,
-        image: inToken?.logoUrl,
-        timeout: 40_000,
-      }
-    })
-  }, [inToken, requiresApproval])
-}
 
 export function SwapConfirmationDialog({
   inToken,
   outToken,
-  account,
   outAmountUsd,
   inAmountUsd,
   isOpen,
@@ -78,12 +39,11 @@ export function SwapConfirmationDialog({
   inAmount,
   outAmount,
   confirmSwap,
-  requiresApproval,
-  approvalLoading,
   swapStatus,
   currentStep,
+  steps
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(requiresApproval, inToken)
+  const {address: account} = useAccount()
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -134,7 +94,7 @@ export function SwapConfirmationDialog({
                 <div className="p-4">
                   <DataDetails
                     data={{
-                      Recipient: format.address(account),
+                      Recipient: format.address(account as string),
                     }}
                   />
                 </div>
@@ -143,7 +103,6 @@ export function SwapConfirmationDialog({
               <Button
                 size="lg"
                 onClick={() => confirmSwap()}
-                disabled={approvalLoading}
               >
                 Swap {inToken?.symbol} for {outToken?.symbol}
               </Button>
