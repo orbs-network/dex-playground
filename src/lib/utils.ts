@@ -5,6 +5,7 @@ import { wagmiConfig } from "@/lib/wagmi-config";
 import { SwapSteps } from "@/types";
 import { getTransactionConfirmations } from "wagmi/actions";
 import BN from "bignumber.js";
+import moment from "moment";
 
 export const toAmountUi = (amount?: string | number, decimals?: number) => {
   if (!amount) return "";
@@ -199,3 +200,27 @@ export function getErrorMessage(
 
   return errorMessage;
 }
+
+export const millisecondsToText = (milliseconds: number): string => {
+  const duration = moment.duration(milliseconds);
+
+  const days = Math.floor(duration.asDays());
+  const hours = duration.hours();
+  const minutes = duration.minutes();
+  const seconds = duration.seconds();
+
+  // Build a human-readable text format
+  let text = '';
+  if (days > 0) text += `${days} day${days > 1 ? 's' : ''} `;
+  if (hours > 0) text += `${hours} hour${hours > 1 ? 's' : ''} `;
+  if (minutes > 0) text += `${minutes} minute${minutes > 1 ? 's' : ''} `;
+  if (seconds > 0 || milliseconds < 1000) text += `${seconds} second${seconds > 1 ? 's' : ''}`;
+
+  return text.trim() || '0 seconds';  // Fallback for very small durations
+};
+
+
+export const makeElipsisAddress = (address?: string, padding?: {start: number, end: number}): string => {
+  if (!address) return "";
+  return `${address.substring(0, padding?.start || 4)}...${address.substring(address.length - (padding?.end || 3))}`;
+};

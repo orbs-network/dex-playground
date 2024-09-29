@@ -2,7 +2,7 @@ import { Token } from '@/types'
 import { useMemo } from 'react'
 import { networks } from './networks'
 import { usePriceUSD } from './usePriceUsd'
-import { fromBigNumber } from './utils'
+import { fromBigNumber, toAmountUi } from './utils'
 
 /* Calculates all display amounts for UI */
 type UseAmounts = {
@@ -20,7 +20,7 @@ export function useAmounts(args: UseAmounts) {
       .toString()
 
     const outAmount = args.outAmount
-      ? fromBigNumber( args.outAmount, args.outToken?.decimals).toString()
+      ? toAmountUi(args.outAmount, args.outToken?.decimals).toString()
       : ''
 
     const outAmountUsd = (Number(outAmount || 0) * (outPriceUsd || 0))

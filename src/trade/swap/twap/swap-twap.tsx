@@ -3,7 +3,7 @@ import { TokenCard } from "@/components/tokens/token-card";
 import { SwitchButton } from "@/components/ui/switch-button";
 import { SwapSteps, Token } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SwapStatus, SwapStep } from "@orbs-network/swap-ui";
+import { SwapFlow, SwapStatus, SwapStep } from "@orbs-network/swap-ui";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,17 +16,17 @@ import {
   toBigNumber,
   useTokensWithBalances,
   useDexTrade,
-  getMinAmountOut,
   getSteps,
   usePriceUSD,
   networks,
   toAmountUi,
   useTokenBalance,
   fromAmountUi,
+  millisecondsToText,
+  makeElipsisAddress,
 } from "@/lib";
 import "../style.css";
 import { useQueryClient } from "@tanstack/react-query";
-import { SwapDetails } from "@/components/swap-details";
 import { SwapConfirmationDialog } from "../swap-confirmation-dialog";
 import { Configs, constructSDK, TimeDuration } from "@orbs-network/twap-sdk";
 import { useCreateOrder } from "./useCreateOrder";
@@ -36,10 +36,13 @@ import { FillDelay } from "./fill-delay";
 import { Chunks } from "./chunks";
 
 import { LimitPriceInput } from "./limit-price-input";
+import { Card } from "@/components/ui/card";
+import { DataDetails } from "@/components/ui/data-details";
+import { getSwapValuesPayload } from "@orbs-network/twap-sdk/dist/lib/lib";
+import moment from 'moment';
 
 const config = Configs.QuickSwap;
 
-const slippage = 0.5;
 
 export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
   const queryClient = useQueryClient();
@@ -142,14 +145,14 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
   const outAmount = useMemo(() => {
     if (!price || !inputAmount) return "";
     const result = BN(price).multipliedBy(inputAmount);
-    return toAmountUi(result.toString(), outToken?.decimals);
-  }, [price, inputAmount, outToken?.decimals]);
+    return result.toString()
+  }, [price, inputAmount]);
 
   const amounts = useAmounts({
     inToken,
     outToken,
     inAmount: inputAmount,
-    outAmount: marketPrice,
+    outAmount: outAmount,
   });
 
   const steps = useSteps(requiredSteps, inToken);
@@ -171,7 +174,7 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     setIsMarketOrder(false);
   }, [isLimitPanel]);
 
-  const { dstTokenMinAmount, chunks, fillDelay, srcChunkAmount, duration } =
+  const swapValues =
     twapSDK.getSwapValues({
       srcAmount: inAmountBigIntStr,
       limitPrice: "",
@@ -184,8 +187,12 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
       customChunks,
     });
 
+    const { fillDelay, chunks, srcChunkAmount } = swapValues
+
   const inTokenBalance = useTokenBalance(inToken);
   const outTokenBalance = useTokenBalance(outToken);
+
+  const outAmountUi = toAmountUi(outAmount, outToken?.decimals)
 
   if (isLoading) {
     return (
@@ -222,7 +229,7 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
       </div>
       <TokenCard
         label="Buy"
-        amount={outAmount ? format.crypto(Number(outAmount)) : ""}
+        amount={outAmount ? format.crypto(Number(outAmountUi)) : ""}
         amountUsd={amounts.outAmountUsd}
         balance={outTokenBalance}
         selectedToken={outToken}
@@ -243,18 +250,28 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
         <>
           <SwapConfirmationDialog
             outAmount={outAmount}
-            outAmountUsd={amounts.outAmountUsd}
-            outPriceUsd={amounts.outPriceUsd}
             outToken={outToken}
             inToken={inToken}
             inAmount={inputAmount}
-            inAmountUsd={amounts.inAmountUsd}
             onClose={onSwapConfirmClose}
             isOpen={swapConfirmOpen}
             confirmSwap={onCreateOrder}
             swapStatus={swapStatus}
-            currentStep={currentStep}
-            steps={steps}
+            buttonText="Confirm"
+            details={<Details swapValues={swapValues} inToken={inToken} outToken={outToken} />}
+            title="Create order"
+            failedContent={<SwapFlow.Failed />}
+            successContent={<SwapFlow.Success explorerUrl="/" />}
+            mainContent={
+              <SwapFlow.Main
+                fromTitle="Sell"
+                toTitle="Buy"
+                steps={steps}
+                inUsd={amounts.inAmountUsd}
+                outUsd={amounts.outAmountUsd}
+                currentStep={currentStep as number}
+              />
+            }
           />
 
           <Button
@@ -276,6 +293,46 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     </div>
   );
 }
+
+const Details = ({swapValues, inToken, outToken}:{swapValues: getSwapValuesPayload, inToken?: Token, outToken?: Token}) => {
+  const srcChunksAmount = toAmountUi(swapValues.srcChunkAmount, inToken?.decimals)
+  const { address: account} = useAccount()
+  return (
+    <div>
+      <Card className="bg-slate-900">
+        <div className="p-4 flex flex-col gap-2">
+          <DataDetails
+            data={{
+              'Individual trade size': `${srcChunksAmount} ${inToken?.symbol}`,
+            }}
+          />
+            <DataDetails
+            data={{
+              'Expiry': `${moment(swapValues.deadline).format('lll')}`,
+            }}
+          />
+           <DataDetails
+            data={{
+              'No. of trades': swapValues.chunks,
+            }}
+          />
+           <DataDetails
+            data={{
+              'Every': millisecondsToText(swapValues.fillDelay.unit * swapValues.fillDelay.value),
+            }}
+          />
+            <DataDetails
+            data={{
+              'Recipient': makeElipsisAddress(account),
+            }}
+          />
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+
 
 const useSteps = (requiredSteps?: number[], inToken?: Token | null) => {
   return useMemo((): SwapStep[] => {
@@ -305,3 +362,4 @@ const useSteps = (requiredSteps?: number[], inToken?: Token | null) => {
     });
   }, [inToken, requiredSteps]);
 };
+

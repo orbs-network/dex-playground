@@ -1,73 +1,60 @@
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { SwapSteps, Token } from '@/types'
-import { Card } from '@/components/ui/card'
-import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
-import { DataDetails } from '@/components/ui/data-details'
-import { format } from '@/lib'
-import { useAccount } from 'wagmi'
+} from "@/components/ui/dialog";
+import { Token } from "@/types";
+import { SwapFlow, SwapStatus } from "@orbs-network/swap-ui";
 
 export type SwapConfirmationDialogProps = {
-  inToken: Token
-  outToken: Token
-  inAmount: string
-  outAmount: string
-  inAmountUsd: string
-  outAmountUsd: string
-  outPriceUsd?: number
-  isOpen: boolean
-  onClose: () => void
-  confirmSwap: () => void
-  swapStatus?: SwapStatus
-  currentStep?: SwapSteps
-  steps?: SwapStep[]
-}
-
+  inToken: Token;
+  outToken: Token;
+  inAmount: string;
+  outAmount: string;
+  isOpen: boolean;
+  onClose: () => void;
+  confirmSwap: () => void;
+  swapStatus?: SwapStatus;
+  mainContent: React.ReactNode;
+  successContent: React.ReactNode;
+  failedContent: React.ReactNode;
+  details?: React.ReactNode;
+  title: string;
+  buttonText: string;
+};
 
 export function SwapConfirmationDialog({
   inToken,
   outToken,
-  outAmountUsd,
-  inAmountUsd,
   isOpen,
   onClose,
   inAmount,
   outAmount,
   confirmSwap,
   swapStatus,
-  currentStep,
-  steps
+  mainContent,
+  successContent,
+  failedContent,
+  title,
+  details,
+  buttonText,
 }: SwapConfirmationDialogProps) {
-  const {address: account} = useAccount()
-
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent>
-        <DialogTitle>Swap</DialogTitle>
+        <DialogTitle>{title}</DialogTitle>
         <DialogDescription></DialogDescription>
         <div className="flex flex-col gap-4">
-          <div className="p-4">
+          <div>
             <SwapFlow
               inAmount={inAmount}
               outAmount={outAmount}
-              mainContent={
-                <SwapFlow.Main
-                  fromTitle="Sell"
-                  toTitle="Buy"
-                  steps={steps}
-                  inUsd={inAmountUsd}
-                  outUsd={outAmountUsd}
-                  currentStep={currentStep as number}
-                />
-              }
+              mainContent={mainContent}
               swapStatus={swapStatus}
-              successContent={<SwapFlow.Success explorerUrl="/" />}
-              failedContent={<SwapFlow.Failed />}
+              successContent={successContent}
+              failedContent={failedContent}
               inToken={{
                 symbol: inToken.symbol,
                 logo: inToken.logoUrl,
@@ -81,35 +68,14 @@ export function SwapConfirmationDialog({
 
           {!swapStatus && (
             <>
-              <Card className="bg-slate-900">
-                <div className="p-4">
-                  <DataDetails
-                    data={{
-                      Network: 'Polygon',
-                    }}
-                  />
-                </div>
-              </Card>
-              <Card className="bg-slate-900">
-                <div className="p-4">
-                  <DataDetails
-                    data={{
-                      Recipient: format.address(account as string),
-                    }}
-                  />
-                </div>
-              </Card>
-
-              <Button
-                size="lg"
-                onClick={() => confirmSwap()}
-              >
-                Swap {inToken?.symbol} for {outToken?.symbol}
+              {details}
+              <Button size="lg" onClick={confirmSwap}>
+                {buttonText}
               </Button>
             </>
           )}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
