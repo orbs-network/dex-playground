@@ -8,7 +8,9 @@ import { networks, isNativeAddress, useWrapOrUnwrapOnly } from '@/lib'
 export const QUOTE_REFETCH_INTERVAL = 20_000
 
 // Fetches quote using Liquidity Hub sdk
-export function useQuote(args: QuoteArgs) {
+
+
+export function useQuote(args: QuoteArgs, disabled?: boolean) {
   const liquidityHub = useLiquidityHubSDK()
   const queryClient = useQueryClient()
   const { chainId } = useAccount()
@@ -21,6 +23,7 @@ export function useQuote(args: QuoteArgs) {
 
   // Flag to determine whether to getQuote
   const enabled = Boolean(
+    !disabled &&
     chainId &&
       args.fromToken &&
       args.toToken &&
