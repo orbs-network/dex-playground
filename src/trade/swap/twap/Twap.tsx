@@ -1,16 +1,12 @@
-import { Spinner } from "@/components/spinner";
-import { TokenCard } from "@/components/tokens/token-card";
-import { SwitchButton } from "@/components/ui/switch-button";
-import { SwapSteps, Token } from "@/types";
-import { useCallback, useMemo, useState } from "react";
-import { SwapStatus } from "@orbs-network/swap-ui";
-import { useAccount } from "wagmi";
-import { SwapDetails } from "../../components/swap-details";
-import { SwapConfirmationDialog } from "./swap-confirmation-dialog";
-import { useQuote } from "./liquidity-hub/useQuote";
-import { Button } from "@/components/ui/button";
-import { useSwap } from "./liquidity-hub/useSwap";
-import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
+import { Spinner } from '@/components/spinner'
+import { TokenCard } from '@/components/tokens/token-card'
+import { SwitchButton } from '@/components/ui/switch-button'
+import { SwapSteps, Token } from '@/types'
+import { useCallback, useMemo, useState } from 'react'
+import { SwapStatus } from '@orbs-network/swap-ui'
+import { useAccount } from 'wagmi'
+import { Button } from '@/components/ui/button'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import {
   useDefaultTokens,
   useAmounts,
@@ -24,31 +20,35 @@ import {
   toBigNumber,
   useDebounce,
   useTokensWithBalances,
-} from "@/lib";
-import "./style.css";
-import { useQueryClient } from "@tanstack/react-query";
+} from '@/lib'
+import './style.css'
+import { useQueryClient } from '@tanstack/react-query'
+import { SwapDetails } from '@/components/swap-details'
+import { useQuote } from '../liquidity-hub/useQuote'
+import { useSwap } from '../liquidity-hub/useSwap'
+import { SwapConfirmationDialog } from '../swap-confirmation-dialog'
 
-const slippage = 0.5;
+const slippage = 0.5
 
 export function Swap() {
-  const queryClient = useQueryClient();
-  const { tokensWithBalances, isLoading, queryKey } = useTokensWithBalances();
-  const [inToken, setInToken] = useState<Token | null>(null);
-  const [outToken, setOutToken] = useState<Token | null>(null);
-  const [inputAmount, setInputAmount] = useState<string>("");
-  const [inputError, setInputError] = useState<string | null>(null);
-  const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>();
-  const debouncedInputAmount = useDebounce(inputAmount, 300);
+  const queryClient = useQueryClient()
+  const { tokensWithBalances, isLoading, queryKey } = useTokensWithBalances()
+  const [inToken, setInToken] = useState<Token | null>(null)
+  const [outToken, setOutToken] = useState<Token | null>(null)
+  const [inputAmount, setInputAmount] = useState<string>('')
+  const [inputError, setInputError] = useState<string | null>(null)
+  const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>()
+  const debouncedInputAmount = useDebounce(inputAmount, 300)
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
     undefined
-  );
+  )
   const [swapStatus, setSwapStatus] = useState<SwapStatus | undefined>(
     undefined
-  );
-  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false);
+  )
+  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
 
   // Get wagmi account
-  const account = useAccount();
+  const account = useAccount()
 
   // Set Initial Tokens
   const defaultTokens = useDefaultTokens({
@@ -57,7 +57,7 @@ export function Swap() {
     tokensWithBalances,
     setInToken,
     setOutToken,
-  });
+  })
 
   // Handle Amount Input Error
   useHandleInputError({
@@ -65,39 +65,39 @@ export function Swap() {
     inToken,
     tokensWithBalances,
     setInputError,
-  });
+  })
 
   // Handle Token Switch
   const handleSwitch = useCallback(() => {
-    setInToken(outToken);
-    setOutToken(inToken);
-    setInputAmount("");
-  }, [inToken, outToken]);
+    setInToken(outToken)
+    setOutToken(inToken)
+    setInputAmount('')
+  }, [inToken, outToken])
 
   // Handle Swap Confirmation Dialog Close
   const onSwapConfirmClose = useCallback(() => {
-    setSwapConfirmOpen(false);
-    setAcceptedQuote(undefined);
-    setInputAmount("");
-    setInputError(null);
-    setCurrentStep(undefined);
-    setSwapStatus(undefined);
-    queryClient.invalidateQueries({ queryKey });
-  }, [queryClient, queryKey]);
+    setSwapConfirmOpen(false)
+    setAcceptedQuote(undefined)
+    setInputAmount('')
+    setInputError(null)
+    setCurrentStep(undefined)
+    setSwapStatus(undefined)
+    queryClient.invalidateQueries({ queryKey })
+  }, [queryClient, queryKey])
 
   /* --------- Quote ---------- */
   // The entered input amount has to be converted to a big int string
   // to be used for getting quotes
   const inAmountBigIntStr = useMemo(() => {
-    return toBigNumber(debouncedInputAmount, inToken?.decimals);
-  }, [debouncedInputAmount, inToken?.decimals]);
+    return toBigNumber(debouncedInputAmount, inToken?.decimals)
+  }, [debouncedInputAmount, inToken?.decimals])
 
   const { data: dexMinAmountOut } = useDexMinAmountOut({
     slippage,
-    inToken: inToken?.address || "",
-    outToken: outToken?.address || "",
+    inToken: inToken?.address || '',
+    outToken: outToken?.address || '',
     inAmount: inAmountBigIntStr,
-  });
+  })
 
   // Fetch Liquidity Hub Quote
   const {
@@ -106,14 +106,14 @@ export function Swap() {
     error: quoteError,
     getLatestQuote,
   } = useQuote({
-    fromToken: inToken?.address || "",
-    toToken: outToken?.address || "",
+    fromToken: inToken?.address || '',
+    toToken: outToken?.address || '',
     inAmount: inAmountBigIntStr,
     slippage,
     account: account.address,
     dexMinAmountOut,
-  });
-  const quote = acceptedQuote || _quote;
+  })
+  const quote = acceptedQuote || _quote
 
   // Comparing Liquidity Hub min amount out with dex min amount out
   // this comparison allows the dex to determine whether they should
@@ -127,16 +127,12 @@ export function Swap() {
 
   /* --------- Swap ---------- */
   const onAcceptQuote = useCallback((quote?: Quote) => {
-    setAcceptedQuote(quote);
-  }, []);
-  const { mutate: swap } = useSwap();
-  const { requiresApproval, approvalLoading } = useGetRequiresApproval({
-    inTokenAddress: inToken?.address,
-    inAmount: inAmountBigIntStr.toString(),
-    contractAddress: permit2Address,
-  });
+    setAcceptedQuote(quote)
+  }, [])
+  const { mutate: swap } = useSwap()
+  const { requiresApproval, approvalLoading } = useGetRequiresApproval(quote)
   const confirmSwap = useCallback(() => {
-    if (!inToken) return;
+    if (!inToken) return
     swap({
       inTokenAddress: inToken.address,
       getQuote: getLatestQuote,
@@ -145,7 +141,7 @@ export function Swap() {
       setSwapStatus,
       setCurrentStep,
       onFailure: onSwapConfirmClose,
-    });
+    })
   }, [
     inToken,
     swap,
@@ -153,19 +149,19 @@ export function Swap() {
     requiresApproval,
     onAcceptQuote,
     onSwapConfirmClose,
-  ]);
+  ])
   /* --------- End Swap ---------- */
 
   // Calculate all amounts for display purposes
   const { inAmountUsd, inPriceUsd, outAmount, outAmountUsd, outPriceUsd } =
-    useAmounts({ inToken, outToken, inAmount: debouncedInputAmount, quote });
+    useAmounts({ inToken, outToken, inAmount: debouncedInputAmount, quote })
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center mt-28">
         <Spinner />
       </div>
-    );
+    )
   }
 
   return (
@@ -191,7 +187,7 @@ export function Swap() {
       </div>
       <TokenCard
         label="Buy"
-        amount={outAmount ? format.crypto(Number(outAmount)) : ""}
+        amount={outAmount ? format.crypto(Number(outAmount)) : ''}
         amountUsd={outAmountUsd}
         balance={fromBigNumber(
           tokensWithBalances &&
@@ -232,8 +228,8 @@ export function Swap() {
             disabled={Boolean(quoteError || inputError || !quote)}
           >
             {inputError === ErrorCodes.InsufficientBalance
-              ? "Insufficient balance"
-              : "Swap"}
+              ? 'Insufficient balance'
+              : 'Swap'}
           </Button>
         </>
       ) : (
@@ -257,5 +253,5 @@ export function Swap() {
         account={account.address}
       />
     </div>
-  );
+  )
 }

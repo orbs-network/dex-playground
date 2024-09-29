@@ -1,22 +1,34 @@
-import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
-import { useReadContract } from 'wagmi'
-import { isNativeAddress } from './utils'
-import { networks } from './networks'
-import { Address, erc20Abi } from 'viem'
+import { useAccount, useReadContract } from "wagmi";
+import { isNativeAddress } from "./utils";
+import { networks } from "./networks";
+import { Address, erc20Abi } from "viem";
+const maxUint256 =
+  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 /* Determines whether user needs tp approve allowance for quoted token */
-export function useGetRequiresApproval(quote?: Quote) {
+export function useGetRequiresApproval({
+  inTokenAddress,
+  inAmount = maxUint256,
+  contractAddress,
+}: {
+  inTokenAddress?: string;
+  inAmount?: string;
+  contractAddress: string;
+}) {
+  const { address } = useAccount();
+  const tokenAddress = (
+    isNativeAddress(inTokenAddress) ? networks.poly.wToken.address : inTokenAddress
+  ) as Address;
+
   const { data: allowance, isLoading } = useReadContract({
-    address: (isNativeAddress(quote?.inToken)
-      ? networks.poly.wToken.address
-      : quote?.inToken) as Address,
+    address: tokenAddress,
     abi: erc20Abi,
-    functionName: 'allowance',
-    args: [quote?.user as Address, permit2Address],
-  })
+    functionName: "allowance",
+    args: [address as Address, contractAddress],
+  });
 
   return {
-    requiresApproval: (allowance || 0n) < BigInt(quote?.inAmount || 0),
+    requiresApproval: (allowance || 0n) < BigInt(inAmount || 0),
     approvalLoading: isLoading,
-  }
+  };
 }
