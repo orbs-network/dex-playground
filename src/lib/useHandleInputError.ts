@@ -6,11 +6,11 @@ import { useEffect } from 'react'
 type UseHandleInputError = {
   inToken: Token | null
   tokensWithBalances: TokensWithBalances | null | undefined
-  debouncedInputAmount: string
+  inputAmount: string
   setInputError: (error: ErrorCodes | null) => void
 }
 export function useHandleInputError({
-  debouncedInputAmount,
+  inputAmount,
   inToken,
   setInputError,
   tokensWithBalances,
@@ -18,7 +18,7 @@ export function useHandleInputError({
   useEffect(() => {
     if (!inToken || !tokensWithBalances) return
 
-    const valueBN = toBigInt(debouncedInputAmount, inToken.decimals)
+    const valueBN = toBigInt(inputAmount, inToken.decimals)
     const balance = tokensWithBalances[inToken.address].balance
 
     if (valueBN > balance) {
@@ -27,5 +27,5 @@ export function useHandleInputError({
     }
 
     setInputError(null)
-  }, [debouncedInputAmount, inToken, setInputError, tokensWithBalances])
+  }, [inputAmount, inToken, setInputError, tokensWithBalances])
 }

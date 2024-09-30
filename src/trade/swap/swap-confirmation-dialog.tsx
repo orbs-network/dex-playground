@@ -1,45 +1,47 @@
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { SwapSteps, Token } from '@/types'
-import { Card } from '@/components/ui/card'
-import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
-import { useMemo } from 'react'
-import { DataDetails } from '@/components/ui/data-details'
-import { format, getSteps } from '@/lib'
+} from "@/components/ui/dialog";
+import { SwapSteps, Token } from "@/types";
+import { Card } from "@/components/ui/card";
+import { SwapFlow, SwapStep, SwapStatus } from "@orbs-network/swap-ui";
+import { useMemo } from "react";
+import { DataDetails } from "@/components/ui/data-details";
+import { format, fromBigNumber, getSteps } from "@/lib";
+import { useAccount } from "wagmi";
+import { OptimalRate } from "@paraswap/sdk";
 
 export type SwapConfirmationDialogProps = {
-  inToken: Token
-  outToken: Token
-  inAmount: string
-  outAmount: string
-  inAmountUsd: string
-  outAmountUsd: string
-  outPriceUsd?: number
-  account: string
-  isOpen: boolean
-  onClose: () => void
-  confirmSwap: () => void
-  requiresApproval: boolean
-  approvalLoading: boolean
-  swapStatus?: SwapStatus
-  currentStep?: SwapSteps
-  signature?: string
-}
+  inToken: Token;
+  outToken: Token;
+  isOpen: boolean;
+  onClose: () => void;
+  confirmSwap: () => void;
+  requiresApproval: boolean;
+  approvalLoading: boolean;
+  swapStatus?: SwapStatus;
+  currentStep?: SwapSteps;
+  signature?: string;
+  gasAmountOut?: string;
+  dexQuote?: OptimalRate;
+};
 
 // Construct steps for swap to display in UI
-const useSteps = (requiresApproval: boolean, inToken?: Token, signature?: string) => {
+const useSteps = (
+  requiresApproval: boolean,
+  inToken?: Token,
+  signature?: string
+) => {
   return useMemo((): SwapStep[] => {
-    if (!inToken) return []
+    if (!inToken) return [];
 
     const steps = getSteps({
       inTokenAddress: inToken.address,
       requiresApproval,
-    })
+    });
     return steps.map((step) => {
       if (step === SwapSteps.Wrap) {
         return {
@@ -47,7 +49,7 @@ const useSteps = (requiresApproval: boolean, inToken?: Token, signature?: string
           title: `Wrap ${inToken.symbol}`,
           description: `Wrap ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        }
+        };
       }
       if (step === SwapSteps.Approve) {
         return {
@@ -55,7 +57,7 @@ const useSteps = (requiresApproval: boolean, inToken?: Token, signature?: string
           title: `Approve ${inToken.symbol}`,
           description: `Approve ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        }
+        };
       }
       return {
         id: SwapSteps.Swap,
@@ -63,29 +65,36 @@ const useSteps = (requiresApproval: boolean, inToken?: Token, signature?: string
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
         timeout: signature ? 60_000 : 40_000,
-      }
-    })
-  }, [inToken, requiresApproval, signature])
-}
+      };
+    });
+  }, [inToken, requiresApproval, signature]);
+};
 
 export function SwapConfirmationDialog({
   inToken,
   outToken,
-  account,
-  outAmountUsd,
-  inAmountUsd,
   isOpen,
   onClose,
-  inAmount,
-  outAmount,
   confirmSwap,
   requiresApproval,
   approvalLoading,
   swapStatus,
   currentStep,
-  signature
+  signature,
+  gasAmountOut,
+  dexQuote,
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(requiresApproval, inToken,signature)
+  const steps = useSteps(requiresApproval, inToken, signature);
+  const account = useAccount().address as string;
+  const outAmount = fromBigNumber(dexQuote?.destAmount, outToken.decimals);
+  const inAmount = fromBigNumber(dexQuote?.srcAmount, inToken.decimals);
+
+  const gasPrice = useMemo(() => {
+    if (!dexQuote || !gasAmountOut) return 0;
+    const gas = fromBigNumber(gasAmountOut, outToken.decimals);
+    const usd = Number(dexQuote.destUSD) / Number(outAmount);
+    return Number(gas) * usd;
+  }, [dexQuote, gasAmountOut, outAmount, outToken.decimals]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,15 +104,15 @@ export function SwapConfirmationDialog({
         <div className="flex flex-col gap-4">
           <div className="p-4">
             <SwapFlow
-              inAmount={inAmount}
-              outAmount={outAmount}
+              inAmount={format.crypto(inAmount)}
+              outAmount={format.crypto(outAmount)}
               mainContent={
                 <SwapFlow.Main
                   fromTitle="Sell"
                   toTitle="Buy"
                   steps={steps}
-                  inUsd={inAmountUsd}
-                  outUsd={outAmountUsd}
+                  inUsd={format.dollar(Number(dexQuote?.srcUSD || "0"))}
+                  outUsd={format.dollar(Number(dexQuote?.destUSD || "0"))}
                   currentStep={currentStep as number}
                 />
               }
@@ -124,10 +133,15 @@ export function SwapConfirmationDialog({
           {!swapStatus && (
             <>
               <Card className="bg-slate-900">
-                <div className="p-4">
+                <div className="p-4 flex flex-col gap-2">
                   <DataDetails
                     data={{
-                      Network: 'Polygon',
+                      Network: "Polygon",
+                    }}
+                  />
+                  <DataDetails
+                    data={{
+                      "Network cost": format.dollar(gasPrice),
                     }}
                   />
                 </div>
@@ -154,5 +168,5 @@ export function SwapConfirmationDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

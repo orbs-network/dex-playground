@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { isNativeAddress, getDexMinAmountOut } from '@/lib/utils'
+import { isNativeAddress } from '@/lib/utils'
 import { constructSimpleSDK, SwapSide } from '@paraswap/sdk'
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
@@ -17,13 +17,11 @@ export function useParaswap() {
     return paraswapSDK
   }, [chainId])
 }
-export const useDexMinAmountOut = ({
-  slippage,
+export const useDexQuote = ({
   inToken,
   outToken,
   inAmount,
 }: {
-  slippage: number
   inToken?: string
   outToken?: string
   inAmount?: string
@@ -57,8 +55,9 @@ export const useDexMinAmountOut = ({
         signal
       )
 
-      return getDexMinAmountOut(slippage, dexQuote?.destAmount || '0')
+      return dexQuote
     },
     enabled: !!inToken && !!outToken && Number(inAmount) > 0,
+    refetchInterval: 30_000,
   })
 }

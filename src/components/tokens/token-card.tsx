@@ -10,7 +10,7 @@ import { Button } from '../ui/button'
 export type TokenCardProps = {
   label: string
   amount: string
-  amountUsd: string
+  amountUsd?: string
   balance: number
   selectedToken: Token
   tokens: TokensWithBalances
@@ -104,7 +104,7 @@ export function TokenCard({
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-            {format.dollar(Number(amountUsd))}
+            {format.dollar(Number(amountUsd || '0'))}
           </div>
         )}
         <div className="flex gap-2 items-center text-gray-500 dark:text-gray-400 text-lg">
