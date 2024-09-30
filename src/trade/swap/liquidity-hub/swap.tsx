@@ -3,7 +3,7 @@ import { TokenCard } from "@/components/tokens/token-card";
 import { SwitchButton } from "@/components/ui/switch-button";
 import { SwapSteps, Token } from "@/types";
 import { useCallback, useMemo, useState } from "react";
-import { SwapStatus, SwapStep } from "@orbs-network/swap-ui";
+import { SwapFlow, SwapStatus, SwapStep } from "@orbs-network/swap-ui";
 import { useAccount } from "wagmi";
 import { SwapDetails } from "../../../components/swap-details";
 import { SwapConfirmationDialog } from "../swap-confirmation-dialog";
@@ -29,6 +29,8 @@ import {
 } from "@/lib";
 import "../style.css";
 import { useQueryClient } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { DataDetails } from "@/components/ui/data-details";
 
 const slippage = 0.5;
 
@@ -42,7 +44,9 @@ export function Swap() {
   const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>();
   const debouncedInputAmount = useDebounce(inputAmount, 300);
   const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false);
-  const [requiredSteps, setRequiredSteps] = useState<number[] | undefined>(undefined);
+  const [requiredSteps, setRequiredSteps] = useState<number[] | undefined>(
+    undefined
+  );
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
     undefined
   );
@@ -203,8 +207,7 @@ export function Swap() {
       outAmount: quote?.outAmount,
     });
 
-
-    const steps = useSteps(requiredSteps, inToken)
+  const steps = useSteps(requiredSteps, inToken);
 
   if (isLoading) {
     return (
@@ -255,25 +258,35 @@ export function Swap() {
         <>
           <SwapConfirmationDialog
             outAmount={outAmount}
-            outAmountUsd={outAmountUsd}
-            outPriceUsd={outPriceUsd}
             outToken={outToken}
             inToken={inToken}
             inAmount={inputAmount}
-            inAmountUsd={inAmountUsd}
             onClose={onSwapConfirmClose}
             isOpen={swapConfirmOpen}
             confirmSwap={confirmSwap}
             swapStatus={swapStatus}
-            currentStep={currentStep}
-            steps={steps}
+            title='Swap'
+            buttonText={`Swap ${inToken?.symbol} for ${outToken?.symbol}`}
+            mainContent={
+              <SwapFlow.Main
+                steps={steps}
+                currentStep={currentStep}
+                fromTitle="Sell"
+                toTitle="Buy"
+                inUsd={inAmountUsd}
+                outUsd={outAmountUsd}
+              />
+            }
+            details={<Details />}
+            failedContent={<SwapFlow.Failed />}
+            successContent={<SwapFlow.Success explorerUrl="/" />}
           />
 
           <Button
             className="mt-2"
             size="lg"
             onClick={() => setSwapConfirmOpen(true)}
-            disabled={Boolean(quoteError || inputError || !quote)}
+            disabled={Boolean(quoteError || inputError || !quote || approvalLoading)}
           >
             {inputError === ErrorCodes.InsufficientBalance
               ? "Insufficient balance"
@@ -305,9 +318,35 @@ export function Swap() {
 }
 
 
-const useSteps = (requiredSteps?: number[], inToken?: Token  |null) => {
+const Details = () => {
+  const account = useAccount().address;
+  return (
+    <>
+      <Card className="bg-slate-900">
+        <div className="p-4">
+          <DataDetails
+            data={{
+              Network: "Polygon",
+            }}
+          />
+        </div>
+      </Card>
+      <Card className="bg-slate-900">
+        <div className="p-4">
+          <DataDetails
+            data={{
+              Recipient: format.address(account as string),
+            }}
+          />
+        </div>
+      </Card>
+    </>
+  );
+};
+
+const useSteps = (requiredSteps?: number[], inToken?: Token | null) => {
   return useMemo((): SwapStep[] => {
-    if (!inToken || !requiredSteps) return []
+    if (!inToken || !requiredSteps) return [];
     return requiredSteps.map((step) => {
       if (step === SwapSteps.Wrap) {
         return {
@@ -315,7 +354,7 @@ const useSteps = (requiredSteps?: number[], inToken?: Token  |null) => {
           title: `Wrap ${inToken.symbol}`,
           description: `Wrap ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        }
+        };
       }
       if (step === SwapSteps.Approve) {
         return {
@@ -323,7 +362,7 @@ const useSteps = (requiredSteps?: number[], inToken?: Token  |null) => {
           title: `Approve ${inToken.symbol}`,
           description: `Approve ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        }
+        };
       }
       return {
         id: SwapSteps.Swap,
@@ -331,8 +370,7 @@ const useSteps = (requiredSteps?: number[], inToken?: Token  |null) => {
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
         timeout: 40_000,
-      }
-    })
-  }, [inToken, requiredSteps])
-}
-
+      };
+    });
+  }, [inToken, requiredSteps]);
+};
