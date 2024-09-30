@@ -10,10 +10,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TokenSelect } from "@/components/tokens/token-select";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import BN from "bignumber.js";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, X } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 export type Props = {
@@ -25,26 +25,29 @@ export type Props = {
   setInToken: (token: Token) => void;
   onValueChange: (value?: string) => void;
   amountLoading?: boolean;
+  limitInverted: boolean;
+  setLimitInverted: (inverted: boolean) => void;
 };
 
+const options = [1, 5, 10];
 export function LimitPriceInput(props: Props) {
   const tokens = useTokensWithBalances().tokensWithBalances;
+  const { limitInverted, setLimitInverted } = props;
   const [percent, setPercent] = useState<number | undefined>(undefined);
-  const [inverted, setInverted] = useState(false);
-  const inToken = inverted ? props.outToken : props.inToken;
-  const outToken = inverted ? props.inToken : props.outToken;
+  const inToken = limitInverted ? props.outToken : props.inToken;
+  const outToken = limitInverted ? props.inToken : props.outToken;
 
-  const selectedToken = inverted ? inToken : outToken;
+  const selectedToken = outToken;
 
   const onSelect = useCallback(
     (token: Token) => {
-      if (!inverted) {
+      if (!limitInverted) {
         props.setOutToken(token);
       } else {
         props.setInToken(token);
       }
     },
-    [inverted, props.setInToken, props.setOutToken]
+    [limitInverted, props.setInToken, props.setOutToken]
   );
 
   useEffect(() => {
@@ -59,10 +62,10 @@ export function LimitPriceInput(props: Props) {
 
   const marketPrice = useMemo(() => {
     if (!props.marketPrice || BN(props.marketPrice).isZero()) return;
-    return inverted
+    return limitInverted
       ? BN(1).div(props.marketPrice).toFixed(5)
       : props.marketPrice;
-  }, [props.marketPrice, inverted]);
+  }, [props.marketPrice, limitInverted]);
 
   const amount = useMemo(() => {
     if (props.customLimitPrice !== undefined) {
@@ -72,18 +75,19 @@ export function LimitPriceInput(props: Props) {
   }, [props.customLimitPrice, marketPrice]);
 
   const onInvert = useCallback(() => {
-    setInverted((prev) => !prev);
+    setLimitInverted(!limitInverted);
     props.onValueChange(undefined);
-  }, [props.onValueChange]);
+  }, [props.onValueChange, limitInverted, setLimitInverted]);
 
   const onPercent = useCallback(
     (percent?: number) => {
-      setPercent(percent);
-
       if (percent == null) {
         props.onValueChange(undefined);
+        setPercent(undefined);
         return;
       }
+      percent = limitInverted ? percent * -1 : percent;
+      setPercent(percent);
 
       const p = BN(percent).div(100).plus(1).toNumber();
 
@@ -96,11 +100,19 @@ export function LimitPriceInput(props: Props) {
     [marketPrice, props.onValueChange]
   );
 
-  const options = useMemo(() => {
-    return [1, 5, 10].map((option) => option * (inverted ? -1 : 1));
-  }, [inverted]);
   const usd = usePriceUSD(networks.poly.id, selectedToken?.address).data;
   const amountUsd = Number(amount || 0) * (usd || 0);
+
+  const limitMarketPriceDiff = useMemo(() => {
+    if (!props.customLimitPrice || !marketPrice) return;
+    return BN(
+      BN(props.customLimitPrice)
+        .dividedBy(marketPrice)
+        .minus(1)
+        .multipliedBy(100)
+        .toFixed(2)
+    ).toNumber();
+  }, [amount, marketPrice, usd, selectedToken?.address]);
 
   return (
     <Card
@@ -117,6 +129,7 @@ export function LimitPriceInput(props: Props) {
             {inToken?.symbol} is worth
           </h2>
         </div>
+
         <ArrowUpDown onClick={onInvert} className="w-5 h-5 cursor-pointer" />
       </div>
       <div className="flex justify-between items-center">
@@ -128,6 +141,7 @@ export function LimitPriceInput(props: Props) {
               className="bg-transparent w-full min-w-0 outline-none"
               value={amount}
               placeholder="0.00"
+              allowNegative={false}
               thousandSeparator={true}
               onValueChange={(values, sourceInfo) => {
                 if (sourceInfo.source !== "event") return;
@@ -152,9 +166,10 @@ export function LimitPriceInput(props: Props) {
           {format.dollar(Number(amountUsd))}
         </div>
         <PercentageButtons
-          options={options}
+          limitInverted={limitInverted}
           selected={percent}
           onSelect={onPercent}
+          diff={limitMarketPriceDiff}
         />
       </div>
     </Card>
@@ -164,23 +179,29 @@ export function LimitPriceInput(props: Props) {
 const PercentageButtons = ({
   onSelect,
   selected,
-  options,
+  diff,
+  limitInverted,
 }: {
   onSelect: (value?: number) => void;
   selected?: number;
-  options: number[];
+  limitInverted: boolean;
+  diff?: number;
 }) => {
   return (
     <div className="flex items-center gap-2 ml-auto">
-      <ResetButton selected={!selected} onReset={() => onSelect(undefined)} />
+      <ResetButton
+        diff={diff}
+        selected={!selected}
+        onReset={() => onSelect(undefined)}
+      />
       {options.map((option) => {
+        const prefix = limitInverted ? "-" : "+";
         return (
           <PercentButton
-            onSelect={onSelect}
+            onSelect={() => onSelect(option)}
             key={option}
             selected={selected === option}
-            value={option}
-          />
+          >{`${prefix}${option}%`}</PercentButton>
         );
       })}
     </div>
@@ -188,21 +209,25 @@ const PercentageButtons = ({
 };
 
 const PercentButton = ({
-  value,
+  children,
   onSelect,
   selected,
+  className = "",
 }: {
-  value: number;
-  onSelect: (value: number) => void;
+  children: ReactNode;
+  onSelect: () => void;
   selected: boolean;
+  className?: string;
 }) => {
   return (
     <Button
-      onClick={() => onSelect(value)}
+      onClick={onSelect}
       size="sm"
-      className={`text-xs bg-black pl-3 pr-3 pt-2 pb-2  h-auto ${selected ? "bg-primary" : ""}`}
+      className={`text-xs bg-black pl-2 pr-2 pt-0 pb-0  h-7 ${
+        selected ? "bg-primary" : ""
+      } ${className}`}
     >
-      {value}%
+      {children}
     </Button>
   );
 };
@@ -210,9 +235,23 @@ const PercentButton = ({
 const ResetButton = ({
   onReset,
   selected,
+  diff = 0,
 }: {
   onReset: () => void;
   selected: boolean;
+  diff?: number;
 }) => {
-  return <PercentButton onSelect={onReset} selected={selected} value={0} />;
+  const prefix = (diff || 0) > 0 ? "+" : "";
+  return (
+    <PercentButton onSelect={onReset} selected={selected}>
+      {diff ? (
+        <div className="flex flex-row gap-1 h-full items-center">
+          {`${prefix}${diff}%`}{" "}
+          <div className="h-full bg-slate-900 w-0.5"></div> <X size={14} />{" "}
+        </div>
+      ) : (
+        "0%"
+      )}
+    </PercentButton>
+  );
 };

@@ -39,10 +39,11 @@ import { LimitPriceInput } from "./limit-price-input";
 import { Card } from "@/components/ui/card";
 import { DataDetails } from "@/components/ui/data-details";
 import { getSwapValuesPayload } from "@orbs-network/twap-sdk/dist/lib/lib";
-import moment from 'moment';
+import moment from "moment";
+import { Switch } from "@/components/ui/switch";
+import { LucideFileWarning } from "lucide-react";
 
 const config = Configs.QuickSwap;
-
 
 export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
   const queryClient = useQueryClient();
@@ -54,6 +55,14 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
   const [requiredSteps, setRequiredSteps] = useState<number[] | undefined>(
     undefined
   );
+  const [customFillDelay, setCustomFillDelay] = useState<
+    TimeDuration | undefined
+  >(undefined);
+  const [isMarketOrder, setIsMarketOrder] = useState(false);
+  const [customChunks, setCustomChunks] = useState<number | undefined>(
+    undefined
+  );
+
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
     undefined
   );
@@ -61,6 +70,7 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     undefined
   );
   const [swapConfirmOpen, setSwapConfirmOpen] = useState(false);
+  const [limitInverted, setLimitInverted] = useState(false);
 
   const twapSDK = useMemo(() => constructSDK({ config }), []);
 
@@ -68,7 +78,7 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
   const account = useAccount();
 
   // Set Initial Tokens
-  const defaultTokens = useDefaultTokens({
+  useDefaultTokens({
     inToken,
     outToken,
     tokensWithBalances,
@@ -119,6 +129,17 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     contractAddress: config.twapAddress,
   });
 
+  const onMarketOrderChange = useCallback((isMarket: boolean) => {
+    setIsMarketOrder(isMarket);
+    setCustomLimitPrice(undefined);
+  }, []);
+
+  useEffect(() => {
+    if (isLimitPanel) {
+      onMarketOrderChange(false);
+    }
+  }, [isLimitPanel, onMarketOrderChange]);
+
   const marketPrice = trade?.destAmount;
 
   const onCreateOrder = useCallback(async () => {
@@ -136,16 +157,22 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     undefined
   );
   const price = useMemo(() => {
-    if (customLimitPrice !== undefined) {
-      return fromAmountUi(customLimitPrice, outToken?.decimals);
+    if (isMarketOrder || customLimitPrice === undefined) {
+      return marketPrice;
     }
-    return marketPrice;
-  }, [customLimitPrice, marketPrice]);
+    let result = customLimitPrice;
+    if (limitInverted) {
+      result = BN(1).dividedBy(customLimitPrice).toString();
+    }
+
+    return fromAmountUi(result, outToken?.decimals);
+  }, [customLimitPrice, marketPrice, limitInverted, isMarketOrder]);
 
   const outAmount = useMemo(() => {
     if (!price || !inputAmount) return "";
+
     const result = BN(price).multipliedBy(inputAmount);
-    return result.toString()
+    return result.toString();
   }, [price, inputAmount]);
 
   const amounts = useAmounts({
@@ -162,37 +189,29 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
     networks.poly.id,
     inToken?.address
   );
-  const [customFillDelay, setCustomFillDelay] = useState<
-    TimeDuration | undefined
-  >(undefined);
-  const [isMarketOrder, setIsMarketOrder] = useState(false);
-  const [customChunks, setCustomChunks] = useState<number | undefined>(
-    undefined
-  );
 
   useEffect(() => {
     setIsMarketOrder(false);
   }, [isLimitPanel]);
 
-  const swapValues =
-    twapSDK.getSwapValues({
-      srcAmount: inAmountBigIntStr,
-      limitPrice: "",
-      oneSrcTokenUsd,
-      isLimitPanel,
-      srcDecimals: inToken?.decimals,
-      dstDecimals: outToken?.decimals,
-      isMarketOrder: true,
-      customFillDelay,
-      customChunks,
-    });
+  const swapValues = twapSDK.getSwapValues({
+    srcAmount: inAmountBigIntStr,
+    limitPrice: "",
+    oneSrcTokenUsd,
+    isLimitPanel,
+    srcDecimals: inToken?.decimals,
+    dstDecimals: outToken?.decimals,
+    isMarketOrder: true,
+    customFillDelay,
+    customChunks,
+  });
 
-    const { fillDelay, chunks, srcChunkAmount } = swapValues
+  const { fillDelay, chunks, srcChunkAmount } = swapValues;
 
   const inTokenBalance = useTokenBalance(inToken);
   const outTokenBalance = useTokenBalance(outToken);
 
-  const outAmountUi = toAmountUi(outAmount, outToken?.decimals)
+  const outAmountUi = toAmountUi(outAmount, outToken?.decimals);
 
   if (isLoading) {
     return (
@@ -204,15 +223,27 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
 
   return (
     <div className="flex flex-col gap-2 pt-2">
-      <LimitPriceInput
-        customLimitPrice={customLimitPrice}
-        marketPrice={toAmountUi(marketPrice, outToken?.decimals)}
-        onValueChange={setCustomLimitPrice}
-        inToken={inToken}
-        outToken={outToken}
-        setOutToken={setOutToken}
-        setInToken={setInToken}
-      />
+      {!isLimitPanel && (
+        <Switch
+          className="ml-auto"
+          isChecked={!isMarketOrder}
+          onChange={() => onMarketOrderChange(!isMarketOrder)}
+          label={isMarketOrder ? "Market order" : "Limit order"}
+        />
+      )}
+      {!isMarketOrder && (
+        <LimitPriceInput
+          customLimitPrice={customLimitPrice}
+          marketPrice={toAmountUi(marketPrice, outToken?.decimals)}
+          onValueChange={setCustomLimitPrice}
+          inToken={inToken}
+          outToken={outToken}
+          setOutToken={setOutToken}
+          setInToken={setInToken}
+          limitInverted={limitInverted}
+          setLimitInverted={setLimitInverted}
+        />
+      )}
       <TokenCard
         label="Sell"
         amount={inputAmount}
@@ -258,7 +289,13 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
             confirmSwap={onCreateOrder}
             swapStatus={swapStatus}
             buttonText="Confirm"
-            details={<Details swapValues={swapValues} inToken={inToken} outToken={outToken} />}
+            details={
+              <Details
+                swapValues={swapValues}
+                inToken={inToken}
+                outToken={outToken}
+              />
+            }
             title="Create order"
             failedContent={<SwapFlow.Failed />}
             successContent={<SwapFlow.Success explorerUrl="/" />}
@@ -290,49 +327,75 @@ export function SwapTwap({ isLimitPanel }: { isLimitPanel?: boolean }) {
           Connect wallet
         </Button>
       )}
+      {isMarketOrder && <MarketOrderWarning />}
     </div>
   );
 }
 
-const Details = ({swapValues, inToken, outToken}:{swapValues: getSwapValuesPayload, inToken?: Token, outToken?: Token}) => {
-  const srcChunksAmount = toAmountUi(swapValues.srcChunkAmount, inToken?.decimals)
-  const { address: account} = useAccount()
+const Details = ({
+  swapValues,
+  inToken,
+  outToken,
+}: {
+  swapValues: getSwapValuesPayload;
+  inToken?: Token;
+  outToken?: Token;
+}) => {
+  const srcChunksAmount = toAmountUi(
+    swapValues.srcChunkAmount,
+    inToken?.decimals
+  );
+  const { address: account } = useAccount();
   return (
     <div>
-      <Card className="bg-slate-900">
-        <div className="p-4 flex flex-col gap-2">
+      <Card className="bg-slate-900 p-4 flex flex-col gap-2">
+
           <DataDetails
             data={{
-              'Individual trade size': `${srcChunksAmount} ${inToken?.symbol}`,
+              "Individual trade size": `${srcChunksAmount} ${inToken?.symbol}`,
             }}
           />
-            <DataDetails
+          <DataDetails
             data={{
-              'Expiry': `${moment(swapValues.deadline).format('lll')}`,
+              Expiry: `${moment(swapValues.deadline).format("lll")}`,
             }}
           />
-           <DataDetails
+          <DataDetails
             data={{
-              'No. of trades': swapValues.chunks,
+              "No. of trades": swapValues.chunks,
             }}
           />
-           <DataDetails
+          <DataDetails
             data={{
-              'Every': millisecondsToText(swapValues.fillDelay.unit * swapValues.fillDelay.value),
+              Every: millisecondsToText(
+                swapValues.fillDelay.unit * swapValues.fillDelay.value
+              ),
             }}
           />
-            <DataDetails
+          <DataDetails
             data={{
-              'Recipient': makeElipsisAddress(account),
+              Recipient: makeElipsisAddress(account),
             }}
           />
-        </div>
+
       </Card>
     </div>
   );
 };
 
-
+const MarketOrderWarning = () => {
+  return (
+    <Card className="bg-slate-900 p-4 flex flex-col gap-2">
+      <p className='text-gray-400 text-sm'>
+    * Each individual trade in this order will be filled at the current market
+      price at the time of execution.
+      <a href="https://www.orbs.com/dtwap-and-dlimit-faq/" target="_blank">
+        {" "}Learn more
+      </a>
+    </p>
+    </Card>
+  );
+};
 
 const useSteps = (requiredSteps?: number[], inToken?: Token | null) => {
   return useMemo((): SwapStep[] => {
@@ -362,4 +425,3 @@ const useSteps = (requiredSteps?: number[], inToken?: Token | null) => {
     });
   }, [inToken, requiredSteps]);
 };
-

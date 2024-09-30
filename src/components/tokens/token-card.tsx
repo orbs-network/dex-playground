@@ -79,6 +79,7 @@ export function TokenCard({
               className="bg-transparent w-full min-w-0 outline-none"
               value={amount}
               placeholder="0.00"
+              allowNegative={false}
               prefix={prefix}
               contentEditable={isAmountEditable}
               decimalScale={5}
