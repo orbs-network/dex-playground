@@ -13,6 +13,7 @@ import { DataDetails } from "@/components/ui/data-details";
 import { format, fromBigNumber, getSteps } from "@/lib";
 import { useAccount } from "wagmi";
 import { OptimalRate } from "@paraswap/sdk";
+import { Quote } from "@orbs-network/liquidity-hub-sdk";
 
 export type SwapConfirmationDialogProps = {
   inToken: Token;
@@ -27,6 +28,7 @@ export type SwapConfirmationDialogProps = {
   signature?: string;
   gasAmountOut?: string;
   dexQuote?: OptimalRate;
+  liquidityHubQuote?: Quote;
 };
 
 // Construct steps for swap to display in UI
@@ -83,10 +85,11 @@ export function SwapConfirmationDialog({
   signature,
   gasAmountOut,
   dexQuote,
+  liquidityHubQuote
 }: SwapConfirmationDialogProps) {
   const steps = useSteps(requiresApproval, inToken, signature);
   const account = useAccount().address as string;
-  const outAmount = fromBigNumber(dexQuote?.destAmount, outToken.decimals);
+  const outAmount = fromBigNumber(liquidityHubQuote?.referencePrice, outToken.decimals);
   const inAmount = fromBigNumber(dexQuote?.srcAmount, inToken.decimals);
 
   const gasPrice = useMemo(() => {
