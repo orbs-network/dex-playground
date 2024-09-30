@@ -237,9 +237,8 @@ export function Swap() {
             swapStatus={swapStatus}
             currentStep={currentStep}
             signature={signature}
-            gasAmountOut={liquidityHubQuote?.gasAmountOut}
+            liquidityHubQuote={liquidityHubQuote}
           />
-
           <Button
             className="mt-2"
             size="lg"
