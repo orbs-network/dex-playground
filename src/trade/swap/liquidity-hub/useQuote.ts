@@ -9,7 +9,6 @@ export const QUOTE_REFETCH_INTERVAL = 20_000
 
 // Fetches quote using Liquidity Hub sdk
 
-
 export function useQuote(args: QuoteArgs, disabled?: boolean) {
   const liquidityHub = useLiquidityHubSDK()
   const queryClient = useQueryClient()
@@ -24,7 +23,7 @@ export function useQuote(args: QuoteArgs, disabled?: boolean) {
   // Flag to determine whether to getQuote
   const enabled = Boolean(
     !disabled &&
-    chainId &&
+      chainId &&
       args.fromToken &&
       args.toToken &&
       Number(args.inAmount) > 0 &&
@@ -46,6 +45,7 @@ export function useQuote(args: QuoteArgs, disabled?: boolean) {
           ? networks.poly.wToken.address
           : args.fromToken,
       }
+      // The abort signal is optional
       return liquidityHub.getQuote({ ...payload, signal })
     },
     [liquidityHub, args]
