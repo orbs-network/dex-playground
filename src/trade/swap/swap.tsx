@@ -24,7 +24,6 @@ import {
   toBigNumber,
   useDebounce,
   useTokensWithBalances,
-  toBigInt,
 } from "@/lib";
 import "./style.css";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +47,7 @@ export function Swap() {
     undefined
   );
   const [swapConfirmOpen, setSwapConfirmOpen] = useState(false);
+  const [signature, setSignature] = useState<string | undefined>(undefined)
 
   // Get wagmi account
   const account = useAccount();
@@ -83,6 +83,7 @@ export function Swap() {
     setInputAmount("");
     setInputError(null);
     setCurrentStep(undefined);
+    setSignature(undefined);
     setSwapStatus(undefined);
     queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
@@ -150,6 +151,7 @@ export function Swap() {
         setSwapStatus,
         setCurrentStep,
         onFailure: onSwapConfirmClose,
+        setSignature
       });
     } catch (error) {
       // If the liquidity hub swap fails, need to set the flag to prevent further attempts, and proceed with the dex swap
@@ -184,13 +186,13 @@ export function Swap() {
   const { inAmountUsd, inPriceUsd, outAmount, outAmountUsd, outPriceUsd } =
     useAmounts({ inToken, outToken, inAmount: debouncedInputAmount, quote });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center mt-28">
-        <Spinner />
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex justify-center items-center mt-28">
+  //       <Spinner />
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col gap-2 pt-2">
@@ -247,6 +249,7 @@ export function Swap() {
             approvalLoading={approvalLoading}
             swapStatus={swapStatus}
             currentStep={currentStep}
+            signature={signature}
           />
 
           <Button

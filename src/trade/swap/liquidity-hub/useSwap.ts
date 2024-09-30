@@ -120,7 +120,7 @@ async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
     analyticsEvents.onRequest();
 
     // Sign transaction and get signature
-    const signature = await promiseWithTimeout(
+    const signature = await promiseWithTimeout<string>(
       signTypedData(wagmiConfig, payload),
       40_000
     );
@@ -155,6 +155,7 @@ export function useSwap() {
       onSuccess,
       onFailure,
       onSettled,
+      setSignature,
     }: {
       inTokenAddress: string;
       getQuote: () => Promise<Quote>;
@@ -162,6 +163,7 @@ export function useSwap() {
       onAcceptQuote: (quote: Quote) => void;
       setSwapStatus: (status?: SwapStatus) => void;
       setCurrentStep: (step: SwapSteps) => void;
+      setSignature: (signature: string) => void;
       onSuccess?: () => void;
       onFailure?: () => void;
       onSettled?: () => void;
@@ -210,6 +212,7 @@ export function useSwap() {
           liquidityHub.analytics.onSignatureSuccess(signature || ""),
         onFailure: liquidityHub.analytics.onSignatureFailed,
       });
+      setSignature(signature);
 
       try {
         console.log("Swapping...");

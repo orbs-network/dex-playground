@@ -28,10 +28,11 @@ export type SwapConfirmationDialogProps = {
   approvalLoading: boolean
   swapStatus?: SwapStatus
   currentStep?: SwapSteps
+  signature?: string
 }
 
 // Construct steps for swap to display in UI
-const useSteps = (requiresApproval: boolean, inToken?: Token) => {
+const useSteps = (requiresApproval: boolean, inToken?: Token, signature?: string) => {
   return useMemo((): SwapStep[] => {
     if (!inToken) return []
 
@@ -61,10 +62,10 @@ const useSteps = (requiresApproval: boolean, inToken?: Token) => {
         title: `Swap ${inToken.symbol}`,
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
-        timeout: 40_000,
+        timeout: signature ? 60_000 : 40_000,
       }
     })
-  }, [inToken, requiresApproval])
+  }, [inToken, requiresApproval, signature])
 }
 
 export function SwapConfirmationDialog({
@@ -82,11 +83,12 @@ export function SwapConfirmationDialog({
   approvalLoading,
   swapStatus,
   currentStep,
+  signature
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(requiresApproval, inToken)
+  const steps = useSteps(requiresApproval, inToken,signature)
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogTitle>Swap</DialogTitle>
         <DialogDescription></DialogDescription>
