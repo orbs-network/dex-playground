@@ -24,6 +24,8 @@ import {
   getQuoteErrorMessage,
   useParaswapSwapCallback,
   toBigInt,
+  isNativeAddress,
+  networks,
 } from '@/lib'
 import './style.css'
 import { useQueryClient } from '@tanstack/react-query'
@@ -85,6 +87,7 @@ export function Swap() {
     setCurrentStep(undefined)
     setSignature(undefined)
     setSwapStatus(undefined)
+    setLiquidityHubDisabled(false)
     queryClient.invalidateQueries({ queryKey })
   }, [queryClient, queryKey])
 
@@ -158,9 +161,11 @@ export function Swap() {
   const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(
     liquidityProvider === 'paraswap' && optimalRate
-      ? (optimalRate.contractAddress as Address)
+      ? (optimalRate.tokenTransferProxy as Address)
       : permit2Address,
-    inToken,
+    liquidityProvider === 'paraswap' || !isNativeAddress(inToken?.address)
+      ? inToken?.address
+      : networks.poly.wToken.address,
     inputAmountAsBigNumber
   )
 

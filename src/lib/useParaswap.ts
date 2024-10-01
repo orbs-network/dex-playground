@@ -73,7 +73,7 @@ export const useParaswapBuildTxCallback = () => {
   const paraswap = useParaswap()
   const account = useAccount().address as string
   return useCallback(
-    (optimalRate: OptimalRate, slippage: number) => {
+    async (optimalRate: OptimalRate, slippage: number) => {
       const payload = {
         srcToken: optimalRate.srcToken,
         destToken: optimalRate.destToken,
@@ -81,7 +81,7 @@ export const useParaswapBuildTxCallback = () => {
         destAmount: getMinAmountOut(slippage, optimalRate.destAmount)!,
         priceRoute: optimalRate,
         userAddress: account,
-        receiver: account,
+        // receiver: account,
         // set your partner name here, we use quickswapv3 for example
         partner: 'quickswapv3',
       }
@@ -121,7 +121,7 @@ export const useParaswapSwapCallback = () => {
         await approveAllowance(
           account,
           optimalRate.srcToken,
-          optimalRate.contractAddress as Address
+          optimalRate.tokenTransferProxy as Address
         )
       }
 
