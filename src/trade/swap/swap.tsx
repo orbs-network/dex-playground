@@ -1,15 +1,15 @@
-import { TokenCard } from "@/components/tokens/token-card";
-import { SwitchButton } from "@/components/ui/switch-button";
-import { SwapSteps, Token } from "@/types";
-import { useCallback, useState } from "react";
-import { SwapStatus } from "@orbs-network/swap-ui";
-import { useAccount } from "wagmi";
-import { SwapDetails } from "../../components/swap-details";
-import { SwapConfirmationDialog } from "./swap-confirmation-dialog";
-import { useQuote } from "./liquidity-hub/useQuote";
-import { Button } from "@/components/ui/button";
-import { useLiquidityHubSwapCallback } from "./liquidity-hub/useLiquidityHubSwapCallback";
-import { Quote } from "@orbs-network/liquidity-hub-sdk";
+import { TokenCard } from '@/components/tokens/token-card'
+import { SwitchButton } from '@/components/ui/switch-button'
+import { SwapSteps, Token } from '@/types'
+import { useCallback, useState } from 'react'
+import { SwapStatus } from '@orbs-network/swap-ui'
+import { useAccount } from 'wagmi'
+import { SwapDetails } from '../../components/swap-details'
+import { SwapConfirmationDialog } from './swap-confirmation-dialog'
+import { useQuote } from './liquidity-hub/useQuote'
+import { Button } from '@/components/ui/button'
+import { useLiquidityHubSwapCallback } from './liquidity-hub/useLiquidityHubSwapCallback'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
 import {
   useDefaultTokens,
   useGetRequiresApproval,
@@ -23,35 +23,34 @@ import {
   useParaswapQuote,
   getQuoteErrorMessage,
   useParaswapSwapCallback,
-  toBigInt,
-} from "@/lib";
-import "./style.css";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+} from '@/lib'
+import './style.css'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 
-const slippage = 0.5;
+const slippage = 0.5
 
 export function Swap() {
-  const queryClient = useQueryClient();
-  const { tokensWithBalances, queryKey } = useTokensWithBalances();
-  const [inToken, setInToken] = useState<Token | null>(null);
-  const [outToken, setOutToken] = useState<Token | null>(null);
-  const [inputAmount, setInputAmount] = useState<string>("");
-  const [inputError, setInputError] = useState<string | null>(null);
-  const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>();
-  const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false);
+  const queryClient = useQueryClient()
+  const { tokensWithBalances, queryKey } = useTokensWithBalances()
+  const [inToken, setInToken] = useState<Token | null>(null)
+  const [outToken, setOutToken] = useState<Token | null>(null)
+  const [inputAmount, setInputAmount] = useState<string>('')
+  const [inputError, setInputError] = useState<string | null>(null)
+  const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>()
+  const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false)
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
     undefined
-  );
+  )
   const [swapStatus, setSwapStatus] = useState<SwapStatus | undefined>(
     undefined
-  );
-  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false);
-  const [signature, setSignature] = useState<string | undefined>(undefined);
+  )
+  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
+  const [signature, setSignature] = useState<string | undefined>(undefined)
 
   // Get wagmi account
-  const account = useAccount();
+  const account = useAccount()
 
   // Set Initial Tokens
   const defaultTokens = useDefaultTokens({
@@ -60,7 +59,7 @@ export function Swap() {
     tokensWithBalances,
     setInToken,
     setOutToken,
-  });
+  })
 
   // Handle Amount Input Error
   useHandleInputError({
@@ -68,44 +67,44 @@ export function Swap() {
     inToken,
     tokensWithBalances,
     setInputError,
-  });
+  })
 
   // Handle Token Switch
   const handleSwitch = useCallback(() => {
-    setInToken(outToken);
-    setOutToken(inToken);
-    setInputAmount("");
-  }, [inToken, outToken]);
+    setInToken(outToken)
+    setOutToken(inToken)
+    setInputAmount('')
+  }, [inToken, outToken])
 
   // Handle Swap Confirmation Dialog Close
   const onSwapConfirmClose = useCallback(() => {
-    setSwapConfirmOpen(false);
-    setAcceptedQuote(undefined);
-    setInputAmount("");
-    setInputError(null);
-    setCurrentStep(undefined);
-    setSignature(undefined);
-    setSwapStatus(undefined);
-    queryClient.invalidateQueries({ queryKey });
-  }, [queryClient, queryKey]);
+    setSwapConfirmOpen(false)
+    setAcceptedQuote(undefined)
+    setInputAmount('')
+    setInputError(null)
+    setCurrentStep(undefined)
+    setSignature(undefined)
+    setSwapStatus(undefined)
+    queryClient.invalidateQueries({ queryKey })
+  }, [queryClient, queryKey])
 
   /* --------- Quote ---------- */
   // The entered input amount has to be converted to a big int string
   // to be used for getting quotes
 
-  const inputAmountAsBigNumber = toBigNumber(inputAmount, inToken?.decimals);
+  const inputAmountAsBigNumber = toBigNumber(inputAmount, inToken?.decimals)
   const { data: optimalRate, isLoading: optimalRateLoading } = useParaswapQuote(
     {
-      inToken: inToken?.address || "",
-      outToken: outToken?.address || "",
+      inToken: inToken?.address || '',
+      outToken: outToken?.address || '',
       inAmount: inputAmountAsBigNumber,
     }
-  );
+  )
 
   const paraswapMinAmountOut = getMinAmountOut(
     slippage,
-    optimalRate?.destAmount || "0"
-  );
+    optimalRate?.destAmount || '0'
+  )
 
   // Fetch Liquidity Hub Quote
   const {
@@ -114,46 +113,47 @@ export function Swap() {
     error: quoteError,
   } = useQuote(
     {
-      fromToken: inToken?.address || "",
-      toToken: outToken?.address || "",
+      fromToken: inToken?.address || '',
+      toToken: outToken?.address || '',
       inAmount: inputAmountAsBigNumber,
       slippage,
       account: account.address,
       dexMinAmountOut: paraswapMinAmountOut,
     },
     liquidityHubDisabled
-  );
-  /* --------- End Quote ---------- */
+  )
 
-  const liquidityHubQuote = acceptedQuote || _quote;
+  const liquidityHubQuote = acceptedQuote || _quote
+
+  /* --------- End Quote ---------- */
 
   /* --------- Swap ---------- */
   const onAcceptQuote = useCallback((quote?: Quote) => {
-    setAcceptedQuote(quote);
-  }, []);
-  const { mutateAsync: swap } = useLiquidityHubSwapCallback();
-  const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback();
+    setAcceptedQuote(quote)
+  }, [])
+  const { mutateAsync: swap } = useLiquidityHubSwapCallback()
+  const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(
     inToken,
     inputAmountAsBigNumber
-  );
-
+  )
 
   const swapWithParaswap = useCallback(async () => {
-    if (!optimalRate) return;
+    if (!optimalRate) return
     try {
       await paraswapSwapCallback({
         optimalRate,
         slippage,
-      });
+      })
     } catch (error) {
       // handle error in ui
+      console.error(error)
     }
-  }, [optimalRate, slippage, paraswapSwapCallback]);
+  }, [optimalRate, paraswapSwapCallback])
 
   const proceedWithLiquidityHubSwap = useCallback(async () => {
     if (!optimalRate) {
-      return;
+      return
     }
     try {
       await swap({
@@ -167,17 +167,18 @@ export function Swap() {
         setSignature,
         slippage,
         optimalRate,
-      });
+      })
     } catch (error) {
       // If the liquidity hub swap fails, need to set the flag to prevent further attempts, and proceed with the dex swap
       // stop quotting from liquidity hub
       // start new flow with dex swap
-      console.error(error);
-      toast.error("Liquidity Hub swap failed, proceeding with Dex swap");
-      setLiquidityHubDisabled(true);
-      swapWithParaswap();
+      console.error(error)
+      toast.error('Liquidity Hub swap failed, proceeding with Dex swap')
+      setLiquidityHubDisabled(true)
+      swapWithParaswap()
     }
   }, [
+    optimalRate,
     swap,
     inToken,
     getLatestQuote,
@@ -185,11 +186,11 @@ export function Swap() {
     onAcceptQuote,
     onSwapConfirmClose,
     swapWithParaswap,
-  ]);
+  ])
 
   const confirmSwap = useCallback(async () => {
     // Choose between liquidity hub and dex swap based on the min amount out
-    swapWithParaswap();
+    swapWithParaswap()
     // if (
     //   !liquidityHubDisabled &&
     //   toBigInt(liquidityHubQuote?.minAmountOut || 0) >
@@ -200,21 +201,15 @@ export function Swap() {
     //   swapWithParaswap();
     // }
     // proceedWithLiquidityHubSwap();
-  }, [
-    proceedWithLiquidityHubSwap,
-    swapWithParaswap,
-    liquidityHubQuote,
-    paraswapMinAmountOut,
-    liquidityHubDisabled,
-  ]);
+  }, [swapWithParaswap])
 
   /* --------- End Swap ---------- */
 
   const destAmount = optimalRate?.destAmount
     ? fromBigNumber(optimalRate.destAmount, outToken?.decimals).toString()
-    : "";
+    : ''
 
-  const openConnectModal = useConnectModal().openConnectModal;
+  const openConnectModal = useConnectModal().openConnectModal
   return (
     <div className="flex flex-col gap-2 pt-2">
       <TokenCard
@@ -238,7 +233,7 @@ export function Swap() {
       </div>
       <TokenCard
         label="Buy"
-        amount={destAmount ? format.crypto(Number(destAmount)) : ""}
+        amount={destAmount ? format.crypto(Number(destAmount)) : ''}
         amountUsd={optimalRate?.destUSD}
         balance={fromBigNumber(
           tokensWithBalances &&
@@ -277,10 +272,10 @@ export function Swap() {
             )}
           >
             {inputError === ErrorCodes.InsufficientBalance
-              ? "Insufficient balance"
+              ? 'Insufficient balance'
               : inputAmount && !liquidityHubQuote
-              ? "Fetching quote..."
-              : "Swap"}
+              ? 'Fetching quote...'
+              : 'Swap'}
           </Button>
         </>
       ) : (
@@ -302,5 +297,5 @@ export function Swap() {
         account={account.address}
       />
     </div>
-  );
+  )
 }
