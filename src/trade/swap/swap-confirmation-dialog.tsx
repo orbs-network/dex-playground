@@ -27,7 +27,7 @@ export type SwapConfirmationDialogProps = {
   currentStep?: SwapSteps;
   signature?: string;
   gasAmountOut?: string;
-  dexQuote?: OptimalRate;
+  optimalRate?: OptimalRate;
   liquidityHubQuote?: Quote;
 };
 
@@ -84,20 +84,20 @@ export function SwapConfirmationDialog({
   currentStep,
   signature,
   gasAmountOut,
-  dexQuote,
+  optimalRate,
   liquidityHubQuote
 }: SwapConfirmationDialogProps) {
   const steps = useSteps(requiresApproval, inToken, signature);
   const account = useAccount().address as string;
   const outAmount = fromBigNumber(liquidityHubQuote?.referencePrice, outToken.decimals);
-  const inAmount = fromBigNumber(dexQuote?.srcAmount, inToken.decimals);
+  const inAmount = fromBigNumber(optimalRate?.srcAmount, inToken.decimals);
 
   const gasPrice = useMemo(() => {
-    if (!dexQuote || !gasAmountOut) return 0;
+    if (!optimalRate || !gasAmountOut) return 0;
     const gas = fromBigNumber(gasAmountOut, outToken.decimals);
-    const usd = Number(dexQuote.destUSD) / Number(outAmount);
+    const usd = Number(optimalRate.destUSD) / Number(outAmount);
     return Number(gas) * usd;
-  }, [dexQuote, gasAmountOut, outAmount, outToken.decimals]);
+  }, [optimalRate, gasAmountOut, outAmount, outToken.decimals]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -114,8 +114,8 @@ export function SwapConfirmationDialog({
                   fromTitle="Sell"
                   toTitle="Buy"
                   steps={steps}
-                  inUsd={format.dollar(Number(dexQuote?.srcUSD || "0"))}
-                  outUsd={format.dollar(Number(dexQuote?.destUSD || "0"))}
+                  inUsd={format.dollar(Number(optimalRate?.srcUSD || "0"))}
+                  outUsd={format.dollar(Number(optimalRate?.destUSD || "0"))}
                   currentStep={currentStep as number}
                 />
               }

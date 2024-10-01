@@ -86,7 +86,7 @@ export const format = {
   address: formatAddress,
 }
 
-export const getDexMinAmountOut = (slippage: number, _destAmount: string) => {
+export const getMinAmountOut = (slippage: number, _destAmount: string) => {
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)) // 0.5% becomes 995
 
   // Convert priceRoute.destAmount to BigInt

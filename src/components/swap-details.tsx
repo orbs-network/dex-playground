@@ -6,7 +6,7 @@ import { OptimalRate } from "@paraswap/sdk";
 import { useMemo } from "react";
 
 export type SwapDetailsProps = {
-  dexTrade?: OptimalRate;
+  optimalRate?: OptimalRate;
   inToken: Token | null;
   outToken: Token | null;
   account?: string;
@@ -18,21 +18,21 @@ export function SwapDetails({
   outToken,
   account,
   minAmountOut,
-  dexTrade,
+  optimalRate,
 }: SwapDetailsProps) {
   const inPriceUsd = useMemo(() => {
-    if (!dexTrade) return 0;
-    const amount = fromBigNumber(dexTrade.srcAmount, inToken?.decimals);
-    return Number(dexTrade.srcUSD) / Number(amount);
-  }, [dexTrade, inToken]);
+    if (!optimalRate) return 0;
+    const amount = fromBigNumber(optimalRate.srcAmount, inToken?.decimals);
+    return Number(optimalRate.srcUSD) / Number(amount);
+  }, [optimalRate, inToken]);
 
   const outPriceUsd = useMemo(() => {
-    if (!dexTrade) return 0;
-    const amount = fromBigNumber(dexTrade.destAmount, outToken?.decimals);
-    return Number(dexTrade.destUSD) / Number(amount);
-  }, [dexTrade, outToken]);
+    if (!optimalRate) return 0;
+    const amount = fromBigNumber(optimalRate.destAmount, outToken?.decimals);
+    return Number(optimalRate.destUSD) / Number(amount);
+  }, [optimalRate, outToken]);
 
-  if (!inToken || !outToken || !account || !dexTrade) return null;
+  if (!inToken || !outToken || !account || !optimalRate) return null;
 
   const rate = inPriceUsd / outPriceUsd;
 
@@ -41,7 +41,7 @@ export function SwapDetails({
   };
 
   const minOutAmount = fromBigNumber(minAmountOut, outToken.decimals);
-  const outAmount = fromBigNumber(dexTrade.destAmount, outToken.decimals);
+  const outAmount = fromBigNumber(optimalRate.destAmount, outToken.decimals);
   data = {
     ...data,
     "Est. Received": `${format.crypto(Number(outAmount))} ${outToken.symbol}`,

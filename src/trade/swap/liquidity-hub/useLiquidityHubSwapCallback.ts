@@ -6,17 +6,19 @@ import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
 import { SwapStatus } from "@orbs-network/swap-ui";
 import { useLiquidityHubSDK } from "./useLiquidityHubSDK";
 import { SwapSteps } from "@/types";
-import { Address, erc20Abi, maxUint256 } from "viem";
+import { Address } from "viem";
 import {
   wagmiConfig,
   IWETHabi,
   networks,
   waitForConfirmations,
-  isNativeAddress,
   promiseWithTimeout,
   getSteps,
   getErrorMessage,
+  useParaswapBuildTxCallback,
 } from "@/lib";
+import { OptimalRate, TransactionParams } from "@paraswap/sdk";
+import { approveAllowance } from "@/lib/approveAllowance";
 
 // Analytics events are optional for integration but are useful for your business insights
 type AnalyticsEvents = {
@@ -59,43 +61,20 @@ async function wrapToken(quote: Quote, analyticsEvents: AnalyticsEvents) {
   }
 }
 
-async function approveAllowance(
+async function approveCallback(
   account: string,
   inToken: string,
   analyticsEvents: AnalyticsEvents
 ) {
   try {
-    console.log("Approving allowance...");
     analyticsEvents.onRequest();
-    // Simulate the contract to check if there would be any errors
-    const simulatedData = await simulateContract(wagmiConfig, {
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [permit2Address, maxUint256],
-      account: account as Address,
-      address: (isNativeAddress(inToken)
-        ? networks.poly.wToken.address
-        : inToken) as Address,
-    });
-
     // Perform the approve contract function
-    const txHash = await writeContract(wagmiConfig, simulatedData.request);
-    console.log("Approved allowance");
-
-    // Check for confirmations for a maximum of 20 seconds
-    await waitForConfirmations(txHash, 1, 20);
+    const txHash = await approveAllowance(account, inToken, permit2Address);
 
     analyticsEvents.onSuccess(txHash);
     return txHash;
   } catch (error) {
-    console.error(error);
-
-    const errorMessage = getErrorMessage(
-      error,
-      "An error occurred while approving your allowance"
-    );
-    toast.error(errorMessage);
-    analyticsEvents.onFailure(errorMessage);
+    analyticsEvents.onFailure((error as Error).message);
     throw error;
   }
 }
@@ -142,11 +121,15 @@ async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
   }
 }
 
-export function useSwap() {
+export function useLiquidityHubSwapCallback() {
   const liquidityHub = useLiquidityHubSDK();
+  const buildParaswapTxCallback = useParaswapBuildTxCallback();
+
   return useMutation({
     mutationFn: async ({
       inTokenAddress,
+      optimalRate,
+      slippage,
       getQuote,
       requiresApproval,
       onAcceptQuote,
@@ -158,6 +141,8 @@ export function useSwap() {
       setSignature,
     }: {
       inTokenAddress: string;
+      slippage: number;
+      optimalRate: OptimalRate;
       getQuote: () => Promise<Quote>;
       requiresApproval: boolean;
       onAcceptQuote: (quote: Quote) => void;
@@ -170,7 +155,6 @@ export function useSwap() {
     }) => {
       // Fetch latest quote just before swap
       const quote = await getQuote();
-
       // Set swap status for UI
       setSwapStatus(SwapStatus.LOADING);
 
@@ -191,7 +175,7 @@ export function useSwap() {
       // then get user to approve
       if (steps.includes(SwapSteps.Approve)) {
         setCurrentStep(SwapSteps.Approve);
-        await approveAllowance(quote.user, quote.inToken, {
+        await approveCallback(quote.user, quote.inToken, {
           onRequest: liquidityHub.analytics.onApprovalRequest,
           onSuccess: liquidityHub.analytics.onApprovalSuccess,
           onFailure: liquidityHub.analytics.onApprovalFailed,
@@ -213,13 +197,25 @@ export function useSwap() {
         onFailure: liquidityHub.analytics.onSignatureFailed,
       });
       setSignature(signature);
+      // pass the liquidity provider txData if possible
+      let paraswapTxData: TransactionParams | undefined;
+
+      try {
+        paraswapTxData = await buildParaswapTxCallback(optimalRate, slippage);
+      } catch (error) {
+        console.error(error);
+      }
 
       try {
         console.log("Swapping...");
         // Call Liquidity Hub sdk swap and wait for transaction hash
         const txHash = await liquidityHub.swap(
           latestQuote,
-          signature as string
+          signature as string,
+          {
+            data: paraswapTxData?.data,
+            to: paraswapTxData?.to,
+          }
         );
 
         if (!txHash) {
