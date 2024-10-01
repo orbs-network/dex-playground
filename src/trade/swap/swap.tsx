@@ -1,7 +1,7 @@
 import { TokenCard } from '@/components/tokens/token-card'
 import { SwitchButton } from '@/components/ui/switch-button'
 import { SwapSteps, Token } from '@/types'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useAccount } from 'wagmi'
 import { SwapDetails } from '../../components/swap-details'
@@ -9,7 +9,7 @@ import { SwapConfirmationDialog } from './swap-confirmation-dialog'
 import { useQuote } from './liquidity-hub/useQuote'
 import { Button } from '@/components/ui/button'
 import { useLiquidityHubSwapCallback } from './liquidity-hub/useLiquidityHubSwapCallback'
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
+import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import {
   useDefaultTokens,
   useGetRequiresApproval,
@@ -23,11 +23,13 @@ import {
   useParaswapQuote,
   getQuoteErrorMessage,
   useParaswapSwapCallback,
+  toBigInt,
 } from '@/lib'
 import './style.css'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import { Address } from 'viem'
 
 const slippage = 0.5
 
@@ -76,9 +78,7 @@ export function Swap() {
     setInputAmount('')
   }, [inToken, outToken])
 
-  // Handle Swap Confirmation Dialog Close
-  const onSwapConfirmClose = useCallback(() => {
-    setSwapConfirmOpen(false)
+  const resetSwap = useCallback(() => {
     setAcceptedQuote(undefined)
     setInputAmount('')
     setInputError(null)
@@ -87,6 +87,12 @@ export function Swap() {
     setSwapStatus(undefined)
     queryClient.invalidateQueries({ queryKey })
   }, [queryClient, queryKey])
+
+  // Handle Swap Confirmation Dialog Close
+  const onSwapConfirmClose = useCallback(() => {
+    setSwapConfirmOpen(false)
+    resetSwap()
+  }, [resetSwap])
 
   /* --------- Quote ---------- */
   // The entered input amount has to be converted to a big int string
@@ -128,12 +134,32 @@ export function Swap() {
   /* --------- End Quote ---------- */
 
   /* --------- Swap ---------- */
+  const liquidityProvider = useMemo(() => {
+    // Choose between liquidity hub and dex swap based on the min amount out
+    if (
+      !liquidityHubDisabled &&
+      toBigInt(liquidityHubQuote?.minAmountOut || 0) >
+        BigInt(paraswapMinAmountOut || 0)
+    ) {
+      return 'liquidityhub'
+    } else {
+      return 'paraswap'
+    }
+  }, [
+    liquidityHubDisabled,
+    liquidityHubQuote?.minAmountOut,
+    paraswapMinAmountOut,
+  ])
+
   const onAcceptQuote = useCallback((quote?: Quote) => {
     setAcceptedQuote(quote)
   }, [])
   const { mutateAsync: swap } = useLiquidityHubSwapCallback()
   const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(
+    liquidityProvider === 'paraswap' && optimalRate
+      ? (optimalRate.contractAddress as Address)
+      : permit2Address,
     inToken,
     inputAmountAsBigNumber
   )
@@ -144,12 +170,16 @@ export function Swap() {
       await paraswapSwapCallback({
         optimalRate,
         slippage,
+        requiresApproval,
+        setCurrentStep,
+        setSwapStatus,
+        onFailure: resetSwap,
       })
     } catch (error) {
       // handle error in ui
       console.error(error)
     }
-  }, [optimalRate, paraswapSwapCallback])
+  }, [optimalRate, paraswapSwapCallback, requiresApproval, resetSwap])
 
   const proceedWithLiquidityHubSwap = useCallback(async () => {
     if (!optimalRate) {
@@ -163,7 +193,7 @@ export function Swap() {
         onAcceptQuote,
         setSwapStatus,
         setCurrentStep,
-        onFailure: onSwapConfirmClose,
+        onFailure: resetSwap,
         setSignature,
         slippage,
         optimalRate,
@@ -184,25 +214,18 @@ export function Swap() {
     getLatestQuote,
     requiresApproval,
     onAcceptQuote,
-    onSwapConfirmClose,
+    resetSwap,
     swapWithParaswap,
   ])
 
   const confirmSwap = useCallback(async () => {
-    // Choose between liquidity hub and dex swap based on the min amount out
-    swapWithParaswap()
-    // if (
-    //   !liquidityHubDisabled &&
-    //   toBigInt(liquidityHubQuote?.minAmountOut || 0) >
-    //     BigInt(paraswapMinAmountOut || 0)
-    // ) {
-    //   proceedWithLiquidityHubSwap();
-    // } else {
-    //   swapWithParaswap();
-    // }
-    // proceedWithLiquidityHubSwap();
-  }, [swapWithParaswap])
-
+    if (liquidityProvider === 'liquidityhub') {
+      proceedWithLiquidityHubSwap()
+    } else {
+      setLiquidityHubDisabled(true)
+      swapWithParaswap()
+    }
+  }, [liquidityProvider, proceedWithLiquidityHubSwap, swapWithParaswap])
   /* --------- End Swap ---------- */
 
   const destAmount = optimalRate?.destAmount
@@ -262,6 +285,7 @@ export function Swap() {
             currentStep={currentStep}
             signature={signature}
             liquidityHubQuote={liquidityHubQuote}
+            liquidityProvider={liquidityProvider}
           />
           <Button
             className="mt-2"
@@ -283,6 +307,7 @@ export function Swap() {
           Connect wallet
         </Button>
       )}
+
       {quoteError && (
         <div className="text-red-600">
           {getQuoteErrorMessage(quoteError.message)}
@@ -295,6 +320,7 @@ export function Swap() {
         outToken={outToken}
         minAmountOut={paraswapMinAmountOut}
         account={account.address}
+        liquidityProvider={liquidityProvider}
       />
     </div>
   )

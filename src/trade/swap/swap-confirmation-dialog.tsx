@@ -1,49 +1,57 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { SwapSteps, Token } from "@/types";
-import { Card } from "@/components/ui/card";
-import { SwapFlow, SwapStep, SwapStatus } from "@orbs-network/swap-ui";
-import { useMemo } from "react";
-import { DataDetails } from "@/components/ui/data-details";
-import { format, fromBigNumber, getSteps } from "@/lib";
-import { useAccount } from "wagmi";
-import { OptimalRate } from "@paraswap/sdk";
-import { Quote } from "@orbs-network/liquidity-hub-sdk";
+} from '@/components/ui/dialog'
+import { LiquidityProvider, SwapSteps, Token } from '@/types'
+import { Card } from '@/components/ui/card'
+import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
+import { useMemo } from 'react'
+import { DataDetails } from '@/components/ui/data-details'
+import {
+  format,
+  fromBigNumber,
+  getLiquidityProviderName,
+  getSteps,
+} from '@/lib'
+import { useAccount } from 'wagmi'
+import { OptimalRate } from '@paraswap/sdk'
+import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 export type SwapConfirmationDialogProps = {
-  inToken: Token;
-  outToken: Token;
-  isOpen: boolean;
-  onClose: () => void;
-  confirmSwap: () => void;
-  requiresApproval: boolean;
-  approvalLoading: boolean;
-  swapStatus?: SwapStatus;
-  currentStep?: SwapSteps;
-  signature?: string;
-  gasAmountOut?: string;
-  optimalRate?: OptimalRate;
-  liquidityHubQuote?: Quote;
-};
+  inToken: Token
+  outToken: Token
+  isOpen: boolean
+  onClose: () => void
+  confirmSwap: () => void
+  requiresApproval: boolean
+  approvalLoading: boolean
+  swapStatus?: SwapStatus
+  currentStep?: SwapSteps
+  signature?: string
+  gasAmountOut?: string
+  optimalRate?: OptimalRate
+  liquidityHubQuote?: Quote
+  liquidityProvider: LiquidityProvider
+}
 
 // Construct steps for swap to display in UI
 const useSteps = (
+  liquidityProvider: LiquidityProvider,
   requiresApproval: boolean,
   inToken?: Token,
   signature?: string
 ) => {
   return useMemo((): SwapStep[] => {
-    if (!inToken) return [];
+    if (!inToken) return []
 
     const steps = getSteps({
+      liquidityProvider,
       inTokenAddress: inToken.address,
       requiresApproval,
-    });
+    })
     return steps.map((step) => {
       if (step === SwapSteps.Wrap) {
         return {
@@ -51,7 +59,7 @@ const useSteps = (
           title: `Wrap ${inToken.symbol}`,
           description: `Wrap ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        };
+        }
       }
       if (step === SwapSteps.Approve) {
         return {
@@ -59,7 +67,7 @@ const useSteps = (
           title: `Approve ${inToken.symbol}`,
           description: `Approve ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        };
+        }
       }
       return {
         id: SwapSteps.Swap,
@@ -67,10 +75,10 @@ const useSteps = (
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
         timeout: signature ? 60_000 : 40_000,
-      };
-    });
-  }, [inToken, requiresApproval, signature]);
-};
+      }
+    })
+  }, [inToken, liquidityProvider, requiresApproval, signature])
+}
 
 export function SwapConfirmationDialog({
   inToken,
@@ -85,19 +93,28 @@ export function SwapConfirmationDialog({
   signature,
   gasAmountOut,
   optimalRate,
-  liquidityHubQuote
+  liquidityHubQuote,
+  liquidityProvider,
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(requiresApproval, inToken, signature);
-  const account = useAccount().address as string;
-  const outAmount = fromBigNumber(liquidityHubQuote?.referencePrice, outToken.decimals);
-  const inAmount = fromBigNumber(optimalRate?.srcAmount, inToken.decimals);
+  const steps = useSteps(
+    liquidityProvider,
+    requiresApproval,
+    inToken,
+    signature
+  )
+  const account = useAccount().address as string
+  const outAmount = fromBigNumber(
+    liquidityHubQuote?.referencePrice,
+    outToken.decimals
+  )
+  const inAmount = fromBigNumber(optimalRate?.srcAmount, inToken.decimals)
 
   const gasPrice = useMemo(() => {
-    if (!optimalRate || !gasAmountOut) return 0;
-    const gas = fromBigNumber(gasAmountOut, outToken.decimals);
-    const usd = Number(optimalRate.destUSD) / Number(outAmount);
-    return Number(gas) * usd;
-  }, [optimalRate, gasAmountOut, outAmount, outToken.decimals]);
+    if (!optimalRate || !gasAmountOut) return 0
+    const gas = fromBigNumber(gasAmountOut, outToken.decimals)
+    const usd = Number(optimalRate.destUSD) / Number(outAmount)
+    return Number(gas) * usd
+  }, [optimalRate, gasAmountOut, outAmount, outToken.decimals])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -114,8 +131,8 @@ export function SwapConfirmationDialog({
                   fromTitle="Sell"
                   toTitle="Buy"
                   steps={steps}
-                  inUsd={format.dollar(Number(optimalRate?.srcUSD || "0"))}
-                  outUsd={format.dollar(Number(optimalRate?.destUSD || "0"))}
+                  inUsd={format.dollar(Number(optimalRate?.srcUSD || '0'))}
+                  outUsd={format.dollar(Number(optimalRate?.destUSD || '0'))}
                   currentStep={currentStep as number}
                 />
               }
@@ -139,12 +156,10 @@ export function SwapConfirmationDialog({
                 <div className="p-4 flex flex-col gap-2">
                   <DataDetails
                     data={{
-                      Network: "Polygon",
-                    }}
-                  />
-                  <DataDetails
-                    data={{
-                      "Network cost": format.dollar(gasPrice),
+                      Network: 'Polygon',
+                      'Network fee': format.dollar(gasPrice),
+                      'Routing source':
+                        getLiquidityProviderName(liquidityProvider),
                     }}
                   />
                 </div>
@@ -171,5 +186,5 @@ export function SwapConfirmationDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

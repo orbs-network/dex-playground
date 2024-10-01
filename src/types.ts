@@ -18,3 +18,5 @@ export enum SwapSteps {
   Approve,
   Swap,
 }
+
+export type LiquidityProvider = 'paraswap' | 'liquidityhub'

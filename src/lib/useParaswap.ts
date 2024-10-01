@@ -1,16 +1,14 @@
 import { useCallback, useMemo } from 'react'
-import { getErrorMessage, getMinAmountOut, isNativeAddress } from '@/lib/utils'
+import { getMinAmountOut, isNativeAddress } from '@/lib/utils'
 import { constructSimpleSDK, OptimalRate, SwapSide } from '@paraswap/sdk'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
 import { wagmiConfig } from './wagmi-config'
-import {
-  estimateGas,
-  sendTransaction,
-  SendTransactionParameters,
-} from 'wagmi/actions'
-import { Address, parseGwei } from 'viem'
-import { toast } from 'sonner'
+import { estimateGas, sendTransaction } from 'wagmi/actions'
+import { Address } from 'viem'
+import { SwapStatus } from '@orbs-network/swap-ui'
+import { SwapSteps } from '@/types'
+import { approveAllowance } from './approveAllowance'
 
 /* Gets quote from a common existing liquidity source to compare to Orbs Liquidity Hub */
 const PARASWAP_NATIVE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -88,8 +86,6 @@ export const useParaswapBuildTxCallback = () => {
         partner: 'quickswapv3',
       }
 
-      console.log(payload)
-
       return paraswap.swap.buildTx(payload)
     },
     [account, paraswap]
@@ -98,21 +94,43 @@ export const useParaswapBuildTxCallback = () => {
 
 export const useParaswapSwapCallback = () => {
   const buildParaswapTxCallback = useParaswapBuildTxCallback()
+  const account = useAccount().address as string
 
   return useMutation({
     mutationFn: async ({
       optimalRate,
       slippage,
+      requiresApproval,
+      setSwapStatus,
+      setCurrentStep,
+      onSuccess,
+      onFailure,
     }: {
       optimalRate: OptimalRate
       slippage: number
+      requiresApproval: boolean
+      setSwapStatus: (status?: SwapStatus) => void
+      setCurrentStep: (step: SwapSteps) => void
+      onSuccess?: () => void
+      onFailure?: () => void
     }) => {
+      setSwapStatus(SwapStatus.LOADING)
+
+      if (requiresApproval) {
+        setCurrentStep(SwapSteps.Approve)
+        await approveAllowance(
+          account,
+          optimalRate.srcToken,
+          optimalRate.contractAddress as Address
+        )
+      }
+
+      setCurrentStep(SwapSteps.Swap)
+
       let txPayload: unknown | null = null
 
       try {
         const txData = await buildParaswapTxCallback(optimalRate, slippage)
-
-        console.log(txData)
 
         txPayload = {
           account: txData.from as Address,
@@ -123,29 +141,37 @@ export const useParaswapSwapCallback = () => {
           value: BigInt(txData.value),
         }
       } catch (error) {
-        console.error('paraswap tx data', error)
+        // Handle error in UI
+        console.error(error)
+        if (onFailure) onFailure()
+        setSwapStatus(SwapStatus.FAILED)
       }
 
       if (!txPayload) {
+        if (onFailure) onFailure()
+        setSwapStatus(SwapStatus.FAILED)
+
         throw new Error('Failed to build transaction')
       }
 
       try {
-        console.log('txPayload', txPayload)
-
+        // Use estimate gas to simulate send transaction
+        // if any error occurs, it will be caught and handled
+        // without spending any gas
         await estimateGas(wagmiConfig, txPayload)
 
         const txHash = await sendTransaction(wagmiConfig, txPayload)
-        console.log('txHash', txHash)
+
+        if (onSuccess) onSuccess()
+
+        setSwapStatus(SwapStatus.SUCCESS)
+
         return txHash
       } catch (error) {
-        console.error('paraswap swap', error)
+        console.error(error)
+        if (onFailure) onFailure()
+        setSwapStatus(SwapStatus.FAILED)
 
-        const errorMessage = getErrorMessage(
-          error,
-          'An error occurred while getting the signature'
-        )
-        toast.error(errorMessage)
         throw error
       }
     },

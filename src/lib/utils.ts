@@ -2,7 +2,7 @@ import { zeroAddress } from '@orbs-network/liquidity-hub-sdk'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { wagmiConfig } from '@/lib/wagmi-config'
-import { SwapSteps } from '@/types'
+import { LiquidityProvider, SwapSteps } from '@/types'
 import { getTransactionConfirmations } from 'wagmi/actions'
 
 export function cn(...inputs: ClassValue[]) {
@@ -110,14 +110,19 @@ export function getQuoteErrorMessage(errorCode: string) {
 }
 
 type GetStepsArgs = {
+  liquidityProvider: LiquidityProvider
   inTokenAddress: string
   requiresApproval: boolean
 }
 
-export function getSteps({ inTokenAddress, requiresApproval }: GetStepsArgs) {
+export function getSteps({
+  liquidityProvider,
+  inTokenAddress,
+  requiresApproval,
+}: GetStepsArgs) {
   const steps: SwapSteps[] = []
 
-  if (isNativeAddress(inTokenAddress)) {
+  if (liquidityProvider === 'liquidityhub' && isNativeAddress(inTokenAddress)) {
     steps.push(SwapSteps.Wrap)
   }
 
@@ -182,4 +187,15 @@ export function getErrorMessage(
   const errorMessage = 'message' in err ? err.message : placeholder
 
   return errorMessage
+}
+
+export function getLiquidityProviderName(provider: LiquidityProvider) {
+  switch (provider) {
+    case 'paraswap':
+      return 'ParaSwap'
+    case 'liquidityhub':
+      return 'Liquidity Hub'
+    default:
+      return 'Unknown'
+  }
 }
