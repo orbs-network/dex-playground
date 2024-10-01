@@ -26,10 +26,10 @@ export async function approveAllowance(
 
     // Perform the approve contract function
     const txHash = await writeContract(wagmiConfig, simulatedData.request)
-    console.log('Approved allowance')
 
     // Check for confirmations for a maximum of 20 seconds
     await waitForConfirmations(txHash, 1, 20)
+    console.log('Approved allowance')
 
     return txHash
   } catch (error) {
