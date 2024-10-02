@@ -1,5 +1,4 @@
-import { networks } from './networks'
-import { getErrorMessage, isNativeAddress, waitForConfirmations } from './utils'
+import { getErrorMessage, waitForConfirmations } from './utils'
 import { wagmiConfig } from './wagmi-config'
 import { Address, erc20Abi, maxUint256 } from 'viem'
 import { toast } from 'sonner'
@@ -19,9 +18,7 @@ export async function approveAllowance(
       functionName: 'approve',
       args: [contract, maxUint256],
       account: account as Address,
-      address: (isNativeAddress(inToken)
-        ? networks.poly.wToken.address
-        : inToken) as Address,
+      address: inToken as Address,
     })
 
     // Perform the approve contract function

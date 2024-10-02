@@ -1,7 +1,6 @@
 export * from './abis'
 export * from './networks'
 export * from './useGetRequiresApproval'
-export * from './usePriceUsd'
 export * from './utils'
 export * from './useHandleInputError'
 export * from './useTokensWithBalances'

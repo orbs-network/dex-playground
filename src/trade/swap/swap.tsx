@@ -6,7 +6,7 @@ import { SwapStatus } from '@orbs-network/swap-ui'
 import { useAccount } from 'wagmi'
 import { SwapDetails } from '../../components/swap-details'
 import { SwapConfirmationDialog } from './swap-confirmation-dialog'
-import { useQuote } from './liquidity-hub/useQuote'
+import { useLiquidityHubQuote } from './liquidity-hub/useLiquidityHubQuote'
 import { Button } from '@/components/ui/button'
 import { useLiquidityHubSwapCallback } from './liquidity-hub/useLiquidityHubSwapCallback'
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
@@ -24,9 +24,8 @@ import {
   getQuoteErrorMessage,
   useParaswapSwapCallback,
   toBigInt,
-  isNativeAddress,
-  networks,
   fromBigNumberToStr,
+  resolveNativeTokenAddress,
 } from '@/lib'
 import './style.css'
 import { toast } from 'sonner'
@@ -120,7 +119,7 @@ export function Swap() {
     data: _quote,
     getLatestQuote,
     error: quoteError,
-  } = useQuote(
+  } = useLiquidityHubQuote(
     {
       fromToken: inToken?.address || '',
       toToken: outToken?.address || '',
@@ -163,11 +162,7 @@ export function Swap() {
     liquidityProvider === 'paraswap' && optimalRate
       ? (optimalRate.tokenTransferProxy as Address)
       : permit2Address,
-    liquidityProvider === 'paraswap' && optimalRate
-      ? optimalRate?.srcToken
-      : isNativeAddress(inToken?.address)
-      ? networks.poly.wToken.address
-      : inToken?.address,
+    resolveNativeTokenAddress(inToken?.address),
     inputAmountAsBigNumber
   )
 
