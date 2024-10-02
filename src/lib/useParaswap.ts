@@ -1,5 +1,9 @@
 import { useCallback, useMemo } from 'react'
-import { getMinAmountOut, isNativeAddress } from '@/lib/utils'
+import {
+  getMinAmountOut,
+  isNativeAddress,
+  waitForConfirmations,
+} from '@/lib/utils'
 import { constructSimpleSDK, OptimalRate, SwapSide } from '@paraswap/sdk'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
@@ -155,6 +159,7 @@ export const useParaswapSwapCallback = () => {
       }
 
       try {
+        console.log('Swapping...')
         // Use estimate gas to simulate send transaction
         // if any error occurs, it will be caught and handled
         // without spending any gas
@@ -162,9 +167,12 @@ export const useParaswapSwapCallback = () => {
 
         const txHash = await sendTransaction(wagmiConfig, txPayload)
 
+        await waitForConfirmations(txHash, 1, 20)
+
         if (onSuccess) onSuccess()
 
         setSwapStatus(SwapStatus.SUCCESS)
+        console.log('Swapped')
 
         return txHash
       } catch (error) {

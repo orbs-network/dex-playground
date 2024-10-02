@@ -8,15 +8,21 @@ export function useGetRequiresApproval(
   inAmount = ''
 ) {
   const account = useAccount().address
-  const { data: allowance, isLoading } = useReadContract({
+  const {
+    data: allowance,
+    isLoading,
+    error,
+  } = useReadContract({
     address: inTokenAddress as Address,
     abi: erc20Abi,
     functionName: 'allowance',
     args: [account as Address, contractAddress],
+    query: { enabled: Boolean(inTokenAddress && account && contractAddress) },
   })
 
   return {
     requiresApproval: (allowance || 0n) < BigInt(inAmount || 0),
     approvalLoading: isLoading,
+    error,
   }
 }

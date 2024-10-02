@@ -26,9 +26,9 @@ import {
   toBigInt,
   isNativeAddress,
   networks,
+  fromBigNumberToStr,
 } from '@/lib'
 import './style.css'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { Address } from 'viem'
@@ -36,8 +36,8 @@ import { Address } from 'viem'
 const slippage = 0.5
 
 export function Swap() {
-  const queryClient = useQueryClient()
-  const { tokensWithBalances, queryKey } = useTokensWithBalances()
+  const { tokensWithBalances, refetch: refetchBalances } =
+    useTokensWithBalances()
   const [inToken, setInToken] = useState<Token | null>(null)
   const [outToken, setOutToken] = useState<Token | null>(null)
   const [inputAmount, setInputAmount] = useState<string>('')
@@ -88,8 +88,8 @@ export function Swap() {
     setSignature(undefined)
     setSwapStatus(undefined)
     setLiquidityHubDisabled(false)
-    queryClient.invalidateQueries({ queryKey })
-  }, [queryClient, queryKey])
+    refetchBalances()
+  }, [refetchBalances])
 
   // Handle Swap Confirmation Dialog Close
   const onSwapConfirmClose = useCallback(() => {
@@ -145,9 +145,9 @@ export function Swap() {
         BigInt(paraswapMinAmountOut || 0)
     ) {
       return 'liquidityhub'
-    } else {
-      return 'paraswap'
     }
+
+    return 'paraswap'
   }, [
     liquidityHubDisabled,
     liquidityHubQuote?.minAmountOut,
@@ -163,9 +163,11 @@ export function Swap() {
     liquidityProvider === 'paraswap' && optimalRate
       ? (optimalRate.tokenTransferProxy as Address)
       : permit2Address,
-    liquidityProvider === 'paraswap' || !isNativeAddress(inToken?.address)
-      ? inToken?.address
-      : networks.poly.wToken.address,
+    liquidityProvider === 'paraswap' && optimalRate
+      ? optimalRate?.srcToken
+      : isNativeAddress(inToken?.address)
+      ? networks.poly.wToken.address
+      : inToken?.address,
     inputAmountAsBigNumber
   )
 
@@ -225,8 +227,10 @@ export function Swap() {
 
   const confirmSwap = useCallback(async () => {
     if (liquidityProvider === 'liquidityhub') {
+      console.log('Proceeding with Liquidity Hub')
       proceedWithLiquidityHubSwap()
     } else {
+      console.log('Proceeding with ParaSwap')
       setLiquidityHubDisabled(true)
       swapWithParaswap()
     }
@@ -234,7 +238,7 @@ export function Swap() {
   /* --------- End Swap ---------- */
 
   const destAmount = optimalRate?.destAmount
-    ? fromBigNumber(optimalRate.destAmount, outToken?.decimals).toString()
+    ? fromBigNumberToStr(optimalRate.destAmount, outToken?.decimals)
     : ''
 
   const openConnectModal = useConnectModal().openConnectModal
@@ -297,13 +301,18 @@ export function Swap() {
             size="lg"
             onClick={() => setSwapConfirmOpen(true)}
             disabled={Boolean(
-              inputError || optimalRateLoading || !liquidityHubQuote
+              inputError ||
+                optimalRateLoading ||
+                !liquidityHubQuote ||
+                !optimalRate
             )}
           >
             {inputError === ErrorCodes.InsufficientBalance
               ? 'Insufficient balance'
               : inputAmount && !liquidityHubQuote
               ? 'Fetching quote...'
+              : !optimalRate && inputAmount
+              ? 'No liquidity'
               : 'Swap'}
           </Button>
         </>
