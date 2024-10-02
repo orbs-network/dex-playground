@@ -17,8 +17,6 @@ import {
   getSteps,
 } from '@/lib'
 import { useAccount } from 'wagmi'
-import { OptimalRate } from '@paraswap/sdk'
-import { Quote } from '@orbs-network/liquidity-hub-sdk'
 
 export type SwapConfirmationDialogProps = {
   inToken: Token
@@ -32,9 +30,11 @@ export type SwapConfirmationDialogProps = {
   currentStep?: SwapSteps
   signature?: string
   gasAmountOut?: string
-  optimalRate?: OptimalRate
-  liquidityHubQuote?: Quote
   liquidityProvider: LiquidityProvider
+  inAmount?: number
+  inAmountUsd?: string
+  outAmount?: number
+  outAmountUsd?: string
 }
 
 // Construct steps for swap to display in UI
@@ -92,9 +92,11 @@ export function SwapConfirmationDialog({
   currentStep,
   signature,
   gasAmountOut,
-  optimalRate,
-  liquidityHubQuote,
   liquidityProvider,
+  inAmount,
+  inAmountUsd,
+  outAmount,
+  outAmountUsd,
 }: SwapConfirmationDialogProps) {
   const steps = useSteps(
     liquidityProvider,
@@ -103,18 +105,13 @@ export function SwapConfirmationDialog({
     signature
   )
   const account = useAccount().address as string
-  const outAmount = fromBigNumber(
-    liquidityHubQuote?.referencePrice,
-    outToken.decimals
-  )
-  const inAmount = fromBigNumber(optimalRate?.srcAmount, inToken.decimals)
 
   const gasPrice = useMemo(() => {
-    if (!optimalRate || !gasAmountOut) return 0
+    if (!outAmountUsd || !gasAmountOut) return 0
     const gas = fromBigNumber(gasAmountOut, outToken.decimals)
-    const usd = Number(optimalRate.destUSD) / Number(outAmount)
+    const usd = Number(outAmountUsd) / Number(outAmount)
     return Number(gas) * usd
-  }, [optimalRate, gasAmountOut, outAmount, outToken.decimals])
+  }, [outAmountUsd, gasAmountOut, outToken.decimals, outAmount])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -124,15 +121,15 @@ export function SwapConfirmationDialog({
         <div className="flex flex-col gap-4">
           <div className="p-4">
             <SwapFlow
-              inAmount={format.crypto(inAmount)}
-              outAmount={format.crypto(outAmount)}
+              inAmount={format.crypto(inAmount || 0)}
+              outAmount={format.crypto(outAmount || 0)}
               mainContent={
                 <SwapFlow.Main
                   fromTitle="Sell"
                   toTitle="Buy"
                   steps={steps}
-                  inUsd={format.dollar(Number(optimalRate?.srcUSD || '0'))}
-                  outUsd={format.dollar(Number(optimalRate?.destUSD || '0'))}
+                  inUsd={format.dollar(Number(inAmountUsd || '0'))}
+                  outUsd={format.dollar(Number(outAmountUsd || '0'))}
                   currentStep={currentStep as number}
                 />
               }

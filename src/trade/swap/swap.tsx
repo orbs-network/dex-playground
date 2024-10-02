@@ -282,7 +282,6 @@ export function Swap() {
       {account.address && account.isConnected && outToken && inToken ? (
         <>
           <SwapConfirmationDialog
-            optimalRate={optimalRate}
             outToken={outToken}
             inToken={inToken}
             onClose={onSwapConfirmClose}
@@ -293,9 +292,19 @@ export function Swap() {
             swapStatus={swapStatus}
             currentStep={currentStep}
             signature={signature}
-            liquidityHubQuote={liquidityHubQuote}
             liquidityProvider={liquidityProvider}
+            inAmount={fromBigNumber(optimalRate?.srcAmount, inToken.decimals)}
+            inAmountUsd={optimalRate?.srcUSD}
+            outAmount={
+              Number(
+                liquidityProvider === 'liquidityhub'
+                  ? liquidityHubQuote?.referencePrice
+                  : destAmount
+              ) || 0
+            }
+            outAmountUsd={optimalRate?.destUSD}
           />
+
           <Button
             className="mt-2"
             size="lg"
