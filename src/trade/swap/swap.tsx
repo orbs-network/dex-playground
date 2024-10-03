@@ -15,7 +15,6 @@ import {
   useGetRequiresApproval,
   useHandleInputError,
   ErrorCodes,
-  format,
   fromBigNumber,
   toBigNumber,
   useTokensWithBalances,
@@ -242,12 +241,12 @@ export function Swap() {
         label="Sell"
         amount={inputAmount}
         amountUsd={optimalRate?.srcUSD}
-        balance={fromBigNumber(
-          tokensWithBalances &&
+        balance={
+          (tokensWithBalances &&
             inToken &&
-            tokensWithBalances[inToken.address].balance,
-          inToken?.decimals
-        )}
+            tokensWithBalances[inToken.address].balance) ||
+          0n
+        }
         selectedToken={inToken || defaultTokens[0]}
         tokens={tokensWithBalances || {}}
         onSelectToken={setInToken}
@@ -259,14 +258,14 @@ export function Swap() {
       </div>
       <TokenCard
         label="Buy"
-        amount={destAmount ? format.crypto(Number(destAmount)) : ''}
+        amount={destAmount ?? ''}
         amountUsd={optimalRate?.destUSD}
-        balance={fromBigNumber(
-          tokensWithBalances &&
+        balance={
+          (tokensWithBalances &&
             outToken &&
-            tokensWithBalances[outToken.address].balance,
-          outToken?.decimals
-        )}
+            tokensWithBalances[outToken.address].balance) ||
+          0n
+        }
         selectedToken={outToken || defaultTokens[1]}
         tokens={tokensWithBalances || {}}
         onSelectToken={setOutToken}

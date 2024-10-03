@@ -1,4 +1,4 @@
-import { ErrorCodes, toBigInt } from '@/lib/utils'
+import { ErrorCodes, fromBigNumber } from '@/lib/utils'
 import { Token, TokensWithBalances } from '@/types'
 import { useEffect } from 'react'
 
@@ -18,10 +18,17 @@ export function useHandleInputError({
   useEffect(() => {
     if (!inToken || !tokensWithBalances) return
 
-    const valueBN = toBigInt(inputAmount, inToken.decimals)
-    const balance = tokensWithBalances[inToken.address].balance
+    const value = Number(inputAmount)
+    const balance = fromBigNumber(
+      tokensWithBalances[inToken.address].balance,
+      inToken.decimals
+    )
 
-    if (valueBN > balance) {
+    console.log('value', value)
+    console.log('balance', balance)
+    console.log('diff', value - balance)
+
+    if (value > balance) {
       setInputError(ErrorCodes.InsufficientBalance)
       return
     }
