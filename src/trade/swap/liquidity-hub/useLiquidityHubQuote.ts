@@ -3,13 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { useAccount } from 'wagmi'
 import { useCallback, useMemo } from 'react'
-import { networks, isNativeAddress, useWrapOrUnwrapOnly } from '@/lib'
+import { useWrapOrUnwrapOnly, resolveNativeTokenAddress } from '@/lib'
 
 export const QUOTE_REFETCH_INTERVAL = 20_000
 
 // Fetches quote using Liquidity Hub sdk
 
-export function useQuote(args: QuoteArgs, disabled?: boolean) {
+export function useLiquidityHubQuote(args: QuoteArgs, disabled?: boolean) {
   const liquidityHub = useLiquidityHubSDK()
   const queryClient = useQueryClient()
   const { chainId } = useAccount()
@@ -41,9 +41,7 @@ export function useQuote(args: QuoteArgs, disabled?: boolean) {
     ({ signal }: { signal: AbortSignal }) => {
       const payload: QuoteArgs = {
         ...args,
-        fromToken: isNativeAddress(args.fromToken)
-          ? networks.poly.wToken.address
-          : args.fromToken,
+        fromToken: resolveNativeTokenAddress(args.fromToken)!,
       }
       // The abort signal is optional
       return liquidityHub.getQuote({ ...payload, signal })

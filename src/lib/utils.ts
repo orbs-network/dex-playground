@@ -2,8 +2,9 @@ import { zeroAddress } from '@orbs-network/liquidity-hub-sdk'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { wagmiConfig } from '@/lib/wagmi-config'
-import { SwapSteps } from '@/types'
+import { LiquidityProvider, SwapSteps } from '@/types'
 import { getTransactionConfirmations } from 'wagmi/actions'
+import { networks } from './networks'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -61,6 +62,9 @@ export function eqIgnoreCase(a: string, b: string) {
 export const isNativeAddress = (address?: string) =>
   !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ''))
 
+export const resolveNativeTokenAddress = (address?: string) =>
+  isNativeAddress(address) ? networks.poly.wToken.address : address
+
 const dollarDisplay = Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -86,7 +90,7 @@ export const format = {
   address: formatAddress,
 }
 
-export const getDexMinAmountOut = (slippage: number, _destAmount: string) => {
+export const getMinAmountOut = (slippage: number, _destAmount: string) => {
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)) // 0.5% becomes 995
 
   // Convert priceRoute.destAmount to BigInt
@@ -110,14 +114,19 @@ export function getQuoteErrorMessage(errorCode: string) {
 }
 
 type GetStepsArgs = {
+  liquidityProvider: LiquidityProvider
   inTokenAddress: string
   requiresApproval: boolean
 }
 
-export function getSteps({ inTokenAddress, requiresApproval }: GetStepsArgs) {
+export function getSteps({
+  liquidityProvider,
+  inTokenAddress,
+  requiresApproval,
+}: GetStepsArgs) {
   const steps: SwapSteps[] = []
 
-  if (isNativeAddress(inTokenAddress)) {
+  if (liquidityProvider === 'liquidityhub' && isNativeAddress(inTokenAddress)) {
     steps.push(SwapSteps.Wrap)
   }
 
@@ -182,4 +191,15 @@ export function getErrorMessage(
   const errorMessage = 'message' in err ? err.message : placeholder
 
   return errorMessage
+}
+
+export function getLiquidityProviderName(provider: LiquidityProvider) {
+  switch (provider) {
+    case 'paraswap':
+      return 'ParaSwap'
+    case 'liquidityhub':
+      return 'Liquidity Hub'
+    default:
+      return 'Unknown'
+  }
 }

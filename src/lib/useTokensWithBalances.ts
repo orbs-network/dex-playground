@@ -9,7 +9,7 @@ export function useTokensWithBalances() {
     chainId: networks.poly.id,
   })
   const {
-    query: { data: balances, isLoading: balancesLoading },
+    query: { data: balances, isLoading: balancesLoading, refetch },
     queryKey,
   } = useBalances({
     chainId: networks.poly.id,
@@ -22,5 +22,6 @@ export function useTokensWithBalances() {
     isLoading: tokensLoading || balancesLoading,
     tokensWithBalances: balances,
     queryKey,
+    refetch,
   }
 }

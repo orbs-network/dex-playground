@@ -1,49 +1,61 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { SwapSteps, Token } from "@/types";
-import { Card } from "@/components/ui/card";
-import { SwapFlow, SwapStep, SwapStatus } from "@orbs-network/swap-ui";
-import { useMemo } from "react";
-import { DataDetails } from "@/components/ui/data-details";
-import { format, fromBigNumber, getSteps } from "@/lib";
-import { useAccount } from "wagmi";
-import { OptimalRate } from "@paraswap/sdk";
-import { Quote } from "@orbs-network/liquidity-hub-sdk";
+} from '@/components/ui/dialog'
+import { LiquidityProvider, SwapSteps, Token } from '@/types'
+import { Card } from '@/components/ui/card'
+import { SwapFlow, SwapStep, SwapStatus } from '@orbs-network/swap-ui'
+import { useMemo } from 'react'
+import { DataDetails } from '@/components/ui/data-details'
+import {
+  format,
+  fromBigNumber,
+  getLiquidityProviderName,
+  getSteps,
+  resolveNativeTokenAddress,
+  toBigNumber,
+  useGetRequiresApproval,
+} from '@/lib'
+import { useAccount } from 'wagmi'
+import { Address } from 'viem'
 
 export type SwapConfirmationDialogProps = {
-  inToken: Token;
-  outToken: Token;
-  isOpen: boolean;
-  onClose: () => void;
-  confirmSwap: () => void;
-  requiresApproval: boolean;
-  approvalLoading: boolean;
-  swapStatus?: SwapStatus;
-  currentStep?: SwapSteps;
-  signature?: string;
-  gasAmountOut?: string;
-  dexQuote?: OptimalRate;
-  liquidityHubQuote?: Quote;
-};
+  inToken: Token
+  outToken: Token
+  isOpen: boolean
+  onClose: () => void
+  confirmSwap: () => void
+  swapStatus?: SwapStatus
+  currentStep?: SwapSteps
+  signature?: string
+  gasAmountOut?: string
+  liquidityProvider: LiquidityProvider
+  inAmount?: number
+  inAmountUsd?: string
+  outAmount?: number
+  outAmountUsd?: string
+  allowancePermitAddress: string
+}
 
 // Construct steps for swap to display in UI
 const useSteps = (
+  liquidityProvider: LiquidityProvider,
   requiresApproval: boolean,
   inToken?: Token,
   signature?: string
 ) => {
   return useMemo((): SwapStep[] => {
-    if (!inToken) return [];
+    if (!inToken) return []
 
     const steps = getSteps({
+      liquidityProvider,
       inTokenAddress: inToken.address,
       requiresApproval,
-    });
+    })
+
     return steps.map((step) => {
       if (step === SwapSteps.Wrap) {
         return {
@@ -51,7 +63,7 @@ const useSteps = (
           title: `Wrap ${inToken.symbol}`,
           description: `Wrap ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        };
+        }
       }
       if (step === SwapSteps.Approve) {
         return {
@@ -59,7 +71,7 @@ const useSteps = (
           title: `Approve ${inToken.symbol}`,
           description: `Approve ${inToken.symbol}`,
           image: inToken?.logoUrl,
-        };
+        }
       }
       return {
         id: SwapSteps.Swap,
@@ -67,10 +79,10 @@ const useSteps = (
         description: `Swap ${inToken.symbol}`,
         image: inToken?.logoUrl,
         timeout: signature ? 60_000 : 40_000,
-      };
-    });
-  }, [inToken, requiresApproval, signature]);
-};
+      }
+    })
+  }, [inToken, liquidityProvider, requiresApproval, signature])
+}
 
 export function SwapConfirmationDialog({
   inToken,
@@ -78,26 +90,38 @@ export function SwapConfirmationDialog({
   isOpen,
   onClose,
   confirmSwap,
-  requiresApproval,
-  approvalLoading,
   swapStatus,
   currentStep,
   signature,
   gasAmountOut,
-  dexQuote,
-  liquidityHubQuote
+  liquidityProvider,
+  inAmount,
+  inAmountUsd,
+  outAmount,
+  outAmountUsd,
+  allowancePermitAddress,
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(requiresApproval, inToken, signature);
-  const account = useAccount().address as string;
-  const outAmount = fromBigNumber(liquidityHubQuote?.referencePrice, outToken.decimals);
-  const inAmount = fromBigNumber(dexQuote?.srcAmount, inToken.decimals);
+  const { address } = useAccount()
 
   const gasPrice = useMemo(() => {
-    if (!dexQuote || !gasAmountOut) return 0;
-    const gas = fromBigNumber(gasAmountOut, outToken.decimals);
-    const usd = Number(dexQuote.destUSD) / Number(outAmount);
-    return Number(gas) * usd;
-  }, [dexQuote, gasAmountOut, outAmount, outToken.decimals]);
+    if (!outAmountUsd || !gasAmountOut) return 0
+    const gas = fromBigNumber(gasAmountOut, outToken.decimals)
+    const usd = Number(outAmountUsd) / Number(outAmount)
+    return Number(gas) * usd
+  }, [outAmountUsd, gasAmountOut, outToken.decimals, outAmount])
+
+  const { requiresApproval, approvalLoading } = useGetRequiresApproval(
+    allowancePermitAddress as Address,
+    resolveNativeTokenAddress(inToken?.address),
+    toBigNumber(inAmount || 0, inToken?.decimals)
+  )
+
+  const steps = useSteps(
+    liquidityProvider,
+    requiresApproval,
+    inToken,
+    signature
+  )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,15 +131,15 @@ export function SwapConfirmationDialog({
         <div className="flex flex-col gap-4">
           <div className="p-4">
             <SwapFlow
-              inAmount={format.crypto(inAmount)}
-              outAmount={format.crypto(outAmount)}
+              inAmount={format.crypto(inAmount || 0)}
+              outAmount={format.crypto(outAmount || 0)}
               mainContent={
                 <SwapFlow.Main
                   fromTitle="Sell"
                   toTitle="Buy"
                   steps={steps}
-                  inUsd={format.dollar(Number(dexQuote?.srcUSD || "0"))}
-                  outUsd={format.dollar(Number(dexQuote?.destUSD || "0"))}
+                  inUsd={format.dollar(Number(inAmountUsd || '0'))}
+                  outUsd={format.dollar(Number(outAmountUsd || '0'))}
                   currentStep={currentStep as number}
                 />
               }
@@ -133,18 +157,16 @@ export function SwapConfirmationDialog({
             />
           </div>
 
-          {!swapStatus && (
+          {!swapStatus && address && (
             <>
               <Card className="bg-slate-900">
                 <div className="p-4 flex flex-col gap-2">
                   <DataDetails
                     data={{
-                      Network: "Polygon",
-                    }}
-                  />
-                  <DataDetails
-                    data={{
-                      "Network cost": format.dollar(gasPrice),
+                      Network: 'Polygon',
+                      'Network fee': format.dollar(gasPrice),
+                      'Routing source':
+                        getLiquidityProviderName(liquidityProvider),
                     }}
                   />
                 </div>
@@ -153,7 +175,7 @@ export function SwapConfirmationDialog({
                 <div className="p-4">
                   <DataDetails
                     data={{
-                      Recipient: format.address(account),
+                      Recipient: format.address(address),
                     }}
                   />
                 </div>
@@ -171,5 +193,5 @@ export function SwapConfirmationDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
