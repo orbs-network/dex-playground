@@ -28,7 +28,6 @@ import {
   resolveNativeTokenAddress,
 } from '@/lib'
 import './style.css'
-import { toast } from 'sonner'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { Address } from 'viem'
 
@@ -156,7 +155,8 @@ export function Swap() {
   const onAcceptQuote = useCallback((quote?: Quote) => {
     setAcceptedQuote(quote)
   }, [])
-  const { mutateAsync: swap } = useLiquidityHubSwapCallback()
+  const { mutateAsync: liquidityHubSwapCallback } =
+    useLiquidityHubSwapCallback()
   const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(
     liquidityProvider === 'paraswap' && optimalRate
@@ -183,12 +183,12 @@ export function Swap() {
     }
   }, [optimalRate, paraswapSwapCallback, requiresApproval, resetSwap])
 
-  const proceedWithLiquidityHubSwap = useCallback(async () => {
+  const swapWithLiquidityHub = useCallback(async () => {
     if (!optimalRate) {
       return
     }
     try {
-      await swap({
+      await liquidityHubSwapCallback({
         inTokenAddress: inToken!.address,
         getQuote: getLatestQuote,
         requiresApproval,
@@ -202,16 +202,15 @@ export function Swap() {
       })
     } catch (error) {
       // If the liquidity hub swap fails, need to set the flag to prevent further attempts, and proceed with the dex swap
-      // stop quotting from liquidity hub
+      // stop quoting from liquidity hub
       // start new flow with dex swap
       console.error(error)
-      toast.error('Liquidity Hub swap failed, proceeding with Dex swap')
       setLiquidityHubDisabled(true)
       swapWithParaswap()
     }
   }, [
     optimalRate,
-    swap,
+    liquidityHubSwapCallback,
     inToken,
     getLatestQuote,
     requiresApproval,
@@ -223,13 +222,13 @@ export function Swap() {
   const confirmSwap = useCallback(async () => {
     if (liquidityProvider === 'liquidityhub') {
       console.log('Proceeding with Liquidity Hub')
-      proceedWithLiquidityHubSwap()
+      swapWithLiquidityHub()
     } else {
       console.log('Proceeding with ParaSwap')
       setLiquidityHubDisabled(true)
       swapWithParaswap()
     }
-  }, [liquidityProvider, proceedWithLiquidityHubSwap, swapWithParaswap])
+  }, [liquidityProvider, swapWithLiquidityHub, swapWithParaswap])
   /* --------- End Swap ---------- */
 
   const destAmount = optimalRate?.destAmount

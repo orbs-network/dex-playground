@@ -201,7 +201,8 @@ export function useLiquidityHubSwapCallback() {
         onFailure: liquidityHub.analytics.onSignatureFailed,
       })
       setSignature(signature)
-      // pass the liquidity provider txData if possible
+
+      // Pass the liquidity provider txData if possible
       let paraswapTxData: TransactionParams | undefined
 
       try {

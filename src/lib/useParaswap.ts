@@ -14,8 +14,8 @@ import { SwapStatus } from '@orbs-network/swap-ui'
 import { SwapSteps } from '@/types'
 import { approveAllowance } from './approveAllowance'
 
-/* Gets quote from a common existing liquidity source to compare to Orbs Liquidity Hub */
 const PARASWAP_NATIVE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+
 export function useParaswap() {
   const { chainId } = useAccount()
   return useMemo(() => {
@@ -28,6 +28,7 @@ export function useParaswap() {
     return paraswapSDK
   }, [chainId])
 }
+
 export const useParaswapQuote = ({
   inToken,
   outToken,
@@ -85,7 +86,7 @@ export const useParaswapBuildTxCallback = () => {
         destAmount: getMinAmountOut(slippage, optimalRate.destAmount)!,
         priceRoute: optimalRate,
         userAddress: account,
-        // receiver: account,
+        receiver: account,
         // set your partner name here, we use quickswapv3 for example
         partner: 'quickswapv3',
       }
