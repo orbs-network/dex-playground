@@ -36,8 +36,7 @@ import {
 } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-
-const slippage = 0.5
+import { Input } from '@/components/ui/input'
 
 export function Swap() {
   const { tokensWithBalances, refetch: refetchBalances } =
@@ -57,6 +56,7 @@ export function Swap() {
   const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
   const [signature, setSignature] = useState<string | undefined>(undefined)
   const [forceLiquidityHub, setForceLiquidityHub] = useState(false)
+  const [slippage, setSlippage] = useState(0.5)
 
   // Get wagmi account
   const account = useAccount()
@@ -182,7 +182,7 @@ export function Swap() {
       console.error(error)
       toast.error(getErrorMessage(error, 'An error occurred while swapping'))
     }
-  }, [optimalRate, paraswapSwapCallback, resetSwap])
+  }, [optimalRate, paraswapSwapCallback, resetSwap, slippage])
 
   const swapWithLiquidityHub = useCallback(async () => {
     if (!optimalRate) {
@@ -218,6 +218,7 @@ export function Swap() {
     getLatestQuote,
     onAcceptQuote,
     resetSwap,
+    slippage,
     swapWithParaswap,
   ])
 
@@ -244,12 +245,26 @@ export function Swap() {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon">
-              <SettingsIcon />
+              <SettingsIcon className="w-5 h-5" />
             </Button>
           </PopoverTrigger>
           <PopoverContent>
-            <div>
-              <div className="flex gap-2 items-center justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-4 items-center justify-between">
+                <Label htmlFor="slippage">Slippage</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="slippage"
+                    type="number"
+                    onChange={(e) => setSlippage(e.target.valueAsNumber)}
+                    value={slippage}
+                    step={0.1}
+                    className="text-right w-16 [&::-webkit-inner-spin-button]:appearance-none p-2 h-7"
+                  />
+                  <div>%</div>
+                </div>
+              </div>
+              <div className="flex gap-4 items-center justify-between">
                 <Label htmlFor="force-lh">Force Liquidity Hub</Label>
                 <Switch
                   id="force-lh"
