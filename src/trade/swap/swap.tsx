@@ -28,6 +28,14 @@ import {
 import './style.css'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { toast } from 'sonner'
+import { SettingsIcon } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 const slippage = 0.5
 
@@ -48,6 +56,7 @@ export function Swap() {
   )
   const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
   const [signature, setSignature] = useState<string | undefined>(undefined)
+  const [forceLiquidityHub, setForceLiquidityHub] = useState(false)
 
   // Get wagmi account
   const account = useAccount()
@@ -136,15 +145,17 @@ export function Swap() {
   const liquidityProvider = useMemo(() => {
     // Choose between liquidity hub and dex swap based on the min amount out
     if (
-      !liquidityHubDisabled &&
-      toBigInt(liquidityHubQuote?.minAmountOut || 0) >
-        BigInt(paraswapMinAmountOut || 0)
+      forceLiquidityHub ||
+      (!liquidityHubDisabled &&
+        toBigInt(liquidityHubQuote?.minAmountOut || 0) >
+          BigInt(paraswapMinAmountOut || 0))
     ) {
       return 'liquidityhub'
     }
 
     return 'paraswap'
   }, [
+    forceLiquidityHub,
     liquidityHubDisabled,
     liquidityHubQuote?.minAmountOut,
     paraswapMinAmountOut,
@@ -228,114 +239,137 @@ export function Swap() {
 
   const { openConnectModal } = useConnectModal()
   return (
-    <div className="flex flex-col gap-2 pt-2">
-      <TokenCard
-        label="Sell"
-        amount={inputAmount}
-        amountUsd={optimalRate?.srcUSD}
-        balance={
-          (tokensWithBalances &&
-            inToken &&
-            tokensWithBalances[inToken.address].balance) ||
-          0n
-        }
-        selectedToken={inToken || defaultTokens[0]}
-        tokens={tokensWithBalances || {}}
-        onSelectToken={setInToken}
-        onValueChange={setInputAmount}
-        inputError={inputError}
-      />
-      <div className="h-0 relative z-10 flex items-center justify-center">
-        <SwitchButton onClick={handleSwitch} />
+    <div>
+      <div className="flex justify-end">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <SettingsIcon />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent>
+            <div>
+              <div className="flex gap-2 items-center justify-between">
+                <Label htmlFor="force-lh">Force Liquidity Hub</Label>
+                <Switch
+                  id="force-lh"
+                  onCheckedChange={(checked) => setForceLiquidityHub(checked)}
+                  checked={forceLiquidityHub}
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
-      <TokenCard
-        label="Buy"
-        amount={destAmount ?? ''}
-        amountUsd={optimalRate?.destUSD}
-        balance={
-          (tokensWithBalances &&
-            outToken &&
-            tokensWithBalances[outToken.address].balance) ||
-          0n
-        }
-        selectedToken={outToken || defaultTokens[1]}
-        tokens={tokensWithBalances || {}}
-        onSelectToken={setOutToken}
-        isAmountEditable={false}
-        amountLoading={optimalRateLoading}
-      />
-      {account.address && account.isConnected && outToken && inToken ? (
-        <>
-          <SwapConfirmationDialog
-            outToken={outToken}
-            inToken={inToken}
-            onClose={onSwapConfirmClose}
-            isOpen={swapConfirmOpen}
-            confirmSwap={confirmSwap}
-            swapStatus={swapStatus}
-            currentStep={currentStep}
-            signature={signature}
-            liquidityProvider={liquidityProvider}
-            inAmount={fromBigNumber(optimalRate?.srcAmount, inToken.decimals)}
-            inAmountUsd={optimalRate?.srcUSD}
-            outAmount={
-              Number(
-                liquidityProvider === 'liquidityhub'
-                  ? fromBigNumberToStr(
-                      liquidityHubQuote?.referencePrice || '0',
-                      outToken.decimals
-                    )
-                  : destAmount
-              ) || 0
-            }
-            outAmountUsd={optimalRate?.destUSD}
-            allowancePermitAddress={
-              liquidityProvider === 'paraswap' && optimalRate
-                ? optimalRate.tokenTransferProxy
-                : permit2Address
-            }
-          />
-
-          <Button
-            className="mt-2"
-            size="lg"
-            onClick={() => setSwapConfirmOpen(true)}
-            disabled={Boolean(
-              inputError ||
-                optimalRateLoading ||
-                !liquidityHubQuote ||
-                !optimalRate
-            )}
-          >
-            {inputError === ErrorCodes.InsufficientBalance
-              ? 'Insufficient balance'
-              : inputAmount && !liquidityHubQuote
-              ? 'Fetching quote...'
-              : !optimalRate && inputAmount
-              ? 'No liquidity'
-              : 'Swap'}
-          </Button>
-        </>
-      ) : (
-        <Button className="mt-2" size="lg" onClick={openConnectModal}>
-          Connect wallet
-        </Button>
-      )}
-
-      {quoteError && (
-        <div className="text-red-600">
-          {getQuoteErrorMessage(quoteError.message)}
+      <div className="flex flex-col gap-2 pt-2">
+        <TokenCard
+          label="Sell"
+          amount={inputAmount}
+          amountUsd={optimalRate?.srcUSD}
+          balance={
+            (tokensWithBalances &&
+              inToken &&
+              tokensWithBalances[inToken.address].balance) ||
+            0n
+          }
+          selectedToken={inToken || defaultTokens[0]}
+          tokens={tokensWithBalances || {}}
+          onSelectToken={setInToken}
+          onValueChange={setInputAmount}
+          inputError={inputError}
+        />
+        <div className="h-0 relative z-10 flex items-center justify-center">
+          <SwitchButton onClick={handleSwitch} />
         </div>
-      )}
+        <TokenCard
+          label="Buy"
+          amount={destAmount ?? ''}
+          amountUsd={optimalRate?.destUSD}
+          balance={
+            (tokensWithBalances &&
+              outToken &&
+              tokensWithBalances[outToken.address].balance) ||
+            0n
+          }
+          selectedToken={outToken || defaultTokens[1]}
+          tokens={tokensWithBalances || {}}
+          onSelectToken={setOutToken}
+          isAmountEditable={false}
+          amountLoading={optimalRateLoading}
+        />
+        {account.address && account.isConnected && outToken && inToken ? (
+          <>
+            <SwapConfirmationDialog
+              outToken={outToken}
+              inToken={inToken}
+              onClose={onSwapConfirmClose}
+              isOpen={swapConfirmOpen}
+              confirmSwap={confirmSwap}
+              swapStatus={swapStatus}
+              currentStep={currentStep}
+              signature={signature}
+              liquidityProvider={liquidityProvider}
+              inAmount={fromBigNumber(optimalRate?.srcAmount, inToken.decimals)}
+              inAmountUsd={optimalRate?.srcUSD}
+              outAmount={
+                Number(
+                  liquidityProvider === 'liquidityhub'
+                    ? fromBigNumberToStr(
+                        liquidityHubQuote?.referencePrice || '0',
+                        outToken.decimals
+                      )
+                    : destAmount
+                ) || 0
+              }
+              outAmountUsd={optimalRate?.destUSD}
+              allowancePermitAddress={
+                liquidityProvider === 'paraswap' && optimalRate
+                  ? optimalRate.tokenTransferProxy
+                  : permit2Address
+              }
+            />
 
-      <SwapDetails
-        optimalRate={optimalRate}
-        inToken={inToken}
-        outToken={outToken}
-        minAmountOut={paraswapMinAmountOut}
-        account={account.address}
-        liquidityProvider={liquidityProvider}
-      />
+            <Button
+              className="mt-2"
+              size="lg"
+              onClick={() => setSwapConfirmOpen(true)}
+              disabled={Boolean(
+                inputError ||
+                  optimalRateLoading ||
+                  !liquidityHubQuote ||
+                  !optimalRate
+              )}
+            >
+              {inputError === ErrorCodes.InsufficientBalance
+                ? 'Insufficient balance'
+                : inputAmount && !liquidityHubQuote
+                ? 'Fetching quote...'
+                : !optimalRate && inputAmount
+                ? 'No liquidity'
+                : 'Swap'}
+            </Button>
+          </>
+        ) : (
+          <Button className="mt-2" size="lg" onClick={openConnectModal}>
+            Connect wallet
+          </Button>
+        )}
+
+        {quoteError && (
+          <div className="text-red-600">
+            {getQuoteErrorMessage(quoteError.message)}
+          </div>
+        )}
+
+        <SwapDetails
+          optimalRate={optimalRate}
+          inToken={inToken}
+          outToken={outToken}
+          minAmountOut={paraswapMinAmountOut}
+          account={account.address}
+          liquidityProvider={liquidityProvider}
+        />
+      </div>
     </div>
   )
 }
