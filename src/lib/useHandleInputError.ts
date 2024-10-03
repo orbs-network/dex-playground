@@ -24,10 +24,6 @@ export function useHandleInputError({
       inToken.decimals
     )
 
-    console.log('value', value)
-    console.log('balance', balance)
-    console.log('diff', value - balance)
-
     if (value > balance) {
       setInputError(ErrorCodes.InsufficientBalance)
       return
