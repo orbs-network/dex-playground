@@ -15,8 +15,12 @@ import {
   fromBigNumber,
   getLiquidityProviderName,
   getSteps,
+  resolveNativeTokenAddress,
+  toBigNumber,
+  useGetRequiresApproval,
 } from '@/lib'
 import { useAccount } from 'wagmi'
+import { Address } from 'viem'
 
 export type SwapConfirmationDialogProps = {
   inToken: Token
@@ -24,8 +28,6 @@ export type SwapConfirmationDialogProps = {
   isOpen: boolean
   onClose: () => void
   confirmSwap: () => void
-  requiresApproval: boolean
-  approvalLoading: boolean
   swapStatus?: SwapStatus
   currentStep?: SwapSteps
   signature?: string
@@ -35,6 +37,7 @@ export type SwapConfirmationDialogProps = {
   inAmountUsd?: string
   outAmount?: number
   outAmountUsd?: string
+  allowancePermitAddress: string
 }
 
 // Construct steps for swap to display in UI
@@ -87,8 +90,6 @@ export function SwapConfirmationDialog({
   isOpen,
   onClose,
   confirmSwap,
-  requiresApproval,
-  approvalLoading,
   swapStatus,
   currentStep,
   signature,
@@ -98,13 +99,8 @@ export function SwapConfirmationDialog({
   inAmountUsd,
   outAmount,
   outAmountUsd,
+  allowancePermitAddress,
 }: SwapConfirmationDialogProps) {
-  const steps = useSteps(
-    liquidityProvider,
-    requiresApproval,
-    inToken,
-    signature
-  )
   const { address } = useAccount()
 
   const gasPrice = useMemo(() => {
@@ -113,6 +109,19 @@ export function SwapConfirmationDialog({
     const usd = Number(outAmountUsd) / Number(outAmount)
     return Number(gas) * usd
   }, [outAmountUsd, gasAmountOut, outToken.decimals, outAmount])
+
+  const { requiresApproval, approvalLoading } = useGetRequiresApproval(
+    allowancePermitAddress as Address,
+    resolveNativeTokenAddress(inToken?.address),
+    toBigNumber(inAmount || 0, inToken?.decimals)
+  )
+
+  const steps = useSteps(
+    liquidityProvider,
+    requiresApproval,
+    inToken,
+    signature
+  )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

@@ -12,7 +12,6 @@ import { useLiquidityHubSwapCallback } from './liquidity-hub/useLiquidityHubSwap
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import {
   useDefaultTokens,
-  useGetRequiresApproval,
   useHandleInputError,
   ErrorCodes,
   fromBigNumber,
@@ -24,12 +23,10 @@ import {
   useParaswapSwapCallback,
   toBigInt,
   fromBigNumberToStr,
-  resolveNativeTokenAddress,
   getErrorMessage,
 } from '@/lib'
 import './style.css'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { Address } from 'viem'
 import { toast } from 'sonner'
 
 const slippage = 0.5
@@ -159,13 +156,6 @@ export function Swap() {
   const { mutateAsync: liquidityHubSwapCallback } =
     useLiquidityHubSwapCallback()
   const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
-  const { requiresApproval, approvalLoading } = useGetRequiresApproval(
-    liquidityProvider === 'paraswap' && optimalRate
-      ? (optimalRate.tokenTransferProxy as Address)
-      : permit2Address,
-    resolveNativeTokenAddress(inToken?.address),
-    inputAmountAsBigNumber
-  )
 
   const swapWithParaswap = useCallback(async () => {
     if (!optimalRate) return
@@ -173,17 +163,15 @@ export function Swap() {
       await paraswapSwapCallback({
         optimalRate,
         slippage,
-        requiresApproval,
         setCurrentStep,
         setSwapStatus,
         onFailure: resetSwap,
       })
     } catch (error) {
-      // handle error in ui
       console.error(error)
       toast.error(getErrorMessage(error, 'An error occurred while swapping'))
     }
-  }, [optimalRate, paraswapSwapCallback, requiresApproval, resetSwap])
+  }, [optimalRate, paraswapSwapCallback, resetSwap])
 
   const swapWithLiquidityHub = useCallback(async () => {
     if (!optimalRate) {
@@ -195,7 +183,6 @@ export function Swap() {
       await liquidityHubSwapCallback({
         inTokenAddress: inToken!.address,
         getQuote: getLatestQuote,
-        requiresApproval,
         onAcceptQuote,
         setSwapStatus,
         setCurrentStep,
@@ -209,6 +196,7 @@ export function Swap() {
       // stop quoting from liquidity hub
       // start new flow with dex swap
       console.error(error)
+      console.log('Liquidity Hub Swap failed, proceeding with ParaSwap...')
       setLiquidityHubDisabled(true)
       swapWithParaswap()
     }
@@ -217,7 +205,6 @@ export function Swap() {
     liquidityHubSwapCallback,
     inToken,
     getLatestQuote,
-    requiresApproval,
     onAcceptQuote,
     resetSwap,
     swapWithParaswap,
@@ -285,8 +272,6 @@ export function Swap() {
             onClose={onSwapConfirmClose}
             isOpen={swapConfirmOpen}
             confirmSwap={confirmSwap}
-            requiresApproval={requiresApproval}
-            approvalLoading={approvalLoading}
             swapStatus={swapStatus}
             currentStep={currentStep}
             signature={signature}
@@ -296,11 +281,19 @@ export function Swap() {
             outAmount={
               Number(
                 liquidityProvider === 'liquidityhub'
-                  ? liquidityHubQuote?.referencePrice
+                  ? fromBigNumberToStr(
+                      liquidityHubQuote?.referencePrice || '0',
+                      outToken.decimals
+                    )
                   : destAmount
               ) || 0
             }
             outAmountUsd={optimalRate?.destUSD}
+            allowancePermitAddress={
+              liquidityProvider === 'paraswap' && optimalRate
+                ? optimalRate.tokenTransferProxy
+                : permit2Address
+            }
           />
 
           <Button

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import {
   getMinAmountOut,
   isNativeAddress,
+  resolveNativeTokenAddress,
   waitForConfirmations,
 } from '@/lib/utils'
 import { constructSimpleSDK, OptimalRate, SwapSide } from '@paraswap/sdk'
@@ -13,6 +14,7 @@ import { Address } from 'viem'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { SwapSteps } from '@/types'
 import { approveAllowance } from './approveAllowance'
+import { getRequiresApproval } from './getRequiresApproval'
 
 const PARASWAP_NATIVE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
@@ -109,7 +111,6 @@ export const useParaswapSwapCallback = () => {
     mutationFn: async ({
       optimalRate,
       slippage,
-      requiresApproval,
       setSwapStatus,
       setCurrentStep,
       onSuccess,
@@ -117,7 +118,6 @@ export const useParaswapSwapCallback = () => {
     }: {
       optimalRate: OptimalRate
       slippage: number
-      requiresApproval: boolean
       setSwapStatus: (status?: SwapStatus) => void
       setCurrentStep: (step: SwapSteps) => void
       onSuccess?: () => void
@@ -127,47 +127,55 @@ export const useParaswapSwapCallback = () => {
         throw new Error('Wallet not connected')
       }
 
-      setSwapStatus(SwapStatus.LOADING)
+      try {
+        setSwapStatus(SwapStatus.LOADING)
 
-      if (requiresApproval) {
-        setCurrentStep(SwapSteps.Approve)
-        await approveAllowance(
-          address,
-          optimalRate.srcToken,
-          optimalRate.tokenTransferProxy as Address
+        // Check if the inToken needs approval for allowance
+        const { requiresApproval } = await getRequiresApproval(
+          optimalRate.tokenTransferProxy,
+          resolveNativeTokenAddress(optimalRate.srcToken),
+          optimalRate.srcAmount,
+          address
         )
-      }
 
-      setCurrentStep(SwapSteps.Swap)
-
-      let txPayload: unknown | null = null
-
-      try {
-        const txData = await buildParaswapTxCallback(optimalRate, slippage)
-
-        txPayload = {
-          account: txData.from as Address,
-          to: txData.to as Address,
-          data: txData.data as `0x${string}`,
-          gasPrice: BigInt(txData.gasPrice),
-          gas: txData.gas ? BigInt(txData.gas) : undefined,
-          value: BigInt(txData.value),
+        if (requiresApproval) {
+          setCurrentStep(SwapSteps.Approve)
+          await approveAllowance(
+            address,
+            optimalRate.srcToken,
+            optimalRate.tokenTransferProxy as Address
+          )
         }
-      } catch (error) {
-        // Handle error in UI
-        console.error(error)
-        if (onFailure) onFailure()
-        setSwapStatus(SwapStatus.FAILED)
-      }
 
-      if (!txPayload) {
-        if (onFailure) onFailure()
-        setSwapStatus(SwapStatus.FAILED)
+        setCurrentStep(SwapSteps.Swap)
 
-        throw new Error('Failed to build transaction')
-      }
+        let txPayload: unknown | null = null
 
-      try {
+        try {
+          const txData = await buildParaswapTxCallback(optimalRate, slippage)
+
+          txPayload = {
+            account: txData.from as Address,
+            to: txData.to as Address,
+            data: txData.data as `0x${string}`,
+            gasPrice: BigInt(txData.gasPrice),
+            gas: txData.gas ? BigInt(txData.gas) : undefined,
+            value: BigInt(txData.value),
+          }
+        } catch (error) {
+          // Handle error in UI
+          console.error(error)
+          if (onFailure) onFailure()
+          setSwapStatus(SwapStatus.FAILED)
+        }
+
+        if (!txPayload) {
+          if (onFailure) onFailure()
+          setSwapStatus(SwapStatus.FAILED)
+
+          throw new Error('Failed to build transaction')
+        }
+
         console.log('Swapping...')
         // Use estimate gas to simulate send transaction
         // if any error occurs, it will be caught and handled
