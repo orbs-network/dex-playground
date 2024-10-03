@@ -52,6 +52,7 @@ const useSteps = (
       inTokenAddress: inToken.address,
       requiresApproval,
     })
+
     return steps.map((step) => {
       if (step === SwapSteps.Wrap) {
         return {
@@ -104,7 +105,7 @@ export function SwapConfirmationDialog({
     inToken,
     signature
   )
-  const account = useAccount().address as string
+  const { address } = useAccount()
 
   const gasPrice = useMemo(() => {
     if (!outAmountUsd || !gasAmountOut) return 0
@@ -147,7 +148,7 @@ export function SwapConfirmationDialog({
             />
           </div>
 
-          {!swapStatus && (
+          {!swapStatus && address && (
             <>
               <Card className="bg-slate-900">
                 <div className="p-4 flex flex-col gap-2">
@@ -165,7 +166,7 @@ export function SwapConfirmationDialog({
                 <div className="p-4">
                   <DataDetails
                     data={{
-                      Recipient: format.address(account),
+                      Recipient: format.address(address),
                     }}
                   />
                 </div>

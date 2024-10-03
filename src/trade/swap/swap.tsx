@@ -25,10 +25,12 @@ import {
   toBigInt,
   fromBigNumberToStr,
   resolveNativeTokenAddress,
+  getErrorMessage,
 } from '@/lib'
 import './style.css'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { Address } from 'viem'
+import { toast } from 'sonner'
 
 const slippage = 0.5
 
@@ -179,13 +181,16 @@ export function Swap() {
     } catch (error) {
       // handle error in ui
       console.error(error)
+      toast.error(getErrorMessage(error, 'An error occurred while swapping'))
     }
   }, [optimalRate, paraswapSwapCallback, requiresApproval, resetSwap])
 
   const swapWithLiquidityHub = useCallback(async () => {
     if (!optimalRate) {
+      toast.error('An unknown error occurred')
       return
     }
+
     try {
       await liquidityHubSwapCallback({
         inTokenAddress: inToken!.address,
@@ -234,7 +239,7 @@ export function Swap() {
     ? fromBigNumberToStr(optimalRate.destAmount, outToken?.decimals)
     : ''
 
-  const openConnectModal = useConnectModal().openConnectModal
+  const { openConnectModal } = useConnectModal()
   return (
     <div className="flex flex-col gap-2 pt-2">
       <TokenCard

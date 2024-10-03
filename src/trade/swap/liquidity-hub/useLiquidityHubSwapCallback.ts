@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { signTypedData, simulateContract, writeContract } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
-import { toast } from 'sonner'
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
@@ -50,13 +49,9 @@ async function wrapToken(quote: Quote, analyticsEvents: AnalyticsEvents) {
 
     return txHash
   } catch (error) {
-    console.error(error)
-    const errorMessage = getErrorMessage(
-      error,
-      'An error occurred while wrapping your token'
+    analyticsEvents.onFailure(
+      getErrorMessage(error, 'An error occurred while wrapping your token')
     )
-    toast.error(errorMessage)
-    analyticsEvents.onFailure(errorMessage)
     throw error
   }
 }
@@ -74,7 +69,9 @@ async function approveCallback(
     analyticsEvents.onSuccess(txHash)
     return txHash
   } catch (error) {
-    analyticsEvents.onFailure((error as Error).message)
+    analyticsEvents.onFailure(
+      getErrorMessage(error, 'An error occurred while approving the allowance')
+    )
     throw error
   }
 }
@@ -111,12 +108,9 @@ async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
   } catch (error) {
     console.error(error)
 
-    const errorMessage = getErrorMessage(
-      error,
-      'An error occurred while getting the signature'
+    analyticsEvents.onFailure(
+      getErrorMessage(error, 'An error occurred while getting the signature')
     )
-    toast.error(errorMessage)
-    analyticsEvents.onFailure(errorMessage)
     throw error
   }
 }
@@ -137,7 +131,6 @@ export function useLiquidityHubSwapCallback() {
       setCurrentStep,
       onSuccess,
       onFailure,
-      onSettled,
       setSignature,
     }: {
       inTokenAddress: string
@@ -151,7 +144,6 @@ export function useLiquidityHubSwapCallback() {
       setSignature: (signature: string) => void
       onSuccess?: () => void
       onFailure?: () => void
-      onSettled?: () => void
     }) => {
       // Fetch latest quote just before swap
       const quote = await getQuote()
@@ -234,21 +226,11 @@ export function useLiquidityHubSwapCallback() {
         setSwapStatus(SwapStatus.SUCCESS)
         if (onSuccess) onSuccess()
       } catch (error) {
-        console.error(error)
         setSwapStatus(SwapStatus.FAILED)
+        if (onFailure) onFailure()
 
-        const errorMessage = getErrorMessage(
-          error,
-          'An error occurred while swapping your tokens'
-        )
-        toast.error(errorMessage)
-        if (onFailure) {
-          onFailure()
-          throw error
-        }
+        throw error
       }
-
-      if (onSettled) onSettled()
     },
   })
 }

@@ -7,7 +7,7 @@ export function useGetRequiresApproval(
   inTokenAddress = '',
   inAmount = ''
 ) {
-  const account = useAccount().address
+  const { address } = useAccount()
   const {
     data: allowance,
     isLoading,
@@ -16,8 +16,8 @@ export function useGetRequiresApproval(
     address: inTokenAddress as Address,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: [account as Address, contractAddress],
-    query: { enabled: Boolean(inTokenAddress && account && contractAddress) },
+    args: [address as Address, contractAddress],
+    query: { enabled: Boolean(inTokenAddress && address && contractAddress) },
   })
 
   return {

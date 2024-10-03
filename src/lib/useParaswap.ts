@@ -76,30 +76,34 @@ export const useParaswapQuote = ({
 
 export const useParaswapBuildTxCallback = () => {
   const paraswap = useParaswap()
-  const account = useAccount().address as string
+  const { address } = useAccount()
   return useCallback(
     async (optimalRate: OptimalRate, slippage: number) => {
+      if (!address) {
+        throw new Error('Wallet not connected')
+      }
+
       const payload = {
         srcToken: optimalRate.srcToken,
         destToken: optimalRate.destToken,
         srcAmount: optimalRate.srcAmount,
         destAmount: getMinAmountOut(slippage, optimalRate.destAmount)!,
         priceRoute: optimalRate,
-        userAddress: account,
-        receiver: account,
+        userAddress: address,
+        receiver: address,
         // set your partner name here, we use quickswapv3 for example
         partner: 'quickswapv3',
       }
 
       return paraswap.swap.buildTx(payload)
     },
-    [account, paraswap]
+    [address, paraswap]
   )
 }
 
 export const useParaswapSwapCallback = () => {
   const buildParaswapTxCallback = useParaswapBuildTxCallback()
-  const account = useAccount().address as string
+  const { address } = useAccount()
 
   return useMutation({
     mutationFn: async ({
@@ -119,12 +123,16 @@ export const useParaswapSwapCallback = () => {
       onSuccess?: () => void
       onFailure?: () => void
     }) => {
+      if (!address) {
+        throw new Error('Wallet not connected')
+      }
+
       setSwapStatus(SwapStatus.LOADING)
 
       if (requiresApproval) {
         setCurrentStep(SwapSteps.Approve)
         await approveAllowance(
-          account,
+          address,
           optimalRate.srcToken,
           optimalRate.tokenTransferProxy as Address
         )
