@@ -13,6 +13,7 @@
     "@ethersproject/hash": "^5.7.0",
     "@orbs-network/liquidity-hub-sdk": "^1.0.39",
     "@orbs-network/swap-ui": "^0.0.10",
+    "@orbs-network/twap-sdk": "^2.0.23",
     "@paraswap/sdk": "^6.10.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",

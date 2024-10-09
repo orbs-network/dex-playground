@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Swap } from './swap/swap'
+import { Twap } from './twap/twap'
 
 export function Trade() {
   return (
@@ -16,10 +17,7 @@ export function Trade() {
           <Swap />
         </TabsContent>
         <TabsContent value="twap">
-          <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4 flex flex-col items-center justify-center">
-            <img src="/dex-playground/dtwap-logo.svg" className="w-32 h-32" />
-            <div>Coming soon</div>
-          </div>
+          <Twap />
         </TabsContent>
         <TabsContent value="limit">
           <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 p-4 mt-4 flex flex-col items-center justify-center">
