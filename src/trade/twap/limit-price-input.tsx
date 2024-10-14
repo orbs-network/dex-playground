@@ -1,6 +1,6 @@
 import { Token } from '@/types'
 import { NumericFormat } from 'react-number-format'
-import { cn, format, networks, usePriceUsd, useTokensWithBalances } from '@/lib'
+import { format, networks, usePriceUsd, useTokensWithBalances } from '@/lib'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TokenSelect } from '@/components/tokens/token-select'
@@ -24,59 +24,67 @@ export type Props = {
 }
 
 const options = [1, 5, 10]
-export function LimitPriceInput(props: Props) {
+export function LimitPriceInput({
+  limitInverted,
+  onValueChange,
+  setInToken,
+  setLimitInverted,
+  setOutToken,
+  amountLoading,
+  customLimitPrice,
+  inToken,
+  marketPrice,
+  outToken,
+}: Props) {
   const tokens = useTokensWithBalances().tokensWithBalances
-  const { limitInverted, setLimitInverted } = props
   const [percent, setPercent] = useState<number | undefined>(undefined)
-  const inToken = limitInverted ? props.outToken : props.inToken
-  const outToken = limitInverted ? props.inToken : props.outToken
+  const fromToken = limitInverted ? outToken : inToken
+  const toToken = limitInverted ? inToken : outToken
 
   const selectedToken = outToken
 
   const onSelect = useCallback(
     (token: Token) => {
       if (!limitInverted) {
-        props.setOutToken(token)
+        setOutToken(token)
       } else {
-        props.setInToken(token)
+        setInToken(token)
       }
     },
-    [limitInverted, props]
+    [limitInverted, setInToken, setOutToken]
   )
 
   useEffect(() => {
-    props.onValueChange(undefined)
-  }, [inToken?.address, outToken?.address, props])
+    onValueChange(undefined)
+  }, [fromToken?.address, onValueChange, toToken?.address])
 
   useEffect(() => {
-    if (!props.customLimitPrice) {
+    if (!customLimitPrice) {
       setPercent(undefined)
     }
-  }, [props.customLimitPrice])
+  }, [customLimitPrice])
 
-  const marketPrice = useMemo(() => {
-    if (!props.marketPrice || BN(props.marketPrice).isZero()) return
-    return limitInverted
-      ? BN(1).div(props.marketPrice).toFixed(5)
-      : props.marketPrice
-  }, [props.marketPrice, limitInverted])
+  const parsedMarketPrice = useMemo(() => {
+    if (!marketPrice || BN(marketPrice).isZero()) return
+    return limitInverted ? BN(1).div(marketPrice).toFixed(5) : marketPrice
+  }, [marketPrice, limitInverted])
 
   const amount = useMemo(() => {
-    if (props.customLimitPrice !== undefined) {
-      return props.customLimitPrice
+    if (customLimitPrice !== undefined) {
+      return customLimitPrice
     }
-    return marketPrice
-  }, [props.customLimitPrice, marketPrice])
+    return parsedMarketPrice
+  }, [customLimitPrice, parsedMarketPrice])
 
   const onInvert = useCallback(() => {
     setLimitInverted(!limitInverted)
-    props.onValueChange(undefined)
-  }, [setLimitInverted, limitInverted, props])
+    onValueChange(undefined)
+  }, [setLimitInverted, limitInverted, onValueChange])
 
   const onPercent = useCallback(
     (percent?: number) => {
       if (percent == null) {
-        props.onValueChange(undefined)
+        onValueChange(undefined)
         setPercent(undefined)
         return
       }
@@ -85,33 +93,31 @@ export function LimitPriceInput(props: Props) {
 
       const p = BN(percent).div(100).plus(1).toNumber()
 
-      const updatedValue = BN(marketPrice || 0)
+      const updatedValue = BN(parsedMarketPrice || 0)
         .times(p)
         .toString()
 
-      props.onValueChange(updatedValue)
+      onValueChange(updatedValue)
     },
-    [limitInverted, marketPrice, props]
+    [limitInverted, parsedMarketPrice, onValueChange]
   )
 
   const usd = usePriceUsd(networks.poly.id, selectedToken?.address).data
   const amountUsd = Number(amount || 0) * (usd || 0)
 
   const limitMarketPriceDiff = useMemo(() => {
-    if (!props.customLimitPrice || !marketPrice) return
+    if (!customLimitPrice || !parsedMarketPrice) return
     return BN(
-      BN(props.customLimitPrice)
-        .dividedBy(marketPrice)
+      BN(customLimitPrice)
+        .dividedBy(parsedMarketPrice)
         .minus(1)
         .multipliedBy(100)
         .toFixed(2)
     ).toNumber()
-  }, [props.customLimitPrice, marketPrice])
+  }, [customLimitPrice, parsedMarketPrice])
 
   return (
-    <Card
-      className={cn('bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4')}
-    >
+    <Card className="bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4 mb-4">
       <div className="flex justify-between items-center">
         <div className="flex flex-row gap-1 items-center">
           <h2 className="text-gray-500 dark:text-gray-400"> when 1 </h2>
@@ -128,7 +134,7 @@ export function LimitPriceInput(props: Props) {
       </div>
       <div className="flex justify-between items-center">
         <div className="text-4xl">
-          {props.amountLoading ? (
+          {amountLoading ? (
             <Skeleton className="h-10 w-[250px]" />
           ) : (
             <NumericFormat
@@ -139,7 +145,7 @@ export function LimitPriceInput(props: Props) {
               thousandSeparator={true}
               onValueChange={(values, sourceInfo) => {
                 if (sourceInfo.source !== 'event') return
-                props.onValueChange(values.value)
+                onValueChange(values.value)
               }}
             />
           )}

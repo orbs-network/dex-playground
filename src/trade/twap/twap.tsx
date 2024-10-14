@@ -117,7 +117,10 @@ export function Twap() {
   // The entered input amount has to be converted to a big int string
   // to be used for getting quotes
 
-  const inputAmountAsBigNumber = toBigNumber(inputAmount, inToken?.decimals)
+  const inputAmountAsBigNumber = useMemo(
+    () => toBigNumber(inputAmount, inToken?.decimals),
+    [inToken?.decimals, inputAmount]
+  )
   const { data: optimalRate, isLoading: optimalRateLoading } = useParaswapQuote(
     {
       inToken: inToken?.address || '',
@@ -143,7 +146,10 @@ export function Twap() {
     inToken?.address
   )
 
-  const marketPrice = baseRate?.destAmount
+  const marketPrice = useMemo(
+    () => baseRate?.destAmount,
+    [baseRate?.destAmount]
+  )
 
   const price = useMemo(() => {
     if (isMarketOrder || customLimitPrice === undefined) {
@@ -251,13 +257,15 @@ export function Twap() {
       </div>
       <div className="flex flex-col gap-2 pt-2">
         {!isLimitPanel && (
-          <div className="flex gap-4">
-            <Switch
-              className="ml-auto"
-              checked={!isMarketOrder}
-              onCheckedChange={(checked) => onMarketOrderChange(!checked)}
-            />
-            <div>{isMarketOrder ? 'Market order' : 'Limit order'}</div>
+          <div className="flex gap-4 justify-end mb-2">
+            <div className="flex gap-2">
+              <div>Market order</div>
+              <Switch
+                checked={!isMarketOrder}
+                onCheckedChange={(checked) => onMarketOrderChange(!checked)}
+              />
+              <div>Limit order</div>
+            </div>
           </div>
         )}
         {!isMarketOrder && (
@@ -347,8 +355,6 @@ export function Twap() {
             >
               {inputError === ErrorCodes.InsufficientBalance
                 ? 'Insufficient balance'
-                : inputAmount
-                ? 'Fetching quote...'
                 : !optimalRate && inputAmount
                 ? 'No liquidity'
                 : 'Swap'}

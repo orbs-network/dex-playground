@@ -12,7 +12,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const toBigInt = (amount: string | number, decimals?: number) => {
   const num = Number(amount)
-  return BigInt(num * 10 ** (decimals || 0))
+  return BigInt((num * 10 ** (decimals || 0)).toFixed(0))
 }
 
 export const toBigNumber = (amount: string | number, decimals?: number) => {
