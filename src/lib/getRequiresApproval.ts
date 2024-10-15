@@ -15,7 +15,5 @@ export async function getRequiresApproval(
     args: [account as Address, contractAddress as Address],
   })
 
-  return {
-    requiresApproval: (allowance || 0n) < BigInt(inAmount || 0),
-  }
+  return (allowance || 0n) < BigInt(inAmount || 0)
 }

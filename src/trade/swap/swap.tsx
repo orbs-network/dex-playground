@@ -268,7 +268,7 @@ export function Swap() {
                 <Label htmlFor="force-lh">Force Liquidity Hub</Label>
                 <Switch
                   id="force-lh"
-                  onCheckedChange={(checked) => setForceLiquidityHub(checked)}
+                  onCheckedChange={(checked: any) => setForceLiquidityHub(checked)}
                   checked={forceLiquidityHub}
                 />
               </div>

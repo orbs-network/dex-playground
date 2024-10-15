@@ -25,3 +25,9 @@ export function useTokensWithBalances() {
     refetch,
   }
 }
+
+
+export const useTokenBalance = (tokenAddress?: string) => {
+  const { tokensWithBalances } = useTokensWithBalances()
+  return !tokenAddress ? '' :  tokensWithBalances?.[tokenAddress]?.balance.toString()
+}

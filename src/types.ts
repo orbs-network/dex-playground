@@ -1,3 +1,5 @@
+import { SwapStatus } from "@orbs-network/swap-ui"
+
 export type Token = {
   address: string
   symbol: string
@@ -20,3 +22,10 @@ export enum SwapSteps {
 }
 
 export type LiquidityProvider = 'paraswap' | 'liquidityhub'
+
+
+export type onSubmitArgs =  {
+  onSteps: (value: number[]) => void;
+  onStatus: (status?: SwapStatus) => void;
+  onStepChange: (step: number) => void;
+}

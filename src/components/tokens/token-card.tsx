@@ -6,13 +6,14 @@ import { NumericFormat } from 'react-number-format'
 import {
   format,
   cn,
-  ErrorCodes,
   fromBigNumber,
   fromBigNumberToStr,
+  ErrorCodes,
 } from '@/lib'
 import { Skeleton } from '../ui/skeleton'
 import { Button } from '../ui/button'
-
+import { useToExactAmount } from '@/trade/hooks'
+import BN from 'bignumber.js'
 function getTextSize(amountLength: number) {
   if (amountLength > 16) {
     return 'text-xl'
@@ -29,7 +30,7 @@ export type TokenCardProps = {
   label: string
   amount: string
   amountUsd?: string
-  balance: bigint
+  balance: string
   selectedToken: Token
   tokens: TokensWithBalances
   onSelectToken: (token: Token) => void
@@ -52,22 +53,20 @@ export function TokenCard({
   amountLoading,
   inputError,
 }: TokenCardProps) {
+
+  const balanceError = inputError === ErrorCodes.InsufficientBalance
   const balanceDisplay = selectedToken
     ? format.crypto(fromBigNumber(balance, selectedToken.decimals))
     : '0'
-  const halfBalance =
-    balance !== 0n && selectedToken
-      ? fromBigNumberToStr(balance / 2n, selectedToken.decimals)
-      : '0'
-  const maxBalance = selectedToken
-    ? fromBigNumberToStr(balance, selectedToken.decimals)
-    : '0'
+
+    const maxBalance = useToExactAmount(balance, selectedToken?.decimals)
+  const halfBalance = useToExactAmount(BN(balance || 0).dividedBy(2).toString(), selectedToken?.decimals)
 
   return (
     <Card
       className={cn(
         'bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4',
-        inputError &&
+        balanceError &&
           'mix-blend-multiply bg-red-50 dark:mix-blend-screen dark:bg-red-950'
       )}
     >
@@ -99,7 +98,7 @@ export function TokenCard({
         {amountLoading ? (
           <Skeleton className="h-10 w-[250px]" />
         ) : (
-          <div className={cn(getTextSize(amount.length), 'w-full')}>
+          <div className={cn(getTextSize(amount?.length), 'w-full')}>
             <NumericFormat
               className="bg-transparent w-full min-w-0 outline-none"
               value={amount}
@@ -122,11 +121,9 @@ export function TokenCard({
         </div>
       </div>
       <div className="flex justify-between items-center">
-        {inputError ? (
+        {balanceError ? (
           <div className="text-red-700 dark:text-red-600 text-lg">
-            {inputError === ErrorCodes.InsufficientBalance
-              ? 'Exceeds balance'
-              : inputError}
+            Exceeds balance
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-lg">
