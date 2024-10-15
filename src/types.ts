@@ -22,10 +22,3 @@ export enum SwapSteps {
 }
 
 export type LiquidityProvider = 'paraswap' | 'liquidityhub'
-
-
-export type onSubmitArgs =  {
-  onSteps: (value: number[]) => void;
-  onStatus: (status?: SwapStatus) => void;
-  onStepChange: (step: number) => void;
-}

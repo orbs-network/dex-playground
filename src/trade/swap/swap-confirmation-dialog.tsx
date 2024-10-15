@@ -4,92 +4,26 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { onSubmitArgs, SwapSteps, Token } from "@/types";
+import { Token } from "@/types";
 import { SwapFlow, SwapStatus, SwapStep } from "@orbs-network/swap-ui";
-import {
-  createContext,
-  FC,
-  useCallback,
-  useContext,
-  useMemo,
-  useReducer,
-} from "react";
+import { createContext, ReactNode, useContext } from "react";
 import { format } from "@/lib";
-
-export type State = {
-  swapStatus?: SwapStatus;
-  currentStep?: number;
-  shouldUnwrap?: boolean;
-  txHash?: string;
-  steps?: number[];
-  error?: string;
-  stapStatus?: SwapStatus;
-};
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type Props = {
   inToken: Token | null;
   outToken: Token | null;
   inAmount?: number;
-  inAmountUsd?: string;
   outAmount?: number;
-  outAmountUsd?: string;
   errorContent?: React.ReactNode;
   mainContent?: React.ReactNode;
   successContent?: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
+  swapStatus?: SwapStatus;
 };
 
-interface ContextType extends Props {
-  state: State;
-  updateState: (payload: Partial<State>) => void;
-  resetState: () => void;
-}
-
-type Action =
-  | { type: "UPDATE_STATE"; payload: Partial<State> }
-  | { type: "RESET" };
-
-function reducer<TState>(
-  state: TState,
-  action: Action,
-  initialState: TState
-): TState {
-  switch (action.type) {
-    case "UPDATE_STATE":
-      return { ...state, ...action.payload };
-    case "RESET":
-      return initialState;
-    default:
-      return state;
-  }
-}
-
-const initialState = {} as State;
-
-const useConfirmationState = () => {
-  const [state, dispatch] = useReducer(
-    (state: State, action: Action) => reducer(state, action, initialState),
-    initialState
-  );
-
-  const updateState = useCallback(
-    (payload: Partial<State>) => {
-      dispatch({ type: "UPDATE_STATE", payload });
-    },
-    [dispatch]
-  );
-
-  const resetState = useCallback(() => {
-    dispatch({ type: "RESET" });
-  }, [dispatch]);
-
-  return {
-    state,
-    updateState,
-    resetState,
-  };
-};
+interface ContextType extends Props {}
 
 const ConfirmationContext = createContext({} as ContextType);
 
@@ -107,18 +41,13 @@ export function SwapConfirmationDialogContent() {
   const {
     inToken,
     outToken,
-    state,
-    inAmountUsd,
-    outAmountUsd,
     inAmount,
     outAmount,
-    SubmitSwapButton,
-    onSubmitSwap,
     isOpen,
     onClose,
     mainContent,
+    swapStatus,
   } = useConfirmationContext();
-  const { currentStep, swapStatus, steps } = state;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -151,11 +80,8 @@ export function SwapConfirmationDialogContent() {
 }
 
 export const SwapConfirmationDialog = (props: Props) => {
-  const { state, updateState, resetState } = useConfirmationState();
   return (
-    <ConfirmationContext.Provider
-      value={{ state, updateState, resetState, ...props }}
-    >
+    <ConfirmationContext.Provider value={props}>
       <SwapConfirmationDialogContent />
     </ConfirmationContext.Provider>
   );
@@ -164,46 +90,51 @@ export const SwapConfirmationDialog = (props: Props) => {
 const Main = ({
   fromTitle,
   toTitle,
-  parseSteps,
+  steps,
   inUsd,
   outUsd,
-  SubmitSwapButton,
-  onSubmitSwap,
+  submitSwapButton,
+  details,
+  currentStep,
 }: {
   fromTitle: string;
   toTitle: string;
-  parseSteps: (value?: SwapSteps[]) => SwapStep[] | undefined;
   inUsd?: string;
   outUsd?: string;
-  SubmitSwapButton: FC<{ onClick: () => void }>;
-  onSubmitSwap: (args: onSubmitArgs) => void;
+  submitSwapButton: ReactNode;
+  details?: ReactNode;
+  steps: SwapStep[];
+  currentStep?: number;
 }) => {
-  const {
-    state: { steps, currentStep, swapStatus },
-    updateState,
-  } = useConfirmationContext();
-  const parsedSteps = useMemo(() => parseSteps(steps), [steps, parseSteps]);
-
-  const onSubmit = useCallback(() => {
-    onSubmitSwap({
-      onStatus: (swapStatus?: SwapStatus) => updateState({ swapStatus }),
-      onStepChange: (currentStep: number) => updateState({ currentStep }),
-      onSteps: (steps: number[]) => updateState({ steps }),
-    });
-  }, [ onSubmitSwap, updateState]);
-
+  const { swapStatus } = useConfirmationContext();
   return (
     <>
       <SwapFlow.Main
         fromTitle={fromTitle}
         toTitle={toTitle}
-        steps={parsedSteps}
+        steps={steps}
         inUsd={inUsd}
         outUsd={outUsd}
         currentStep={currentStep}
       />
-      {!swapStatus && <SubmitSwapButton onClick={onSubmit} />}
+      {!swapStatus ? (
+        <>
+          {details}
+          {submitSwapButton}
+        </>
+      ) : !steps ? (
+        <StepsLoader />
+      ) : null}
     </>
+  );
+};
+
+const StepsLoader = () => {
+  return (
+    <div className="flex flex-row gap-4 w-full items-center">
+      <Skeleton style={{ width: 30, height: 30, borderRadius: "50%" }} />
+      <Skeleton style={{ width: "60%", height: 20, maxWidth: 200 }} />
+    </div>
   );
 };
 

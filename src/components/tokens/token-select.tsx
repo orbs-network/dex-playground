@@ -1,5 +1,5 @@
-import { ChevronDownIcon } from 'lucide-react'
-import { Button } from '../ui/button'
+import { ChevronDownIcon } from "lucide-react";
+import { Button } from "../ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,27 +7,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../ui/dialog'
-import { Input } from '../ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import { Token, TokensWithBalances } from '@/types'
-import { Card } from '../ui/card'
-import { useMemo, useState } from 'react'
-import { fromBigNumber } from '@/lib'
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Token, TokensWithBalances } from "@/types";
+import { Card } from "../ui/card";
+import { useMemo, useState } from "react";
+import { fromBigNumber } from "@/lib";
 
 type TokenSelectProps = {
-  selectedToken: Token | undefined
-  tokens: TokensWithBalances
-  onSelectToken: (token: Token) => void
-}
+  selectedToken: Token | undefined;
+  tokens: TokensWithBalances;
+  onSelectToken: (token: Token) => void;
+};
 
 export function TokenSelect({
   selectedToken,
   tokens,
   onSelectToken,
 }: TokenSelectProps) {
-  const [open, setOpen] = useState(false)
-  const [filterInput, setFilterInput] = useState('')
+  const [open, setOpen] = useState(false);
+  const [filterInput, setFilterInput] = useState("");
 
   const SortedTokens = useMemo(() => {
     return Object.values(tokens)
@@ -35,7 +35,7 @@ export function TokenSelect({
         return (
           t.token.symbol.toLowerCase().includes(filterInput.toLowerCase()) ||
           t.token.address.toLowerCase().includes(filterInput.toLowerCase())
-        )
+        );
       })
       .sort(
         (a, b) =>
@@ -47,8 +47,8 @@ export function TokenSelect({
           key={t.token.address}
           className="cursor-pointer p-4 flex items-center justify-between gap-3"
           onClick={() => {
-            onSelectToken(t.token)
-            setOpen(false)
+            onSelectToken(t.token);
+            setOpen(false);
           }}
         >
           <div className="flex items-center gap-3">
@@ -65,8 +65,8 @@ export function TokenSelect({
           </div>
           <div>{fromBigNumber(t.balance, t.token.decimals).toFixed(5)}</div>
         </Card>
-      ))
-  }, [filterInput, onSelectToken, tokens])
+      ));
+  }, [filterInput, onSelectToken, tokens]);
 
   return (
     <Dialog modal={true} open={open} onOpenChange={(o) => setOpen(o)}>
@@ -84,11 +84,11 @@ export function TokenSelect({
               />
             )}
             <AvatarFallback className="bg-slate-200 dark:bg-slate-700">
-              {selectedToken ? selectedToken.symbol.charAt(0) : '-'}
+              {selectedToken ? selectedToken.symbol.charAt(0) : "-"}
             </AvatarFallback>
           </Avatar>
           <div className="text-xl">
-            {selectedToken ? selectedToken.symbol : '-'}
+            {selectedToken ? selectedToken.symbol : "-"}
           </div>
           <ChevronDownIcon className="h-6 w-6" />
         </Button>
@@ -110,5 +110,5 @@ export function TokenSelect({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

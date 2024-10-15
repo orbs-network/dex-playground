@@ -11,21 +11,27 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const toBigInt = (amount: string | number, decimals?: number) => {
-  if(!amount) return BigInt(0);
+  if (!amount) return BigInt(0);
   const num = Number(amount);
   return BigInt((num * 10 ** (decimals || 0)).toFixed(0));
 };
 
-export const toExactAmount = ( amount?: string, decimals?: number) => {
+export const toExactAmount = (
+  amount?: string,
+  decimals?: number,
+  decimalScale? : number
+) => {
   if (!decimals || !amount) return "";
   const percision = BN(10).pow(decimals || 0);
-  return BN(amount).times(percision).idiv(percision).div(percision).toString();
+  const result = BN(amount).times(percision).idiv(percision).div(percision);
+  if (decimalScale) {
+    return result.toFixed(decimalScale);
+  }
+  return result.toString();
 };
 export const toRawAmount = (amount?: string, decimals?: number) => {
-  if (!decimals || !amount) return ''
-  return BN(amount)
-    .times(BN(10).pow(decimals))
-    .decimalPlaces(0).toFixed()
+  if (!decimals || !amount) return "";
+  return BN(amount).times(BN(10).pow(decimals)).decimalPlaces(0).toFixed();
 };
 
 export const toBigNumber = (amount: string | number, decimals?: number) => {
@@ -115,7 +121,7 @@ export const getMinAmountOut = (slippage: number, _destAmount: string) => {
 
 export const enum ErrorCodes {
   InsufficientBalance = "Insufficient balance",
-  EnterAmount = 'Enter amount',
+  EnterAmount = "Enter amount",
 }
 
 export function getQuoteErrorMessage(errorCode: string) {
@@ -217,3 +223,19 @@ export function getLiquidityProviderName(provider: LiquidityProvider) {
       return "Unknown";
   }
 }
+
+export const makeElipsisAddress = (address?: string, padding = 6): string => {
+  if (!address) return "";
+  return `${address.substring(0, padding)}...${address.substring(
+    address.length - padding
+  )}`;
+};
+
+export const isTxRejected = (error: any) => {
+  if (error?.message) {
+    return (
+      error.message?.toLowerCase()?.includes("rejected") ||
+      error.message?.toLowerCase()?.includes("denied")
+    );
+  }
+};

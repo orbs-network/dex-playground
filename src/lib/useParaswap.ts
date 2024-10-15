@@ -131,7 +131,7 @@ export const useParaswapSwapCallback = () => {
         setSwapStatus(SwapStatus.LOADING)
 
         // Check if the inToken needs approval for allowance
-        const { requiresApproval } = await getRequiresApproval(
+        const requiresApproval = await getRequiresApproval(
           optimalRate.tokenTransferProxy,
           resolveNativeTokenAddress(optimalRate.srcToken),
           optimalRate.srcAmount,

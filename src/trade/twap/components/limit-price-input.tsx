@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import BN from "bignumber.js";
 import { ArrowUpDown, X } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useTwapContext, useTwapStateActions } from "../twap-context";
+import { useTwapContext } from "../twap-context";
 import { useMarketPrice, useTradePrice } from "../hooks";
 
 const useMarketPriceUI = () => {
@@ -28,10 +28,10 @@ const useMarketPriceUI = () => {
     let price = marketPrice;
     if (isTradePriceInverted) {
       const one = toRawAmount("1", outToken?.decimals);
-      price = BN(one).div(marketPrice).toFixed(5);
+      return BN(one).div(marketPrice).toFixed(5);
     }
 
-    return toExactAmount(price, outToken?.decimals);
+    return toExactAmount(price, outToken?.decimals, 5);
   }, [marketPrice, outToken, isTradePriceInverted]);
 };
 
@@ -56,12 +56,7 @@ const useOnPercentSelect = () => {
   const marketPriceUI = useMarketPriceUI();
 
   return useCallback(
-    (p?: number) => {      
-      if (!p) {
-        updateState({ customTradePrice: undefined });
-        return;
-      }
-
+    (p: number) => {
       const percent = BN(p).div(100).plus(1).toNumber();
       const updatedValue = BN(marketPriceUI || 0)
         .times(percent)
@@ -74,7 +69,6 @@ const useOnPercentSelect = () => {
 
 export function LimitPriceInput() {
   const tokens = useTokensWithBalances().tokensWithBalances;
-  const { onInvertTradePrice } = useTwapStateActions();
   const {
     state: { values, updateState },
     isMarketOrder,
@@ -84,6 +78,13 @@ export function LimitPriceInput() {
   const toToken = isTradePriceInverted ? inToken : outToken;
   const marketPriceUI = useMarketPriceUI();
   const selectedToken = toToken;
+
+  const onInvertTradePrice = useCallback(() => {
+    updateState({
+      isTradePriceInverted: !isTradePriceInverted,
+      customTradePrice: undefined,
+    });
+  }, [isTradePriceInverted, updateState]);
 
   const onSelect = useCallback(
     (token: Token) => {
@@ -104,9 +105,8 @@ export function LimitPriceInput() {
   }, [customTradePrice, marketPriceUI, isTradePriceInverted]);
 
   const usd = usePriceUsd(networks.poly.id, selectedToken?.address).data;
-  const amountUsd = !inputValue || !usd ? '' :  BN(inputValue)
-    .multipliedBy(usd)
-    .toNumber();
+  const amountUsd =
+    !inputValue || !usd ? "" : BN(inputValue).multipliedBy(usd).toNumber();
 
   if (isMarketOrder) return null;
 
@@ -213,7 +213,13 @@ const PercentButton = ({
 
 const ResetButton = () => {
   const diff = usePriceDiff();
-  const onReset = useOnPercentSelect();
+  const {
+    state: { updateState },
+  } = useTwapContext();
+  const onReset = useCallback(() => {
+    updateState({ customTradePrice: undefined });
+  }, [updateState]);
+
   const prefix = (diff || 0) > 0 ? "+" : "";
   return (
     <PercentButton onSelect={() => onReset()}>

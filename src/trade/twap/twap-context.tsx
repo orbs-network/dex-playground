@@ -58,7 +58,7 @@ type TwapState = {
   isTradePriceInverted?: boolean;
 };
 
-const initialState = {} as TwapState;
+const initialState = {typedAmount: ''} as TwapState;
 
 const useTwapState = () => {
   const [values, dispatch] = useReducer(
@@ -129,7 +129,7 @@ export const useTwapStateActions = () => {
     state: { updateState, values },
   } = useTwapContext();
 
-    const { inToken, outToken, isTradePriceInverted } = values;
+  const { inToken, outToken, isTradePriceInverted } = values;
 
   const setOutToken = useCallback(
     (outToken: Token) => {
@@ -140,7 +140,7 @@ export const useTwapStateActions = () => {
 
   const setInToken = useCallback(
     (inToken: Token) => {
-      updateState({ inToken,  customTradePrice: undefined });
+      updateState({ inToken, customTradePrice: undefined });
     },
     [updateState]
   );
@@ -157,24 +157,15 @@ export const useTwapStateActions = () => {
       inToken: outToken,
       outToken: inToken,
       typedAmount: "",
-      customTradePrice: undefined
-    });
-  }, [inToken, outToken]);
-
-
-  const onInvertTradePrice = useCallback(() => {
-    updateState({
-      isTradePriceInverted: !isTradePriceInverted,
       customTradePrice: undefined,
     });
-  }, [isTradePriceInverted, updateState]);
+  }, [inToken, outToken]);
 
   return {
     setOutToken,
     setInToken,
     setInputAmount,
     onSwitchTokens,
-    onInvertTradePrice
   };
 };
 

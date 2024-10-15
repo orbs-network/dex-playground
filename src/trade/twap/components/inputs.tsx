@@ -40,9 +40,9 @@ function FillDelaySelect() {
     <div className="flex flex-col gap-2">
       <p>Every</p>
       <Card
-       style={{height: 50}}
+        style={{ height: 50 }}
         className={cn(
-          "bg-slate-50 dark:bg-slate-900 pt-2 pb-2 pl-2 pr-2 flex gap-4 flex-row items-center h-full",
+          "bg-slate-50 dark:bg-slate-900 pt-2 pb-2 pl-2 pr-2 flex gap-4 flex-row items-center h-full"
         )}
       >
         <NumericFormat
@@ -107,7 +107,7 @@ const ChunksSelect = () => {
     <div className="flex flex-col gap-2">
       <p>Over</p>
       <Card
-      style={{height: 50}}
+        style={{ height: 50 }}
         className={cn(
           "bg-slate-50 dark:bg-slate-900 pt-2 pb-2 pl-2 pr-2 flex gap-4 flex-row items-center"
         )}
@@ -137,7 +137,7 @@ export const TwapPanelInputs = () => {
   if (isLimitPanel) return null;
 
   return (
-    <div className='flex gap-2 items-center'>
+    <div className="flex gap-2 items-center">
       <FillDelaySelect />
       <ChunksSelect />
     </div>

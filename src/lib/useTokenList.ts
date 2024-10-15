@@ -64,11 +64,11 @@ const getPolygonTokens = async (): Promise<Token[]> => {
   })
 }
 
-type UseTokensList = {
-  chainId: number
-}
 
-export function useTokensList({ chainId }: UseTokensList) {
+
+export function useTokensList() {
+  const chainId = networks.poly.id
+
   return useQuery<Token[]>({
     queryFn: async () => {
       return getPolygonTokens() || []

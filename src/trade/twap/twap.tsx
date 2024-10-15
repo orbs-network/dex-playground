@@ -1,6 +1,6 @@
 import { TokenCard } from "@/components/tokens/token-card";
 import { SwitchButton } from "@/components/ui/switch-button";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,8 @@ import { PriceToggle } from "./components/price-toggle";
 import { useToExactAmount } from "../hooks";
 import { TwapPanelInputs } from "./components/inputs";
 import { TwapConfirmationDialog } from "./twap-confirmation-dialog";
+import { SwapStatus } from "@orbs-network/swap-ui";
+import { Orders } from "./orders/orders";
 
 export function Panel() {
   const { tokensWithBalances, refetch: refetchBalances } =
@@ -76,7 +78,18 @@ export function Panel() {
   const marketPrice = useMarketPrice();
   const { inputLabel, outputLabel } = useInputLabels();
 
-  const amountLoading = Boolean(inToken && !marketPrice)
+  const onCloseConfirmation = useCallback(
+    (swapStatus?: SwapStatus) => {
+      setShowSwapConfirmationModal(false);
+      if (Boolean(swapStatus)) {
+        resetState();
+        refetchBalances();
+      }
+    },
+    [resetState, refetchBalances]
+  );
+
+  const amountLoading = Boolean(inToken && !marketPrice);
   return (
     <div>
       <div className="flex justify-end">
@@ -137,7 +150,7 @@ export function Panel() {
         <TwapPanelInputs />
         <TwapConfirmationDialog
           isOpen={showSwapConfirmationModal}
-          onClose={() => setShowSwapConfirmationModal(false)}
+          onClose={onCloseConfirmation}
         />
         {!account.address ? (
           <Button className="mt-2" size="lg" onClick={openConnectModal}>
@@ -145,20 +158,18 @@ export function Panel() {
           </Button>
         ) : (
           <Button
-            className="mt-2"
-            size="lg"
+            className="mt-2 w-full"
             onClick={() => setShowSwapConfirmationModal(true)}
             disabled={Boolean(inputError || !marketPrice || !typedAmount)}
           >
-            {inputError}
+            {inputError || "Create order"}
           </Button>
         )}
       </div>
+      <Orders />
     </div>
   );
 }
-
-
 
 export const Twap = ({ isLimitPanel }: { isLimitPanel?: boolean }) => {
   return (
