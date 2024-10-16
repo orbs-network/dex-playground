@@ -228,9 +228,16 @@ const useApproveCallback = () => {
     async (account: string, inTokenAddress: string) => {
       try {
         twapSDK.analytics.onApproveRequest();
+
+        const tokenAddress = resolveNativeTokenAddress(inTokenAddress);
+
+        if (!tokenAddress) {
+          throw new Error("Token address not found");
+        }
+
         await approveAllowance(
           account,
-          inTokenAddress,
+          tokenAddress,
           twapSDK.config.twapAddress as Address
         );
         twapSDK.analytics.onApproveSuccess();
