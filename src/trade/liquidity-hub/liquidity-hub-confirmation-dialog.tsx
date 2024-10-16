@@ -51,7 +51,7 @@ const useSteps = (
     if (!inToken) return []
 
     const steps = getSteps({
-      liquidityProvider,
+      noWrap: liquidityProvider === 'paraswap',
       inTokenAddress: inToken.address,
       requiresApproval,
     })

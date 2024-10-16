@@ -1,15 +1,12 @@
 import { useMutation } from '@tanstack/react-query'
-import { signTypedData, simulateContract, writeContract } from 'wagmi/actions'
+import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { SwapSteps } from '@/types'
-import { Address } from 'viem'
 import {
   wagmiConfig,
-  IWETHabi,
-  networks,
   waitForConfirmations,
   promiseWithTimeout,
   getSteps,
@@ -21,6 +18,7 @@ import { OptimalRate, TransactionParams } from '@paraswap/sdk'
 import { approveAllowance } from '@/lib/approveAllowance'
 import { getRequiresApproval } from '@/lib/getRequiresApproval'
 import { useAccount } from 'wagmi'
+import { wrapToken } from '@/lib/wrapToken'
 
 // Analytics events are optional for integration but are useful for your business insights
 type AnalyticsEvents = {
@@ -29,21 +27,13 @@ type AnalyticsEvents = {
   onFailure: (error: string) => void
 }
 
-async function wrapToken(quote: Quote, analyticsEvents: AnalyticsEvents) {
+async function wrapTokenCallback(quote: Quote, analyticsEvents: AnalyticsEvents) {
   try {
     console.log('Wrapping token...')
     analyticsEvents.onRequest()
-    // Simulate the contract to check if there would be any errors
-    const simulatedData = await simulateContract(wagmiConfig, {
-      abi: IWETHabi,
-      functionName: 'deposit',
-      account: quote.user as Address,
-      address: networks.poly.wToken.address as Address,
-      value: BigInt(quote.inAmount),
-    })
 
     // Perform the deposit contract function
-    const txHash = await writeContract(wagmiConfig, simulatedData.request)
+    const txHash = await wrapToken(quote.user, quote.inAmount)
 
     // Check for confirmations for a maximum of 20 seconds
     await waitForConfirmations(txHash, 1, 20)
@@ -154,7 +144,7 @@ export function useLiquidityHubSwapCallback() {
 
       try {
         // Check if the inToken needs approval for allowance
-        const { requiresApproval } = await getRequiresApproval(
+        const requiresApproval = await getRequiresApproval(
           permit2Address,
           resolveNativeTokenAddress(inTokenAddress),
           quote.inAmount,
@@ -165,13 +155,12 @@ export function useLiquidityHubSwapCallback() {
         const steps = getSteps({
           inTokenAddress,
           requiresApproval,
-          liquidityProvider: 'liquidityhub',
         })
 
         // If the inToken needs to be wrapped then wrap
         if (steps.includes(SwapSteps.Wrap)) {
           setCurrentStep(SwapSteps.Wrap)
-          await wrapToken(quote, {
+          await wrapTokenCallback(quote, {
             onRequest: liquidityHub.analytics.onWrapRequest,
             onSuccess: liquidityHub.analytics.onWrapSuccess,
             onFailure: liquidityHub.analytics.onWrapFailure,
