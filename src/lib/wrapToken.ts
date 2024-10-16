@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { Address } from "viem"
 import { simulateContract, writeContract } from 'wagmi/actions'
 import { IWETHabi } from "./abis"
 import { networks } from "./networks"
@@ -13,7 +14,7 @@ export const wrapToken = async (account: string, inAmount: string) => {
         functionName: 'deposit',
         account: account as Address,
         address: networks.poly.wToken.address as Address,
-        value: inAmount
+        value: BigInt(inAmount.replace('.', ''))
       })
       
       // Perform the deposit contract function
@@ -21,8 +22,6 @@ export const wrapToken = async (account: string, inAmount: string) => {
       await waitForConfirmations(txHash, 1, 20)
       return txHash
    } catch (error) {
-    console.log({ error });
-
     const errorMessage = getErrorMessage(
         error,
         'An error occurred while wrapping your token'

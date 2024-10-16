@@ -5,9 +5,7 @@ import { networks } from '@/lib/networks'
 
 export function useTokensWithBalances() {
   const account = useAccount()
-  const { data: tokens, isLoading: tokensLoading } = useTokensList({
-    chainId: networks.poly.id,
-  })
+  const { data: tokens, isLoading: tokensLoading } = useTokensList()
   const {
     query: { data: balances, isLoading: balancesLoading, refetch },
     queryKey,

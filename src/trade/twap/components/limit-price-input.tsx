@@ -111,7 +111,7 @@ export function LimitPriceInput() {
   if (isMarketOrder) return null;
 
   return (
-    <Card className="bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4 mb-4">
+    <Card className="bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <div className="flex flex-row gap-1 items-center">
           <h2 className="text-gray-500 dark:text-gray-400"> when 1 </h2>

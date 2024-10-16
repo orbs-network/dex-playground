@@ -19,9 +19,11 @@ import {
   format,
   makeElipsisAddress,
   useTokensList,
+  wagmiConfig,
+  waitForConfirmations,
 } from "@/lib";
 import { Token } from "@/types";
-import { Order, OrderStatus, OrderType } from "@orbs-network/twap-sdk";
+import { Order, OrderStatus, OrderType, TwapAbi } from "@orbs-network/twap-sdk";
 import { AvatarImage } from "@radix-ui/react-avatar";
 import { ArrowRightIcon, ChevronDownIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -30,6 +32,14 @@ import { OrdersContextProvider, useOrdersContext } from "./orders-context";
 import { useGroupedOrders, useOrdersQuery } from "./use-orders-query";
 import { useExplorer, useToExactAmount } from "@/trade/hooks";
 import moment from "moment";
+import { useMutation } from "@tanstack/react-query";
+import { useTwapContext } from "../twap-context";
+import {
+  writeContract,
+  simulateContract,
+  getTransactionReceipt,
+} from "wagmi/actions";
+import { useAccount } from "wagmi";
 
 export function Orders() {
   return (
@@ -41,19 +51,17 @@ export function Orders() {
 }
 
 const OrdersModal = () => {
-  const { isOpen, setIsOpen, selectedOrderID,setSelectedOrderID } = useOrdersContext();
+  const { isOpen, setIsOpen, selectedOrderID, setSelectedOrderID } =
+    useOrdersContext();
 
-  const onClose = useCallback(
-    () => {
-      if(selectedOrderID){
-        setSelectedOrderID(undefined);
-      }else{
-        setIsOpen(false);
-      }
-    },
-    [setIsOpen, selectedOrderID, setSelectedOrderID],
-  )
-  
+  const onClose = useCallback(() => {
+    if (selectedOrderID) {
+      setSelectedOrderID(undefined);
+    } else {
+      setIsOpen(false);
+    }
+  }, [setIsOpen, selectedOrderID, setSelectedOrderID]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -69,10 +77,11 @@ const OrdersModal = () => {
 
 const OrdersMenu = () => {
   const groupedOrders = useGroupedOrders();
-  const { selectedOrdersGroup, setSelectedOrdersGroup , selectedOrderID} = useOrdersContext();
+  const { selectedOrdersGroup, setSelectedOrdersGroup, selectedOrderID } =
+    useOrdersContext();
   const selectedOrderCount = groupedOrders?.[selectedOrdersGroup]?.length || 0;
 
-  if(selectedOrderID)  return null;
+  if (selectedOrderID) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild className="w-max">
@@ -131,6 +140,42 @@ const getOrderTitle = (order: Order) => {
   }
 };
 
+const useCancelOrder = () => {
+  const { twapSDK } = useTwapContext();
+  const { refetch } = useOrdersQuery();
+  const {address: account} = useAccount()
+  return useMutation({
+    mutationFn: async (orderID: number) => {
+      twapSDK.analytics.onCancelOrderRequest(orderID);
+      const simulatedData = await simulateContract(wagmiConfig, {
+        abi: TwapAbi,
+        functionName: "cancel",
+        address: twapSDK.config.twapAddress as any,
+        account,
+        args: [orderID],
+      });
+
+      const hash = await writeContract(wagmiConfig, simulatedData.request);
+      await waitForConfirmations(hash, 1, 20);
+      await getTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+      twapSDK.analytics.onCancelOrderSuccess();
+      await refetch();
+    },
+    onError: (error) => {
+      
+      twapSDK.analytics.onCancelOrderError(error);
+    },
+  });
+};
+
+
+const CancelOrderButton = ({ order }: { order: Order }) => {
+  const {isPending, mutate}  =useCancelOrder();
+  return <Button className='w-full mt-4' disabled={isPending} onClick={() => mutate(order.id)}>Cancel order</Button>
+}
+
 const SelectedOrder = () => {
   const { data } = useOrdersQuery();
   const { selectedOrderID } = useOrdersContext();
@@ -147,10 +192,12 @@ const SelectedOrder = () => {
   return (
     <div>
       <div className="flex justify-between mb-6">
-        <p style={{fontSize: 14}}>
+        <p style={{ fontSize: 14 }}>
           #{order.id} {getOrderTitle(order)}
         </p>
-        <p className="capitalize" style={{fontSize: 14}}>{order.status}</p>
+        <p className="capitalize" style={{ fontSize: 14 }}>
+          {order.status}
+        </p>
       </div>
       <div className="flex flex-col gap-7">
         <SelectedOrderToken token={inToken} title="Sold" />
@@ -161,6 +208,7 @@ const SelectedOrder = () => {
           outToken={outToken}
         />
       </div>
+      {order.status === OrderStatus.Open && <CancelOrderButton order={order} />}
     </div>
   );
 };
@@ -338,105 +386,113 @@ export const SelectedOrderDetails = ({
 
   return (
     <RadixAccordion.Root type="single">
-      <RadixAccordion.Item value="item-1" className="w-full bg-slate-50 dark:bg-slate-900 flex flex-col">
+      <RadixAccordion.Item
+        value="item-1"
+        className="w-full bg-slate-50 dark:bg-slate-900 flex flex-col"
+      >
+        <RadixAccordion.Header>
+          <RadixAccordion.Trigger className="AccordionTrigger w-full p-3">
+            <div className="flex flex-row w-full justify-between">
+              <span>Execution summary</span>
+              <ChevronDownIcon
+                size={20}
+                className="AccordionChevron"
+                aria-hidden
+              />
+            </div>
+          </RadixAccordion.Trigger>
+        </RadixAccordion.Header>
+        <RadixAccordion.Content className="flex flex-col gap-2 p-3 pb-0 pt-0">
+          <OrderDetails.Detail title="Status">
+            <p className="capitalize">{order.status}</p>
+          </OrderDetails.Detail>
 
-          <RadixAccordion.Header>
-            <RadixAccordion.Trigger className="AccordionTrigger w-full p-3">
-              <div className="flex flex-row w-full justify-between">
-                <span>Execution summary</span>
-                <ChevronDownIcon size={20} className="AccordionChevron" aria-hidden />
-              </div>
-            </RadixAccordion.Trigger>
-          </RadixAccordion.Header>
-          <RadixAccordion.Content className="flex flex-col gap-2 p-3 pb-0 pt-0">
-           <OrderDetails.Detail title="Status">
-              <p className="capitalize">{order.status}</p>
-            </OrderDetails.Detail>
-
-            <OrderDetails.Detail title="Amount sent">
-              <p>
-                {amountSent
-                  ? `${format.crypto(Number(amountSent))} ${inToken?.symbol}`
-                  : ` - ${inToken?.symbol}`}
-              </p>
-            </OrderDetails.Detail>
-            <OrderDetails.Detail title="Amount Rceived">
-              <p>
-                {amountReceived
-                  ? `${format.crypto(Number(amountReceived))} ${
-                      outToken?.symbol
-                    }`
-                  : ` - ${outToken?.symbol}`}
-              </p>
-            </OrderDetails.Detail>
-            <OrderDetails.Detail title="Progress">
-              <p>{`${order.progress}%`}</p>
-            </OrderDetails.Detail>
-            <OrderDetails.Detail title="Avg. execution price">
-              <p>
-                {executionPrice
-                  ? `${format.crypto(Number(executionPrice))}`
-                  : "-"}
-              </p>
-            </OrderDetails.Detail>
-            <div className='mt-2'></div>
-          </RadixAccordion.Content>
-
+          <OrderDetails.Detail title="Amount sent">
+            <p>
+              {amountSent
+                ? `${format.crypto(Number(amountSent))} ${inToken?.symbol}`
+                : ` - ${inToken?.symbol}`}
+            </p>
+          </OrderDetails.Detail>
+          <OrderDetails.Detail title="Amount Rceived">
+            <p>
+              {amountReceived
+                ? `${format.crypto(Number(amountReceived))} ${outToken?.symbol}`
+                : ` - ${outToken?.symbol}`}
+            </p>
+          </OrderDetails.Detail>
+          <OrderDetails.Detail title="Progress">
+            <p>{`${order.progress}%`}</p>
+          </OrderDetails.Detail>
+          <OrderDetails.Detail title="Avg. execution price">
+            <p>
+              {executionPrice
+                ? `${format.crypto(Number(executionPrice))}`
+                : "-"}
+            </p>
+          </OrderDetails.Detail>
+          <div className="mt-2"></div>
+        </RadixAccordion.Content>
       </RadixAccordion.Item>
-      <RadixAccordion.Item value="item-2" className="w-full bg-slate-50 dark:bg-slate-900 flex flex-col mt-5">
-
-          <RadixAccordion.Header>
-            <RadixAccordion.Trigger className="AccordionTrigger w-full p-3">
-              <div className="flex flex-row w-full justify-between">
-                <span>Order info</span>
-                <ChevronDownIcon size={20} className="AccordionChevron" aria-hidden />
-              </div>
-            </RadixAccordion.Trigger>
-          </RadixAccordion.Header>
-          <RadixAccordion.Content className="flex flex-col gap-2 p-3 pt-0 pb-0">
-            {!order.isMarketOrder && (
-              <OrderDetails.Detail title="Limit price">
-                <p>{limitPrice}</p>
-              </OrderDetails.Detail>
-            )}
-
-            <OrderDetails.Detail title="created at">
-              <p>{moment(order.createdAt).format("DD/MM/YY HH:mm")} UTC</p>
-            </OrderDetails.Detail>
-            <OrderDetails.Deadline deadline={order.deadline} />
-            <OrderDetails.Detail title="Amount out">
-              <p>{`${
-                amountOut
-                  ? `${format.crypto(Number(amountOut))} ${inToken?.symbol}`
-                  : `- ${inToken?.symbol}`
-              }`}</p>
-            </OrderDetails.Detail>
-            {order.totalChunks && (
-              <OrderDetails.TradeSize
-                inToken={inToken}
-                srcChunkAmount={order.srcBidAmount}
+      <RadixAccordion.Item
+        value="item-2"
+        className="w-full bg-slate-50 dark:bg-slate-900 flex flex-col mt-5"
+      >
+        <RadixAccordion.Header>
+          <RadixAccordion.Trigger className="AccordionTrigger w-full p-3">
+            <div className="flex flex-row w-full justify-between">
+              <span>Order info</span>
+              <ChevronDownIcon
+                size={20}
+                className="AccordionChevron"
+                aria-hidden
               />
-            )}
-            {order.totalChunks > 1 && (
-              <OrderDetails.Detail title="No. of trades">
-                <p>{order.totalChunks}</p>
-              </OrderDetails.Detail>
-            )}
-            {!order.isMarketOrder && (
-              <OrderDetails.MinReceived
-                outToken={outToken}
-                destTokenMinAmount={order.dstMinAmount}
-              />
-            )}
-            <OrderDetails.Recepient />
-            <OrderDetails.Detail title="Tx hash">
-              <a href={`${explorer}/tx/${order.txHash}`} target="_blank">
-                {makeElipsisAddress(order.txHash)}
-              </a>
+            </div>
+          </RadixAccordion.Trigger>
+        </RadixAccordion.Header>
+        <RadixAccordion.Content className="flex flex-col gap-2 p-3 pt-0 pb-0">
+          {!order.isMarketOrder && (
+            <OrderDetails.Detail title="Limit price">
+              <p>{limitPrice}</p>
             </OrderDetails.Detail>
-            <div className='mt-2'></div>
-          </RadixAccordion.Content>
+          )}
 
+          <OrderDetails.Detail title="created at">
+            <p>{moment(order.createdAt).format("DD/MM/YY HH:mm")} UTC</p>
+          </OrderDetails.Detail>
+          <OrderDetails.Deadline deadline={order.deadline} />
+          <OrderDetails.Detail title="Amount out">
+            <p>{`${
+              amountOut
+                ? `${format.crypto(Number(amountOut))} ${inToken?.symbol}`
+                : `- ${inToken?.symbol}`
+            }`}</p>
+          </OrderDetails.Detail>
+          {order.totalChunks && (
+            <OrderDetails.TradeSize
+              inToken={inToken}
+              srcChunkAmount={order.srcBidAmount}
+            />
+          )}
+          {order.totalChunks > 1 && (
+            <OrderDetails.Detail title="No. of trades">
+              <p>{order.totalChunks}</p>
+            </OrderDetails.Detail>
+          )}
+          {!order.isMarketOrder && (
+            <OrderDetails.MinReceived
+              outToken={outToken}
+              destTokenMinAmount={order.dstMinAmount}
+            />
+          )}
+          <OrderDetails.Recepient />
+          <OrderDetails.Detail title="Tx hash">
+            <a href={`${explorer}/tx/${order.txHash}`} target="_blank">
+              {makeElipsisAddress(order.txHash)}
+            </a>
+          </OrderDetails.Detail>
+          <div className="mt-2"></div>
+        </RadixAccordion.Content>
       </RadixAccordion.Item>
     </RadixAccordion.Root>
   );

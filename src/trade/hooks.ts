@@ -1,4 +1,4 @@
-import { network, networks, toExactAmount, toRawAmount } from "@/lib";
+import { network, toExactAmount, toRawAmount } from "@/lib";
 import { useMemo } from "react";
 import { useChainId } from "wagmi";
 

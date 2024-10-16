@@ -993,10 +993,10 @@
   resolved "https://registry.yarnpkg.com/@orbs-network/swap-ui/-/swap-ui-0.0.14.tgz#7604c3604d9bb089c07b1ea1f222f2719d26bb23"
   integrity sha512-19Blk3JYsxae6Eu8a/nsLA8EbNSMQSJfsgV7Tg52RPs6IglTjEwfGyjy3HUPzRqEYXiHCQFo8xGNHjSKx3HJ5g==
 
-"@orbs-network/twap-sdk@^2.0.37":
-  version "2.0.37"
-  resolved "https://registry.yarnpkg.com/@orbs-network/twap-sdk/-/twap-sdk-2.0.37.tgz#2f8a4248702cdaa8e65c2538d18c47529f99efff"
-  integrity sha512-lBW+BO6QksAk/f9Fp+L3KYivBRaUGNV8bWErh8Nn5Uedrb1dcnCBxvIqEGWer0iQFzl0PlKhvthmSLFYRRejcw==
+"@orbs-network/twap-sdk@^2.0.38":
+  version "2.0.38"
+  resolved "https://registry.yarnpkg.com/@orbs-network/twap-sdk/-/twap-sdk-2.0.38.tgz#c2f268da1c14e10f475f79e50d85e237d704b867"
+  integrity sha512-U7nBRA7tghIWQPbhdqqPOTm6VyoEVGHmjkZKE1ddYyAvQLSi+V/7Pnn1xi7OP7xYSBCl0YmmA3C/GPYGJGdfVA==
   dependencies:
     "@orbs-network/twap" "^2.0.1"
     bignumber.js "9.x"

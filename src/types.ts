@@ -1,4 +1,3 @@
-import { SwapStatus } from "@orbs-network/swap-ui"
 
 export type Token = {
   address: string

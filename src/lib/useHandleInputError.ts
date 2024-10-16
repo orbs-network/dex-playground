@@ -7,14 +7,14 @@ import {
 } from "./useTokensWithBalances";
 
 /* Handles amount input errors */
-type UseHandleInputError = {
-  inToken: Token | null;
-  inputAmount: string;
-};
+
 export function useInputError({
   inputAmount,
   inToken,
-}: UseHandleInputError) {
+}: {
+  inToken: Token | null;
+  inputAmount: string;
+}) {
   const tokensWithBalances = useTokensWithBalances();
   const tokenBalance = useTokenBalance(inToken?.address);
   return useMemo(() => {

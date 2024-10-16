@@ -24,6 +24,7 @@ export function useOrdersQuery() {
     },
     enabled: !!address,
     staleTime: Infinity,
+    refetchInterval: 20_000,
   });
 }
 

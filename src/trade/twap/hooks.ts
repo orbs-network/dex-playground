@@ -11,7 +11,7 @@ import { useTwapContext } from "./twap-context";
 import BN from "bignumber.js";
 import { useToExactAmount } from "../hooks";
 import {
-  MAX_FILL_DELAY_FORMATTED,
+  MAX_FILL_DELAY_DAYS,
   MIN_DURATION_MINUTES,
   MIN_FILL_DELAY_MINUTES,
 } from "@orbs-network/twap-sdk";
@@ -118,7 +118,7 @@ const useFillDelayWarning = () => {
       return `Min. trade interval is ${MIN_FILL_DELAY_MINUTES} minutes`;
     }
     if (warnings.minFillDelay) {
-      return `Max. trade interval is ${MAX_FILL_DELAY_FORMATTED} days`;
+      return `Max. trade interval is ${MAX_FILL_DELAY_DAYS} days`;
     }
   }, [warnings.maxFillDelay, warnings.minFillDelay]);
 };

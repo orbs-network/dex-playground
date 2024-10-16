@@ -129,7 +129,7 @@ export const useTwapStateActions = () => {
     state: { updateState, values },
   } = useTwapContext();
 
-  const { inToken, outToken, isTradePriceInverted } = values;
+  const { inToken, outToken } = values;
 
   const setOutToken = useCallback(
     (outToken: Token) => {

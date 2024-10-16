@@ -5,14 +5,13 @@ import { useCallback, useMemo, useState } from 'react'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useAccount } from 'wagmi'
 import { SwapDetails } from '../../components/swap-details'
-import { SwapConfirmationDialog } from './swap-confirmation-dialog'
-import { useLiquidityHubQuote } from './liquidity-hub/useLiquidityHubQuote'
+import { SwapConfirmationDialog } from './liquidity-hub-confirmation-dialog'
+import { useLiquidityHubQuote } from './useLiquidityHubQuote'
 import { Button } from '@/components/ui/button'
-import { useLiquidityHubSwapCallback } from './liquidity-hub/useLiquidityHubSwapCallback'
+import { useLiquidityHubSwapCallback } from './useLiquidityHubSwapCallback'
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import {
   useDefaultTokens,
-  useHandleInputError,
   ErrorCodes,
   fromBigNumber,
   toBigNumber,
@@ -37,6 +36,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { useInputError } from '../../lib/useHandleInputError'
 
 export function Swap() {
   const { tokensWithBalances, refetch: refetchBalances } =
@@ -44,7 +44,6 @@ export function Swap() {
   const [inToken, setInToken] = useState<Token | null>(null)
   const [outToken, setOutToken] = useState<Token | null>(null)
   const [inputAmount, setInputAmount] = useState<string>('')
-  const [inputError, setInputError] = useState<string | null>(null)
   const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>()
   const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false)
   const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
@@ -71,11 +70,9 @@ export function Swap() {
   })
 
   // Handle Amount Input Error
-  useHandleInputError({
+  const inputError = useInputError({
     inputAmount,
     inToken,
-    tokensWithBalances,
-    setInputError,
   })
 
   // Handle Token Switch
@@ -88,7 +85,6 @@ export function Swap() {
   const resetSwap = useCallback(() => {
     setAcceptedQuote(undefined)
     setInputAmount('')
-    setInputError(null)
     setCurrentStep(undefined)
     setSignature(undefined)
     setSwapStatus(undefined)

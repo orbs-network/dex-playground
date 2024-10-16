@@ -46,11 +46,13 @@ export function Panel() {
 
   // Get wagmi account
   const account = useAccount();
+  const { state } = useTwapContext();
+
   const {
     updateState,
     resetState,
     values: { inToken, outToken, typedAmount },
-  } = useTwapContext().state;
+  } = state;
 
   // Set Initial Tokens
   const defaultTokens = useDefaultTokens({

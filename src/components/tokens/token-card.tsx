@@ -7,7 +7,6 @@ import {
   format,
   cn,
   fromBigNumber,
-  fromBigNumberToStr,
   ErrorCodes,
 } from '@/lib'
 import { Skeleton } from '../ui/skeleton'
@@ -30,7 +29,7 @@ export type TokenCardProps = {
   label: string
   amount: string
   amountUsd?: string
-  balance: string
+  balance: any
   selectedToken: Token
   tokens: TokensWithBalances
   onSelectToken: (token: Token) => void

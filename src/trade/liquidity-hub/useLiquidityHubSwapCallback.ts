@@ -1,15 +1,12 @@
 import { useMutation } from '@tanstack/react-query'
-import { signTypedData, simulateContract, writeContract } from 'wagmi/actions'
+import { signTypedData } from 'wagmi/actions'
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
 import { SwapStatus } from '@orbs-network/swap-ui'
 import { useLiquidityHubSDK } from './useLiquidityHubSDK'
 import { SwapSteps } from '@/types'
-import { Address } from 'viem'
 import {
   wagmiConfig,
-  IWETHabi,
-  networks,
   waitForConfirmations,
   promiseWithTimeout,
   getSteps,
