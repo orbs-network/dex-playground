@@ -2,7 +2,7 @@ import { zeroAddress } from "@orbs-network/liquidity-hub-sdk";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { wagmiConfig } from "@/lib/wagmi-config";
-import { LiquidityProvider, SwapSteps } from "@/types";
+import { SwapSteps } from "@/types";
 import { getTransactionConfirmations } from "wagmi/actions";
 import { networks } from "./networks";
 import BN from "bignumber.js";
@@ -19,7 +19,7 @@ export const toBigInt = (amount: string | number, decimals?: number) => {
 export const toExactAmount = (
   amount?: string,
   decimals?: number,
-  decimalScale? : number
+  decimalScale?: number
 ) => {
   if (!decimals || !amount) return "";
   const percision = BN(10).pow(decimals || 0);
@@ -32,12 +32,6 @@ export const toExactAmount = (
 export const toRawAmount = (amount?: string, decimals?: number) => {
   if (!decimals || !amount) return "";
   return BN(amount).times(BN(10).pow(decimals)).decimalPlaces(0).toFixed();
-};
-
-export const toBigNumber = (amount: string | number, decimals?: number) => {
-  if (amount === "") return "0";
-
-  return toBigInt(amount, decimals).toString();
 };
 
 export const fromBigNumberToStr = (
@@ -213,15 +207,11 @@ export function getErrorMessage(
   return errorMessage;
 }
 
-export function getLiquidityProviderName(provider: LiquidityProvider) {
-  switch (provider) {
-    case "paraswap":
-      return "ParaSwap";
-    case "liquidityhub":
-      return "Liquidity Hub";
-    default:
-      return "Unknown";
+export function getLiquidityProviderName(isLiquidityHubTrade: boolean) {
+  if (isLiquidityHubTrade) {
+    return "Liquidity Hub";
   }
+  return "ParaSwap";
 }
 
 export const makeElipsisAddress = (address?: string, padding = 6): string => {

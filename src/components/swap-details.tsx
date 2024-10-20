@@ -11,7 +11,7 @@ export type SwapDetailsProps = {
   outToken: Token | null
   account?: string
   minAmountOut?: string
-  liquidityProvider: LiquidityProvider
+  isLiquidityHubTrade: boolean
 }
 
 export function SwapDetails({
@@ -20,7 +20,7 @@ export function SwapDetails({
   account,
   minAmountOut,
   optimalRate,
-  liquidityProvider,
+  isLiquidityHubTrade,
 }: SwapDetailsProps) {
   const inPriceUsd = useMemo(() => {
     if (!optimalRate) return 0
@@ -48,7 +48,7 @@ export function SwapDetails({
     ...data,
     'Est. Received': `${format.crypto(Number(outAmount))} ${outToken.symbol}`,
     'Min. Received': `${format.crypto(minOutAmount)} ${outToken.symbol}`,
-    'Routing source': getLiquidityProviderName(liquidityProvider),
+    'Routing source': getLiquidityProviderName(isLiquidityHubTrade),
   }
 
   return (

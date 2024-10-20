@@ -20,4 +20,3 @@ export enum SwapSteps {
   Swap,
 }
 
-export type LiquidityProvider = 'paraswap' | 'liquidityhub'

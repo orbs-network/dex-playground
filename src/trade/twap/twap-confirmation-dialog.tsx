@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { SwapSteps } from "@/types";
 import { useCallback, useMemo } from "react";
-import { SwapConfirmationDialog } from "../swap-confirmation-dialog";
+import { SwapConfirmationDialog, useSwapProgress } from "../swap-confirmation-dialog";
 import {
   useDerivedTwapSwapData,
   useInputLabels,
@@ -17,7 +17,6 @@ import {
 import { OrderDetails } from "@/components/order-details";
 import { useToExactAmount } from "../hooks";
 import { useAccount } from "wagmi";
-import { useSwapState } from "../use-swap-state";
 import { SwapStatus } from "@orbs-network/swap-ui";
 import { Address, hexToNumber } from "viem";
 import {
@@ -37,7 +36,7 @@ import {
   simulateContract,
   writeContract,
 } from "wagmi/actions";
-import { SwapState } from "../use-swap-state";
+import { SwapState } from "../use-swap-progress";
 import { useWaitForNewOrderCallback } from "./orders/use-orders-query";
 
 
@@ -55,7 +54,7 @@ export function TwapConfirmationDialog({
   const dstAmount = useToExactAmount(destTokenAmount, outToken?.decimals);
   const outAmountUsd = useOutTokenUsd();
   const inAmountUsd = useInTokenUsd();
-  const { state, updateState, resetState } = useSwapState();
+  const { state, updateState, resetState } = useSwapProgress();
   const parsedSteps = useParsedSteps(state.steps);
   const { inputLabel, outputLabel } = useInputLabels();
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(

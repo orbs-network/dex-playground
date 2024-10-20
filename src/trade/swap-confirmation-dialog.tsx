@@ -9,6 +9,7 @@ import { SwapFlow, SwapStatus, SwapStep } from "@orbs-network/swap-ui";
 import { createContext, ReactNode, useContext } from "react";
 import { format } from "@/lib";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCallback, useReducer } from "react";
 
 export type Props = {
   inToken: Token | null;
@@ -139,3 +140,60 @@ const StepsLoader = () => {
 };
 
 SwapConfirmationDialog.Main = Main;
+
+
+
+export type SwapProgressState = {
+  swapStatus?: SwapStatus;
+  currentStep?: number;
+  shouldUnwrap?: boolean;
+  txHash?: string;
+  steps?: number[];
+  error?: string;
+};
+
+
+type Action =
+  | { type: "UPDATE_STATE"; payload: Partial<SwapProgressState> }
+  | { type: "RESET" };
+
+function reducer(
+  state: SwapProgressState,
+  action: Action,
+  initialState: SwapProgressState
+): SwapProgressState {
+  switch (action.type) {
+    case "UPDATE_STATE":
+      return { ...state, ...action.payload };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
+const initialState = {} as SwapProgressState;
+
+export const useSwapProgress = () => {
+  const [state, dispatch] = useReducer(
+    (state: SwapProgressState, action: Action) => reducer(state, action, initialState),
+    initialState
+  );
+
+  const updateState = useCallback(
+    (payload: Partial<SwapProgressState>) => {
+      dispatch({ type: "UPDATE_STATE", payload });
+    },
+    [dispatch]
+  );
+
+  const resetState = useCallback(() => {
+    dispatch({ type: "RESET" });
+  }, [dispatch]);
+
+  return {
+    state,
+    updateState,
+    resetState,
+  };
+};
