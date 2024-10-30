@@ -35,10 +35,12 @@ export const useParaswapQuote = ({
   inToken,
   outToken,
   inAmount,
+  refetchInterval = 30_000,
 }: {
   inToken?: string
   outToken?: string
   inAmount?: string
+  refetchInterval?: number
 }) => {
   const paraswap = useParaswap()
   const { chainId } = useAccount()
@@ -72,7 +74,7 @@ export const useParaswapQuote = ({
       return dexQuote
     },
     enabled: !!inToken && !!outToken && Number(inAmount) > 0,
-    refetchInterval: 30_000,
+    refetchInterval,
   })
 }
 

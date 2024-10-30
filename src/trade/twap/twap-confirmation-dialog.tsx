@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { SwapSteps } from "@/types";
 import { useCallback, useMemo } from "react";
-import { SwapConfirmationDialog, useSwapProgress } from "../swap-confirmation-dialog";
+import { SwapConfirmationDialog, SwapProgressState, useSwapProgress } from "../swap-confirmation-dialog";
 import {
   useDerivedTwapSwapData,
   useInputLabels,
@@ -36,7 +36,6 @@ import {
   simulateContract,
   writeContract,
 } from "wagmi/actions";
-import { SwapState } from "../use-swap-progress";
 import { useWaitForNewOrderCallback } from "./orders/use-orders-query";
 
 
@@ -243,7 +242,7 @@ const useApproveCallback = () => {
 };
 
 function useCreateOrder(
-  updateState: (state: Partial<SwapState>) => void,
+  updateState: (state: Partial<SwapProgressState>) => void,
   requiresApproval: boolean
 ) {
   const {

@@ -68,8 +68,6 @@ export function Panel() {
     useTwapStateActions();
   const { destTokenAmount } = useDerivedTwapSwapData();
   const destAmount = useToExactAmount(destTokenAmount, outToken?.decimals);
-  const inTokenBalance = useTokenBalance(inToken?.address);
-  const outTokenBalance = useTokenBalance(outToken?.address);
   const [showSwapConfirmationModal, setShowSwapConfirmationModal] =
     useState(false);
 
@@ -128,9 +126,7 @@ export function Panel() {
           label={inputLabel}
           amount={typedAmount}
           amountUsd={inAmountUsd}
-          balance={inTokenBalance}
           selectedToken={inToken || defaultTokens[0]}
-          tokens={tokensWithBalances || {}}
           onSelectToken={setInToken}
           onValueChange={setInputAmount}
           inputError={inputError}
@@ -142,9 +138,7 @@ export function Panel() {
           label={outputLabel}
           amount={destAmount ?? ""}
           amountUsd={outAmountUsd}
-          balance={outTokenBalance}
           selectedToken={outToken || defaultTokens[1]}
-          tokens={tokensWithBalances || {}}
           onSelectToken={setOutToken}
           isAmountEditable={false}
           amountLoading={amountLoading}

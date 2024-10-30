@@ -1,31 +1,32 @@
-import { useAccount } from 'wagmi'
-import { useTokensList } from './useTokenList'
-import { useBalances } from './useBalances'
-import { networks } from '@/lib/networks'
+import { useAccount } from "wagmi";
+import { useTokensList } from "./useTokenList";
+import { useBalances } from "./useBalances";
+import { TokensWithBalances } from "@/types";
 
 export function useTokensWithBalances() {
-  const account = useAccount()
-  const { data: tokens, isLoading: tokensLoading } = useTokensList()
+  const { address, chainId } = useAccount();
+  const { data: tokens, isLoading: tokensLoading } = useTokensList();
   const {
     query: { data: balances, isLoading: balancesLoading, refetch },
     queryKey,
   } = useBalances({
-    chainId: networks.poly.id,
+    chainId,
     tokens: tokens || [],
-    account: account.address,
-    enabled: Boolean(tokens && account.address),
-  })
+    account: address,
+    enabled: Boolean(tokens && address && chainId),
+  });
 
   return {
     isLoading: tokensLoading || balancesLoading,
-    tokensWithBalances: balances,
+    tokensWithBalances: balances as TokensWithBalances,
     queryKey,
     refetch,
-  }
+  };
 }
-
 
 export const useTokenBalance = (tokenAddress?: string) => {
-  const { tokensWithBalances } = useTokensWithBalances()
-  return !tokenAddress ? '' :  tokensWithBalances?.[tokenAddress]?.balance.toString()
-}
+  const { tokensWithBalances } = useTokensWithBalances();
+  return !tokenAddress
+    ? ""
+    : tokensWithBalances?.[tokenAddress]?.balance.toString();
+};

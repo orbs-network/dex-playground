@@ -1,11 +1,13 @@
 import { networks, isNativeAddress } from '@/lib'
 import { useQuery } from '@tanstack/react-query'
+import { useAccount } from 'wagmi'
 
-export const usePriceUsd = (chainId: number, address?: string) => {
+export const usePriceUsd = (address?: string) => {
+  const {chainId} = useAccount()
   return useQuery<number>({
     queryKey: ['usePriceUSD', chainId, address],
     queryFn: async () => {
-      if (!address) {
+      if (!address || !chainId) {
         return 0
       }
 

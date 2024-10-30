@@ -10,26 +10,27 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Token, TokensWithBalances } from "@/types";
+import { Token } from "@/types";
 import { Card } from "../ui/card";
 import { useMemo, useState } from "react";
-import { fromBigNumber } from "@/lib";
+import { format, toExactAmount, useTokensWithBalances } from "@/lib";
+import BN from "bignumber.js";
 
 type TokenSelectProps = {
   selectedToken: Token | undefined;
-  tokens: TokensWithBalances;
   onSelectToken: (token: Token) => void;
 };
 
 export function TokenSelect({
   selectedToken,
-  tokens,
   onSelectToken,
 }: TokenSelectProps) {
   const [open, setOpen] = useState(false);
+  const tokens = useTokensWithBalances().tokensWithBalances
   const [filterInput, setFilterInput] = useState("");
 
   const SortedTokens = useMemo(() => {
+    if(!tokens) return null;
     return Object.values(tokens)
       .filter((t) => {
         return (
@@ -37,11 +38,12 @@ export function TokenSelect({
           t.token.address.toLowerCase().includes(filterInput.toLowerCase())
         );
       })
-      .sort(
-        (a, b) =>
-          fromBigNumber(b.balance, b.token.decimals) -
-          fromBigNumber(a.balance, a.token.decimals)
-      )
+      .sort((a, b) => {
+        
+        const balanceA = BN(toExactAmount(a.balance.toString(), a.token.decimals));
+        const balanceB = BN(toExactAmount(b.balance.toString(), b.token.decimals));
+        return balanceB.minus(balanceA).toNumber();
+      })
       .map((t) => (
         <Card
           key={t.token.address}
@@ -63,7 +65,7 @@ export function TokenSelect({
               <div className="text-sm text-slate-400">{t.token.name}</div>
             </div>
           </div>
-          <div>{fromBigNumber(t.balance, t.token.decimals).toFixed(5)}</div>
+          <div>{format.crypto(Number(toExactAmount(t.balance.toString(), t.token.decimals) || '0'))}</div>
         </Card>
       ));
   }, [filterInput, onSelectToken, tokens]);

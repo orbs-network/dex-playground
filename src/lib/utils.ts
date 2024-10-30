@@ -10,12 +10,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const toBigInt = (amount: string | number, decimals?: number) => {
-  if (!amount) return BigInt(0);
-  const num = Number(amount);
-  return BigInt((num * 10 ** (decimals || 0)).toFixed(0));
-};
-
 export const toExactAmount = (
   amount?: string,
   decimals?: number,
@@ -32,32 +26,6 @@ export const toExactAmount = (
 export const toRawAmount = (amount?: string, decimals?: number) => {
   if (!decimals || !amount) return "";
   return BN(amount).times(BN(10).pow(decimals)).decimalPlaces(0).toFixed();
-};
-
-export const fromBigNumberToStr = (
-  amount: bigint | string,
-  decimals?: number
-) => {
-  const numStr = typeof amount === "bigint" ? amount.toString() : amount;
-  const precision = decimals || 0;
-
-  if (precision > 0) {
-    const integerPart = numStr.slice(0, -precision) || "0";
-    const fractionalPart = numStr.slice(-precision).padStart(precision, "0");
-
-    return `${integerPart}.${fractionalPart}`;
-  } else {
-    return numStr;
-  }
-};
-
-export const fromBigNumber = (
-  amount: bigint | string | undefined | null,
-  decimals?: number
-) => {
-  if (amount === null || typeof amount === "undefined") return 0;
-
-  return Number(fromBigNumberToStr(amount, decimals));
 };
 
 export const nativeTokenAddresses = [
@@ -104,6 +72,8 @@ export const format = {
 };
 
 export const getMinAmountOut = (slippage: number, _destAmount: string) => {
+  console.log(_destAmount);
+  
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)); // 0.5% becomes 995
 
   // Convert priceRoute.destAmount to BigInt
@@ -118,7 +88,8 @@ export const enum ErrorCodes {
   EnterAmount = "Enter amount",
 }
 
-export function getQuoteErrorMessage(errorCode: string) {
+export function getQuoteErrorMessage(errorCode?: string) {
+  if (!errorCode) return "";
   switch (errorCode) {
     case "ldv":
       return "Minimum trade amount is $30";

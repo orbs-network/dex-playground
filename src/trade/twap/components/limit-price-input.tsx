@@ -68,7 +68,6 @@ const useOnPercentSelect = () => {
 };
 
 export function LimitPriceInput() {
-  const tokens = useTokensWithBalances().tokensWithBalances;
   const {
     state: { values, updateState },
     isMarketOrder,
@@ -104,7 +103,7 @@ export function LimitPriceInput() {
     return marketPriceUI;
   }, [customTradePrice, marketPriceUI, isTradePriceInverted]);
 
-  const usd = usePriceUsd(networks.poly.id, selectedToken?.address).data;
+  const usd = usePriceUsd(selectedToken?.address).data;
   const amountUsd =
     !inputValue || !usd ? "" : BN(inputValue).multipliedBy(usd).toNumber();
 
@@ -152,7 +151,6 @@ export function LimitPriceInput() {
           <div className="flex flex-col gap-3">
             <TokenSelect
               selectedToken={selectedToken}
-              tokens={tokens || {}}
               onSelectToken={onSelect}
             />
           </div>
