@@ -9,6 +9,12 @@ export const wagmiConfig = getDefaultConfig({
   projectId: walletConnectProjectId,
   chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea],
   transports: {
-    [mainnet.id]: http(`https://rpcman.orbs.network/rpc?chainId=1&appId=dex-playground`)
+    [mainnet.id]: http(`https://rpcman.orbs.network/rpc?chainId=1&appId=dex-playground`),
+    [polygon.id]: http(),
+    [arbitrum.id]: http(),
+    [bsc.id]: http(),
+    [fantom.id]: http(),
+    [blast.id]: http(),
+    [linea.id]: http(),
   }
 })

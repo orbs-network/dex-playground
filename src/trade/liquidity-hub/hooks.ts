@@ -1,5 +1,4 @@
 import {
-  resolveNativeTokenAddress,
   useWrapOrUnwrapOnly,
   useParaswapQuote,
   useInputError,
@@ -37,8 +36,8 @@ export function useLiquidityHubQuote() {
     parsedInputAmount,
   } = useLiquidityHubSwapContext();
   const dexMinAmountOut = useParaswapMinAmountOut();
-
-  const inTokenAddress = resolveNativeTokenAddress(inToken?.address);
+  const wToken = useNetwork()?.wToken.address
+  const inTokenAddress = isNativeAddress(inToken?.address) ? wToken : inToken?.address;
   const outTokenAddress = outToken?.address;
   // Check if the swap is wrap or unwrap only
   const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(

@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { SwapSteps } from "@/types";
 import { useCallback, useMemo } from "react";
-import { SwapConfirmationDialog, SwapProgressState, useSwapProgress } from "../swap-confirmation-dialog";
+import {
+  SwapConfirmationDialog,
+  SwapProgressState,
+  useSwapProgress,
+} from "../swap-confirmation-dialog";
 import {
   useDerivedTwapSwapData,
   useInputLabels,
@@ -9,13 +13,9 @@ import {
   useOutTokenUsd,
 } from "./hooks";
 import { useTwapContext } from "./context";
-import {
-  format,
-  resolveNativeTokenAddress,
-  useGetRequiresApproval,
-} from "@/lib";
+import { format, useGetRequiresApproval } from "@/lib";
 import { OrderDetails } from "@/components/order-details";
-import { useToExactAmount } from "../hooks";
+import { useNetwork, useToExactAmount } from "../hooks";
 import { useAccount } from "wagmi";
 import { SwapStatus } from "@orbs-network/swap-ui";
 import { Address, hexToNumber } from "viem";
@@ -38,7 +38,6 @@ import {
 } from "wagmi/actions";
 import { useWaitForNewOrderCallback } from "./orders/use-orders-query";
 
-
 export function TwapConfirmationDialog({
   isOpen,
   onClose: _onClose,
@@ -58,7 +57,7 @@ export function TwapConfirmationDialog({
   const { inputLabel, outputLabel } = useInputLabels();
   const { requiresApproval, approvalLoading } = useGetRequiresApproval(
     twapSDK.config.twapAddress as Address,
-    resolveNativeTokenAddress(inToken?.address),
+    inToken?.address,
     parsedInputAmount
   );
   const { mutate: onCreateOrder } = useCreateOrder(
@@ -68,7 +67,7 @@ export function TwapConfirmationDialog({
 
   const onClose = useCallback(() => {
     _onClose(state.swapStatus);
-    if(state.currentStep) {
+    if (state.currentStep) {
       resetState();
     }
   }, [_onClose, state.swapStatus, state.currentStep, resetState]);
@@ -221,14 +220,23 @@ const useWrapCallback = () => {
 
 const useApproveCallback = () => {
   const { twapSDK } = useTwapContext();
-
+  const wToken = useNetwork()?.wToken.address;
   return useCallback(
     async (account: string, inTokenAddress: string) => {
       try {
         twapSDK.analytics.onApproveRequest();
+
+        const tokenAddress = isNativeAddress(inTokenAddress)
+          ? wToken
+          : inTokenAddress;
+
+        if (!tokenAddress) {
+          throw new Error("Token address not found");
+        }
+
         await approveAllowance(
           account,
-          inTokenAddress,
+          tokenAddress,
           twapSDK.config.twapAddress as Address
         );
         twapSDK.analytics.onApproveSuccess();
@@ -257,11 +265,20 @@ function useCreateOrder(
   const { mutateAsync: waitForNewOrder } = useWaitForNewOrderCallback();
   const wrapTokenCallback = useWrapCallback();
   const approveAllowanceCallback = useApproveCallback();
-
+  const wToken = useNetwork()?.wToken.address;
   return useMutation({
     mutationFn: async () => {
       try {
-        if (!inToken || !account || !parsedInputAmount || !outToken) {
+        const srcTokenAddress = isNativeAddress(inToken?.address)
+          ? wToken
+          : inToken?.address;
+        if (
+          !inToken ||
+          !account ||
+          !parsedInputAmount ||
+          !outToken ||
+          !srcTokenAddress
+        ) {
           throw new Error("Missing required dependencies");
         }
 
@@ -286,20 +303,20 @@ function useCreateOrder(
 
         updateState({ currentStep: SwapSteps.Swap });
         const askParams = twapSDK
-        .prepareOrderArgs({
-          fillDelay: derivedValues.fillDelay,
-          deadline: derivedValues.deadline,
-          srcAmount: parsedInputAmount ?? "0",
-          destTokenMinAmount: derivedValues.destTokenMinAmount,
-          srcChunkAmount: derivedValues.srcChunkAmount,
-          srcTokenAddress: resolveNativeTokenAddress(inToken.address)!,
-          destTokenAddress: isNativeAddress(outToken?.address)
-            ? zeroAddress
-            : outToken.address,
-        })
-        .map((it) => it.toString());
+          .prepareOrderArgs({
+            fillDelay: derivedValues.fillDelay,
+            deadline: derivedValues.deadline,
+            srcAmount: parsedInputAmount ?? "0",
+            destTokenMinAmount: derivedValues.destTokenMinAmount,
+            srcChunkAmount: derivedValues.srcChunkAmount,
+            srcTokenAddress,
+            destTokenAddress: isNativeAddress(outToken?.address)
+              ? zeroAddress
+              : outToken.address,
+          })
+          .map((it) => it.toString());
 
-      twapSDK.analytics.onCreateOrderRequest(askParams, account);
+        twapSDK.analytics.onCreateOrderRequest(askParams, account);
         const simulatedData = await simulateContract(wagmiConfig, {
           abi: TwapAbi,
           functionName: "ask",
@@ -314,8 +331,8 @@ function useCreateOrder(
           hash,
         });
 
-        const orderID = hexToNumber(receipt.logs[0].topics[1]!)
-      
+        const orderID = hexToNumber(receipt.logs[0].topics[1]!);
+
         await waitForNewOrder(orderID);
         twapSDK.analytics.onCreateOrderSuccess(hash);
         toast.success("Order created successfully!");
@@ -323,7 +340,6 @@ function useCreateOrder(
 
         return receipt;
       } catch (error) {
-        
         if (isTxRejected(error)) {
           updateState({ swapStatus: undefined });
         } else {

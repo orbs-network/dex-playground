@@ -4,7 +4,6 @@ import { twMerge } from "tailwind-merge";
 import { wagmiConfig } from "@/lib/wagmi-config";
 import { SwapSteps } from "@/types";
 import { getTransactionConfirmations } from "wagmi/actions";
-import { networks } from "./networks";
 import BN from "bignumber.js";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -42,9 +41,6 @@ export function eqIgnoreCase(a: string, b: string) {
 
 export const isNativeAddress = (address?: string) =>
   !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ""));
-
-export const resolveNativeTokenAddress = (address?: string) =>
-  isNativeAddress(address) ? networks.poly.wToken.address : address;
 
 const dollarDisplay = Intl.NumberFormat("en-US", {
   style: "currency",
