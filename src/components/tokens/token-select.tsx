@@ -13,7 +13,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Token } from "@/types";
 import { Card } from "../ui/card";
 import { useMemo, useState } from "react";
-import { format, toExactAmount, useTokensWithBalances } from "@/lib";
+import {
+  eqIgnoreCase,
+  format,
+  usePriceUsd,
+  useSortedTokens,
+  useTokenBalance,
+} from "@/lib";
+import { useToExactAmount } from "@/trade/hooks";
+import { Skeleton } from "../ui/skeleton";
+import { Virtuoso } from "react-virtuoso";
 import BN from "bignumber.js";
 
 type TokenSelectProps = {
@@ -26,49 +35,19 @@ export function TokenSelect({
   onSelectToken,
 }: TokenSelectProps) {
   const [open, setOpen] = useState(false);
-  const tokens = useTokensWithBalances().tokensWithBalances
+  const tokens = useSortedTokens();
   const [filterInput, setFilterInput] = useState("");
 
-  const SortedTokens = useMemo(() => {
-    if(!tokens) return null;
-    return Object.values(tokens)
-      .filter((t) => {
-        return (
-          t.token.symbol.toLowerCase().includes(filterInput.toLowerCase()) ||
-          t.token.address.toLowerCase().includes(filterInput.toLowerCase())
-        );
-      })
-      .sort((a, b) => {
-        
-        const balanceA = BN(toExactAmount(a.balance.toString(), a.token.decimals));
-        const balanceB = BN(toExactAmount(b.balance.toString(), b.token.decimals));
-        return balanceB.minus(balanceA).toNumber();
-      })
-      .map((t) => (
-        <Card
-          key={t.token.address}
-          className="cursor-pointer p-4 flex items-center justify-between gap-3"
-          onClick={() => {
-            onSelectToken(t.token);
-            setOpen(false);
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={t.token.logoUrl} alt={t.token.symbol} />
-              <AvatarFallback className="bg-slate-200 dark:bg-slate-700">
-                {t.token.symbol.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <div>{t.token.symbol}</div>
-              <div className="text-sm text-slate-400">{t.token.name}</div>
-            </div>
-          </div>
-          <div>{format.crypto(Number(toExactAmount(t.balance.toString(), t.token.decimals) || '0'))}</div>
-        </Card>
-      ));
-  }, [filterInput, onSelectToken, tokens]);
+  const filteredTokens = useMemo(() => {
+    if (!filterInput) return tokens || [];
+    return (
+      tokens?.filter(
+        (t) =>
+          eqIgnoreCase(t.address, filterInput) ||
+          t.symbol.toLowerCase().includes(filterInput.toLowerCase())
+      ) || []
+    );
+  }, [tokens, filterInput]);
 
   return (
     <Dialog modal={true} open={open} onOpenChange={(o) => setOpen(o)}>
@@ -108,9 +87,64 @@ export function TokenSelect({
           />
         </DialogHeader>
         <div className="relative flex flex-1 flex-col flex-grow gap-2 overflow-y-scroll pr-3">
-          {SortedTokens}
+          <Virtuoso
+            totalCount={filteredTokens?.length}
+            overscan={10}
+            itemContent={(index) => {
+              const token = filteredTokens[index];
+
+              const onSelect = () => {
+                onSelectToken(token);
+                setOpen(false);
+              };
+
+              return <TokenDisplay token={token} onSelect={onSelect} />;
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+const TokenDisplay = ({
+  token: t,
+  onSelect,
+}: {
+  token: Token;
+  onSelect: () => void;
+}) => {
+  const { balance, isLoading } = useTokenBalance(t.address);
+  const usd = usePriceUsd(t.address).data || 0;
+  const balanceUi = useToExactAmount(balance, t.decimals) || "0";
+  const usdAmount = BN(balanceUi).multipliedBy(usd).toFixed()
+  
+  return (
+    <Card
+      key={t.address}
+      className="cursor-pointer p-4 flex items-center justify-between gap-3 mb-3"
+      onClick={onSelect}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar>
+          <AvatarImage src={t.logoUrl} alt={t.symbol} />
+          <AvatarFallback className="bg-slate-200 dark:bg-slate-700">
+            {t.symbol.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <div>{t.symbol}</div>
+          <div className="text-sm text-slate-400">{t.name}</div>
+        </div>
+      </div>
+      {isLoading ? (
+        <Skeleton style={{ width: 70, height: 20 }} />
+      ) : (
+        <div className='flex flex-col items-end'>
+          <p>{format.crypto(Number(balanceUi))}</p>
+          <p className='opacity-70' style={{fontSize: 13}}>${format.crypto(Number(usdAmount))}</p>
+        </div>
+      )}
+    </Card>
+  );
+};

@@ -6,24 +6,9 @@ import { Button } from "@/components/ui/button";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 import { SwapStatus } from "@orbs-network/swap-ui";
 import { Token } from "@/types";
-import {
-  ErrorCodes,
-  format,
-  getLiquidityProviderName,
-  getMinAmountOut,
-  getQuoteErrorMessage,
-  toExactAmount,
-} from "@/lib";
+import { ErrorCodes } from "@/lib";
 import "../style.css";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { SettingsIcon } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import BN from "bignumber.js";
 import {
   LiquidityHubSwapProvider,
@@ -37,8 +22,7 @@ import {
   useOptimalRate,
   useParaswapMinAmountOut,
 } from "./hooks";
-import { DataDetails } from "@/components/ui/data-details";
-import { Separator } from "@radix-ui/react-dropdown-menu";
+import { SwapDetails } from "./swap-details";
 
 export const useIsLiquidityHubTrade = () => {
   const {
@@ -46,8 +30,6 @@ export const useIsLiquidityHubTrade = () => {
   } = useLiquidityHubSwapContext();
   const liquidityHubQuote = useLiquidityHubQuote().data;
   const paraswapMinAmountOut = useParaswapMinAmountOut();
-
-  console.log(liquidityHubQuote?.minAmountOut, paraswapMinAmountOut);
 
   return useMemo(() => {
     // Choose between liquidity hub and dex swap based on the min amount out
@@ -64,12 +46,25 @@ export const useIsLiquidityHubTrade = () => {
 };
 
 function SwapPanel() {
+  return (
+    <div>
+      <div className="flex flex-col gap-2 pt-2">
+        <InTokenCard />
+        <Switch />
+        <OutTokenCard />
+        <SwapDetails />
+        <ConfirmationModal />
+      </div>
+    </div>
+  );
+}
+
+const Switch = () => {
   const {
     state: { inToken, outToken },
     updateState,
   } = useLiquidityHubSwapContext();
 
-  // Handle Token Switch
   const handleSwitch = useCallback(() => {
     updateState({
       inToken: outToken,
@@ -79,55 +74,8 @@ function SwapPanel() {
   }, [inToken, outToken, updateState]);
 
   return (
-    <div>
-      <Settings />
-      <div className="flex flex-col gap-2 pt-2">
-        <InTokenCard />
-        <div className="h-0 relative z-10 flex items-center justify-center">
-          <SwitchButton onClick={handleSwitch} />
-        </div>
-        <OutTokenCard />
-        <SwapDetails />
-        <ConfirmationModal />
-      </div>
-    </div>
-  );
-}
-
-const Settings = () => {
-  const {
-    state: { slippage },
-    updateState,
-  } = useLiquidityHubSwapContext();
-  return (
-    <div className="flex justify-end">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <SettingsIcon className="w-5 h-5" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-4 items-center justify-between">
-              <Label htmlFor="slippage">Slippage</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="slippage"
-                  type="number"
-                  onChange={(e) =>
-                    updateState({ slippage: e.target.valueAsNumber })
-                  }
-                  value={slippage}
-                  step={0.1}
-                  className="text-right w-16 [&::-webkit-inner-spin-button]:appearance-none p-2 h-7"
-                />
-                <div>%</div>
-              </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+    <div className="h-0 relative z-10 flex items-center justify-center">
+      <SwitchButton onClick={handleSwitch} />
     </div>
   );
 };
@@ -138,6 +86,7 @@ const ConfirmationModal = () => {
   const { data: liquidityHubQuote } = useLiquidityHubQuote();
   const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
   const inputError = useLiquidityHubInputError();
+  
   const isLiquidityHubTrade = useIsLiquidityHubTrade();
   const {
     state: { inputAmount },
@@ -155,11 +104,6 @@ const ConfirmationModal = () => {
     if (inputError === ErrorCodes.EnterAmount) {
       return {
         text: "Enter amount",
-      };
-    }
-    if (inputAmount && optimalRateLoading) {
-      return {
-        text: "Fetching quote...",
       };
     }
 
@@ -191,7 +135,7 @@ const ConfirmationModal = () => {
       setIsOpen(false);
       updateState({ isLiquidityHubTrade: false });
       if (status === SwapStatus.SUCCESS) {
-        updateState({inputAmount: ''});
+        updateState({ inputAmount: "" });
       }
     },
     [resetState]
@@ -214,61 +158,6 @@ const ConfirmationModal = () => {
     </>
   );
 };
-
-export function SwapDetails() {
-  const isLiquidityHubTrade = useIsLiquidityHubTrade();
-  const optimalRate = useOptimalRate().data;
-  const account = useAccount().address;
-  const {
-    state: { outToken, inToken },
-  } = useLiquidityHubSwapContext();
-  const minAmountOut = useParaswapMinAmountOut();
-  const inPriceUsd = useMemo(() => {
-    if (!optimalRate) return 0;
-    const amount = toExactAmount(optimalRate.srcAmount, inToken?.decimals);
-    return Number(optimalRate.srcUSD) / Number(amount);
-  }, [optimalRate, inToken]);
-
-  const minOutAmount = useToExactAmount(minAmountOut, outToken?.decimals);
-  const outAmount = useToExactAmount(
-    optimalRate?.destAmount,
-    outToken?.decimals
-  );
-
-  const outPriceUsd = useMemo(() => {
-    if (!optimalRate) return 0;
-    const amount = toExactAmount(optimalRate.destAmount, outToken?.decimals);
-    return Number(optimalRate.destUSD) / Number(amount);
-  }, [optimalRate, outToken]);
-
-  if (!inToken || !outToken || !account || !optimalRate) return null;
-
-  const rate = inPriceUsd / outPriceUsd;
-
-  let data: Record<string, React.ReactNode> = {
-    Rate: `1 ${inToken.symbol} ≈ ${format.crypto(rate)} ${outToken.symbol}`,
-  };
-
-  data = {
-    ...data,
-    "Est. Received": `${format.crypto(Number(outAmount))} ${outToken.symbol}`,
-    "Min. Received": `${format.crypto(Number(minOutAmount))} ${
-      outToken.symbol
-    }`,
-    "Routing source": getLiquidityProviderName(isLiquidityHubTrade),
-  };
-
-  return (
-    <div className="mt-4 flex flex-col gap-4">
-      <DataDetails data={data} />
-      <Separator />
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-slate-300 text-sm">Recepient</div>
-        <div className="text-slate-300">{format.address(account)}</div>
-      </div>
-    </div>
-  );
-}
 
 const InTokenCard = () => {
   const {
@@ -336,7 +225,7 @@ const OutTokenCard = () => {
   );
 };
 
-export const Swap = () => {
+export const SwapLiquidityHub = () => {
   return (
     <LiquidityHubSwapProvider>
       <SwapPanel />

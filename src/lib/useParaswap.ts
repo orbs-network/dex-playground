@@ -2,19 +2,11 @@ import { useCallback, useMemo } from 'react'
 import {
   getMinAmountOut,
   isNativeAddress,
-  resolveNativeTokenAddress,
-  waitForConfirmations,
 } from '@/lib/utils'
 import { constructSimpleSDK, OptimalRate, SwapSide } from '@paraswap/sdk'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
-import { wagmiConfig } from './wagmi-config'
-import { estimateGas, sendTransaction } from 'wagmi/actions'
-import { Address } from 'viem'
-import { SwapStatus } from '@orbs-network/swap-ui'
-import { SwapSteps } from '@/types'
-import { approveAllowance } from './approveAllowance'
-import { getRequiresApproval } from './getRequiresApproval'
+
 
 const PARASWAP_NATIVE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 

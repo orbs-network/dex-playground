@@ -21,7 +21,7 @@ export const toExactAmount = (
   if (decimalScale) {
     return result.toFixed(decimalScale);
   }
-  return result.toString();
+  return result.toFixed();
 };
 export const toRawAmount = (amount?: string, decimals?: number) => {
   if (!decimals || !amount) return "";
@@ -72,7 +72,6 @@ export const format = {
 };
 
 export const getMinAmountOut = (slippage: number, _destAmount: string) => {
-  console.log(_destAmount);
   
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)); // 0.5% becomes 995
 

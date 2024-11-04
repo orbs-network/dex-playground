@@ -1,7 +1,7 @@
 import { usePriceUsd } from "@/lib";
 import { useToExactAmount } from "@/trade/hooks";
 import { useDerivedTwapSwapData } from "../hooks";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 
 export function SrcChunkSize() {
   const { state } = useTwapContext();

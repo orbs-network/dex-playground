@@ -2,11 +2,9 @@ import { Token } from "@/types";
 import { NumericFormat } from "react-number-format";
 import {
   format,
-  networks,
   toExactAmount,
   toRawAmount,
   usePriceUsd,
-  useTokensWithBalances,
 } from "@/lib";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import BN from "bignumber.js";
 import { ArrowUpDown, X } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 import { useMarketPrice, useTradePrice } from "../hooks";
 
 const useMarketPriceUI = () => {

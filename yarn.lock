@@ -983,10 +983,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@orbs-network/liquidity-hub-sdk@^1.0.41":
-  version "1.0.41"
-  resolved "https://registry.yarnpkg.com/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.41.tgz#9d19adf60df4a546217eb2f08f9691856bd8416e"
-  integrity sha512-dYDtvCwYI6y0zXYQs8VgrlR+XlFyxgG4a+FOtOHcHCX8ZlPyp7DiwppFl9ly4qMEKM0IFxlnny1fyOTWAHYmuA==
+"@orbs-network/liquidity-hub-sdk@^1.0.44":
+  version "1.0.44"
+  resolved "https://registry.yarnpkg.com/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.44.tgz#244c4e26bbeef75d48a8ca041fa730c5885e6a17"
+  integrity sha512-5IpPDNUVdnzv2+4MdLDFHjJQfPqn+NWj1EqBcdKgZ3YLELwYrgJ8O+38Tuy7iU1fS/OR07f7BvRyczywkGPRJA==
 
 "@orbs-network/swap-ui@^0.0.14":
   version "0.0.14"

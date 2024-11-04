@@ -8,7 +8,7 @@ import {
   useInTokenUsd,
   useOutTokenUsd,
 } from "./hooks";
-import { useTwapContext } from "./twap-context";
+import { useTwapContext } from "./context";
 import {
   format,
   resolveNativeTokenAddress,

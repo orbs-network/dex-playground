@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import{ useCallback } from "react";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 
 export function PriceToggle() {
   const {

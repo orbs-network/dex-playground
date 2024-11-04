@@ -3,7 +3,7 @@ import { Address, erc20Abi } from 'viem'
 
 /* Determines whether user needs tp approve allowance for quoted token */
 export function useGetRequiresApproval(
-  contractAddress?: Address,
+  contractAddress?: any,
   inTokenAddress = '',
   inAmount = ''
 ) {

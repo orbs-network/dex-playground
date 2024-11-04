@@ -10,6 +10,7 @@ import {
   getErrorMessage,
   getLiquidityProviderName,
   getSteps,
+  isNativeAddress,
   promiseWithTimeout,
   toExactAmount,
   useParaswapBuildTxCallback,
@@ -39,7 +40,8 @@ import { _TypedDataEncoder } from "@ethersproject/hash";
 import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
 import { TransactionParams } from "@paraswap/sdk";
 import { toast } from "sonner";
-import { useToExactAmount } from "../hooks";
+import { useNetwork, useToExactAmount } from "../hooks";
+import { useAppState } from "@/store";
 
 // Construct steps for swap to display in UI
 const useSteps = (steps?: number[]) => {
@@ -107,9 +109,9 @@ export function LiquidityHubConfirmationDialog({
   const approvalLoading = isLiquidityHubTrade
     ? liquidityHubApproval.approvalLoading
     : paraswapApproval.approvalLoading;
+
   const onSubmit = useCallback(async () => {
     if (!isLiquidityHubTrade) {
-      console.log("Proceeding with Liquidity Hub");
       swapWithParaswap();
     } else {
       swapWithLiquidityHub();
@@ -241,23 +243,24 @@ const Details = () => {
   const {
     state: { outToken, isLiquidityHubTrade },
   } = useLiquidityHubSwapContext();
-  const outAmountUsd = optimalRate?.destUSD;
-  const outAmount = isLiquidityHubTrade
-    ? quote?.outAmount
-    : optimalRate?.destAmount;
+  const outTokenUsd = usePriceUsd(outToken?.address).data;
 
   const gasPrice = useMemo(() => {
-    const gasAmountOut = isLiquidityHubTrade
-      ? toExactAmount(quote?.gasAmountOut, outToken?.decimals)
-      : BN(optimalRate?.gasCost || 0)
-          .dividedBy(1e18)
-          .toString();
+    if (!isLiquidityHubTrade) {
+      return Number(optimalRate?.gasCostUSD || "0");
+    }
 
-    if (!outAmountUsd || !gasAmountOut || !outToken) return 0;
-    const gas = toExactAmount(gasAmountOut, outToken.decimals);
-    const usd = Number(outAmountUsd) / Number(outAmount);
-    return Number(gas) * usd;
-  }, [outAmountUsd, outToken, outAmount, quote, isLiquidityHubTrade]);
+    if (!outToken || !outTokenUsd) return 0;
+    const gas = toExactAmount(quote?.gasAmountOut, outToken.decimals);
+
+    return Number(gas) * outTokenUsd;
+  }, [
+    isLiquidityHubTrade,
+    optimalRate?.gasCostUSD,
+    outToken,
+    outTokenUsd,
+    quote?.gasAmountOut,
+  ]);
 
   return (
     <div className="w-full mt-4 mb-4 flex gap-2 flex-col">
@@ -293,10 +296,12 @@ export const useParaswapSwapCallback = (
   const buildParaswapTxCallback = useParaswapBuildTxCallback();
   const optimalRate = useOptimalRate().data;
   const {
-    state: { slippage, inToken },
+    state: { inToken },
   } = useLiquidityHubSwapContext();
+  const { slippage } = useAppState();
+  const wToken = useNetwork()?.wToken.address;
   const requiresApproval = useParaswapApproval().requiresApproval;
-
+  
   const { address } = useAccount();
 
   return useMutation({
@@ -312,6 +317,9 @@ export const useParaswapSwapCallback = (
       if (!optimalRate) {
         throw new Error("No optimal rate found");
       }
+      if (!wToken) {
+        throw new Error("WToken not found");
+      }
 
       try {
         updateSwapProgressState({ swapStatus: SwapStatus.LOADING });
@@ -326,7 +334,7 @@ export const useParaswapSwapCallback = (
           updateSwapProgressState({ currentStep: SwapSteps.Approve });
           await approveAllowance(
             address,
-            optimalRate.srcToken,
+            isNativeAddress(inToken.address) ? wToken : inToken.address,
             optimalRate.tokenTransferProxy as Address
           );
         }
@@ -453,7 +461,7 @@ async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
 
     // Sign transaction and get signature
     const signature = await promiseWithTimeout<string>(
-      signTypedData(wagmiConfig, payload),
+      (signTypedData as any)(wagmiConfig, payload),
       40_000
     );
 
@@ -476,9 +484,11 @@ export function useLiquidityHubSwapCallback(
 ) {
   const {
     sdk: liquidityHub,
-    state: { inToken, slippage },
+    state: { inToken },
     updateState,
   } = useLiquidityHubSwapContext();
+  const { slippage } = useAppState();
+
   const buildParaswapTxCallback = useParaswapBuildTxCallback();
   const optimalRate = useOptimalRate().data;
   const { getLatestQuote, data: quote } = useLiquidityHubQuote();

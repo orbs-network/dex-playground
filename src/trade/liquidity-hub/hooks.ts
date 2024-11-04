@@ -5,10 +5,10 @@ import {
   useInputError,
   getMinAmountOut,
   useGetRequiresApproval,
-  network,
   networks,
   isNativeAddress,
 } from "@/lib";
+import { useAppState } from "@/store";
 import { permit2Address } from "@orbs-network/liquidity-hub-sdk";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMemo, useCallback } from "react";
@@ -19,9 +19,7 @@ import { useLiquidityHubSwapContext } from "./context";
 export const QUOTE_REFETCH_INTERVAL = 20_000;
 
 export const useParaswapMinAmountOut = () => {
-  const {
-    state: { slippage },
-  } = useLiquidityHubSwapContext();
+  const { slippage } = useAppState();
   const optimalRate = useOptimalRate().data;
   return useMemo(() => {
     return getMinAmountOut(slippage, optimalRate?.destAmount || "0");
@@ -31,8 +29,10 @@ export const useParaswapMinAmountOut = () => {
 export function useLiquidityHubQuote() {
   const queryClient = useQueryClient();
   const { chainId, address: account } = useAccount();
+  const { slippage } = useAppState();
+
   const {
-    state: { inToken, outToken, liquidityHubDisabled, slippage },
+    state: { inToken, outToken, liquidityHubDisabled },
     sdk,
     parsedInputAmount,
   } = useLiquidityHubSwapContext();
@@ -144,6 +144,7 @@ export const useLiquidityHubInputError = () => {
   const {
     state: { inToken, inputAmount },
   } = useLiquidityHubSwapContext();
+  
   return useInputError({
     inputAmount,
     inToken,

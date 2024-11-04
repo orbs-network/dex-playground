@@ -1,4 +1,4 @@
-import { networks, isNativeAddress } from '@/lib'
+import { isNativeAddress, getNetwork } from '@/lib'
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
 
@@ -6,14 +6,14 @@ export const usePriceUsd = (address?: string) => {
   const {chainId} = useAccount()
   return useQuery<number>({
     queryKey: ['usePriceUSD', chainId, address],
-    queryFn: async () => {
+    queryFn: async () => {            
       if (!address || !chainId) {
         return 0
       }
 
       return (await fetchLLMAPrice(address, chainId)).priceUsd
     },
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
     enabled: !!address && !!chainId,
   })
 }
@@ -40,7 +40,7 @@ export async function fetchLLMAPrice(token: string, chainId: number) {
     const chainName = chainIdToName[chainId] || 'Unknown Chain'
 
     if (isNativeAddress(token)) {
-      token = networks.poly.wToken.address
+      token = getNetwork(chainId)?.wToken.address || ''
     }
     const tokenAddressWithChainId = `${chainName}:${token}`
     const url = `https://coins.llama.fi/prices/current/${tokenAddressWithChainId}`
@@ -49,10 +49,10 @@ export async function fetchLLMAPrice(token: string, chainId: number) {
       return nullPrice
     }
     const data = await response.json()
-    const coin = data.coins[tokenAddressWithChainId]
+    const coin = data.coins[tokenAddressWithChainId]      
     return {
-      priceUsd: coin.price,
-      priceNative: coin.price,
+      priceUsd: !coin ? 0 :  coin.price,
+      priceNative: !coin ? 0 :  coin.price,
       timestamp: Date.now(),
     }
   } catch (error) {

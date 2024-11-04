@@ -1,3 +1,4 @@
+import { useDefaultTokens } from "@/lib";
 import { Token } from "@/types";
 import {
   Configs,
@@ -61,11 +62,23 @@ type TwapState = {
 const initialState = {typedAmount: ''} as TwapState;
 
 const useTwapState = () => {
-  const [values, dispatch] = useReducer(
+  const [_values, dispatch] = useReducer(
     (state: TwapState, action: Action<TwapState>) =>
       reducer(state, action, initialState),
     initialState
   );
+
+  const defaultTokens = useDefaultTokens();
+
+
+  const values = useMemo(() => {
+    return {
+      ..._values,
+      inToken: _values.inToken || defaultTokens?.inToken || null,
+      outToken: _values.outToken || defaultTokens?.outToken || null,
+    }
+  }, [_values, defaultTokens?.inToken, defaultTokens?.outToken])
+
 
   const updateState = useCallback(
     (payload: Partial<TwapState>) => {

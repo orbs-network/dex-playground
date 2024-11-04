@@ -3,14 +3,7 @@ import { Card } from "../ui/card";
 import { TokenSelect } from "./token-select";
 import { Token } from "@/types";
 import { NumericFormat } from "react-number-format";
-import {
-  format,
-  cn,
-  ErrorCodes,
-  useTokensWithBalances,
-  useTokenBalance,
-  toExactAmount,
-} from "@/lib";
+import { format, cn, ErrorCodes, useTokenBalance, toExactAmount } from "@/lib";
 import { Skeleton } from "../ui/skeleton";
 import { Button } from "../ui/button";
 import { useToExactAmount } from "@/trade/hooks";
@@ -50,7 +43,7 @@ export function TokenCard({
   amountLoading,
   inputError,
 }: TokenCardProps) {
-  const balance = useTokenBalance(selectedToken?.address);
+  const { balance } = useTokenBalance(selectedToken?.address);
   const balanceError = inputError === ErrorCodes.InsufficientBalance;
   const balanceDisplay = selectedToken
     ? format.crypto(Number(toExactAmount(balance, selectedToken.decimals)))
