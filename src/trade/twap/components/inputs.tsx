@@ -12,7 +12,7 @@ import { TimeUnit } from "@orbs-network/twap-sdk";
 import { useMemo } from "react";
 import { NumericFormat } from "react-number-format";
 import { useDerivedTwapSwapData } from "../hooks";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 
 const options: { text: string; unit: TimeUnit }[] = [
   {

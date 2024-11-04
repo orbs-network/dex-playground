@@ -1,4 +1,4 @@
-import { network, toExactAmount, toRawAmount } from "@/lib";
+import { getNetwork, toExactAmount, toRawAmount } from "@/lib";
 import { useMemo } from "react";
 import { useChainId } from "wagmi";
 
@@ -15,7 +15,7 @@ export const useNetwork = () => {
 
   return useMemo(() => {
     if (!chainId) return;
-    return network[chainId as keyof typeof network];
+    return getNetwork(chainId);
   }, [chainId]);
 };
 

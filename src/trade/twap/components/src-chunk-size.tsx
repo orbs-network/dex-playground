@@ -1,6 +1,7 @@
-import { fromBigNumberToStr, networks, usePriceUsd } from "@/lib";
+import { usePriceUsd } from "@/lib";
+import { useToExactAmount } from "@/trade/hooks";
 import { useDerivedTwapSwapData } from "../hooks";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 
 export function SrcChunkSize() {
   const { state } = useTwapContext();
@@ -8,8 +9,8 @@ export function SrcChunkSize() {
     values: { inToken },
   } = state;
   const { srcChunkAmount } = useDerivedTwapSwapData();
-  const usd = usePriceUsd(networks.poly.id, inToken?.address).data;
-  const srcChunkAmountUi = fromBigNumberToStr(
+  const usd = usePriceUsd(inToken?.address).data;
+  const srcChunkAmountUi = useToExactAmount(
     srcChunkAmount || "0",
     inToken?.decimals
   );

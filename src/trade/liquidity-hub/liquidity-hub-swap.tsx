@@ -1,386 +1,234 @@
-import { TokenCard } from '@/components/tokens/token-card'
-import { SwitchButton } from '@/components/ui/switch-button'
-import { SwapSteps, Token } from '@/types'
-import { useCallback, useMemo, useState } from 'react'
-import { SwapStatus } from '@orbs-network/swap-ui'
-import { useAccount } from 'wagmi'
-import { SwapDetails } from '../../components/swap-details'
-import { SwapConfirmationDialog } from './liquidity-hub-confirmation-dialog'
-import { useLiquidityHubQuote } from './useLiquidityHubQuote'
-import { Button } from '@/components/ui/button'
-import { useLiquidityHubSwapCallback } from './useLiquidityHubSwapCallback'
-import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk'
+import { TokenCard } from "@/components/tokens/token-card";
+import { SwitchButton } from "@/components/ui/switch-button";
+import { useCallback, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+import { Button } from "@/components/ui/button";
+import { _TypedDataEncoder } from "@ethersproject/hash";
+import { SwapStatus } from "@orbs-network/swap-ui";
+import { Token } from "@/types";
+import { ErrorCodes } from "@/lib";
+import "../style.css";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import BN from "bignumber.js";
 import {
-  useDefaultTokens,
-  ErrorCodes,
-  fromBigNumber,
-  toBigNumber,
-  useTokensWithBalances,
-  getMinAmountOut,
-  useParaswapQuote,
-  getQuoteErrorMessage,
-  useParaswapSwapCallback,
-  toBigInt,
-  fromBigNumberToStr,
-  getErrorMessage,
-} from '@/lib'
-import '../style.css'
-import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { toast } from 'sonner'
-import { SettingsIcon } from 'lucide-react'
+  LiquidityHubSwapProvider,
+  useLiquidityHubSwapContext,
+} from "./context";
+import { useToExactAmount } from "../hooks";
+import { LiquidityHubConfirmationDialog } from "./liquidity-hub-confirmation-dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { useInputError } from '../../lib/useHandleInputError'
+  useLiquidityHubInputError,
+  useLiquidityHubQuote,
+  useOptimalRate,
+  useParaswapMinAmountOut,
+} from "./hooks";
+import { SwapDetails } from "./swap-details";
 
-export function Swap() {
-  const { tokensWithBalances, refetch: refetchBalances } =
-    useTokensWithBalances()
-  const [inToken, setInToken] = useState<Token | null>(null)
-  const [outToken, setOutToken] = useState<Token | null>(null)
-  const [inputAmount, setInputAmount] = useState<string>('')
-  const [acceptedQuote, setAcceptedQuote] = useState<Quote | undefined>()
-  const [liquidityHubDisabled, setLiquidityHubDisabled] = useState(false)
-  const [currentStep, setCurrentStep] = useState<SwapSteps | undefined>(
-    undefined
-  )
-  const [swapStatus, setSwapStatus] = useState<SwapStatus | undefined>(
-    undefined
-  )
-  const [swapConfirmOpen, setSwapConfirmOpen] = useState(false)
-  const [signature, setSignature] = useState<string | undefined>(undefined)
-  const [forceLiquidityHub, setForceLiquidityHub] = useState(false)
-  const [slippage, setSlippage] = useState(0.5)
-
-  // Get wagmi account
-  const account = useAccount()
-
-  // Set Initial Tokens
-  const defaultTokens = useDefaultTokens({
-    inToken,
-    outToken,
-    tokensWithBalances,
-    setInToken,
-    setOutToken,
-  })
-
-  // Handle Amount Input Error
-  const inputError = useInputError({
-    inputAmount,
-    inToken,
-  })
-
-  // Handle Token Switch
-  const handleSwitch = useCallback(() => {
-    setInToken(outToken)
-    setOutToken(inToken)
-    setInputAmount('')
-  }, [inToken, outToken])
-
-  const resetSwap = useCallback(() => {
-    setAcceptedQuote(undefined)
-    setInputAmount('')
-    setCurrentStep(undefined)
-    setSignature(undefined)
-    setSwapStatus(undefined)
-    setLiquidityHubDisabled(false)
-    refetchBalances()
-  }, [refetchBalances])
-
-  // Handle Swap Confirmation Dialog Close
-  const onSwapConfirmClose = useCallback(() => {
-    setSwapConfirmOpen(false)
-    resetSwap()
-  }, [resetSwap])
-
-  /* --------- Quote ---------- */
-  // The entered input amount has to be converted to a big int string
-  // to be used for getting quotes
-
-  const inputAmountAsBigNumber = toBigNumber(inputAmount, inToken?.decimals)
-  const { data: optimalRate, isLoading: optimalRateLoading } = useParaswapQuote(
-    {
-      inToken: inToken?.address || '',
-      outToken: outToken?.address || '',
-      inAmount: inputAmountAsBigNumber,
-    }
-  )
-
-  const paraswapMinAmountOut = getMinAmountOut(
-    slippage,
-    optimalRate?.destAmount || '0'
-  )
-
-  // Fetch Liquidity Hub Quote
+export const useIsLiquidityHubTrade = () => {
   const {
-    data: _quote,
-    getLatestQuote,
-    error: quoteError,
-  } = useLiquidityHubQuote(
-    {
-      fromToken: inToken?.address || '',
-      toToken: outToken?.address || '',
-      inAmount: inputAmountAsBigNumber,
-      slippage,
-      account: account.address,
-      dexMinAmountOut: paraswapMinAmountOut,
-    },
-    liquidityHubDisabled
-  )
+    state: { liquidityHubDisabled },
+  } = useLiquidityHubSwapContext();
+  const liquidityHubQuote = useLiquidityHubQuote().data;
+  const paraswapMinAmountOut = useParaswapMinAmountOut();
 
-  const liquidityHubQuote = acceptedQuote || _quote
-
-  /* --------- End Quote ---------- */
-
-  /* --------- Swap ---------- */
-  const liquidityProvider = useMemo(() => {
+  return useMemo(() => {
     // Choose between liquidity hub and dex swap based on the min amount out
-    if (
-      forceLiquidityHub ||
-      (!liquidityHubDisabled &&
-        toBigInt(liquidityHubQuote?.minAmountOut || 0) >
-          BigInt(paraswapMinAmountOut || 0))
-    ) {
-      return 'liquidityhub'
-    }
+    if (liquidityHubDisabled) return false;
 
-    return 'paraswap'
+    return BN(liquidityHubQuote?.minAmountOut || 0).gt(
+      paraswapMinAmountOut || 0
+    );
   }, [
-    forceLiquidityHub,
     liquidityHubDisabled,
     liquidityHubQuote?.minAmountOut,
     paraswapMinAmountOut,
-  ])
+  ]);
+};
 
-  const onAcceptQuote = useCallback((quote?: Quote) => {
-    setAcceptedQuote(quote)
-  }, [])
-  const { mutateAsync: liquidityHubSwapCallback } =
-    useLiquidityHubSwapCallback()
-  const { mutateAsync: paraswapSwapCallback } = useParaswapSwapCallback()
-
-  const swapWithParaswap = useCallback(async () => {
-    if (!optimalRate) return
-    try {
-      await paraswapSwapCallback({
-        optimalRate,
-        slippage,
-        setCurrentStep,
-        setSwapStatus,
-        onFailure: resetSwap,
-      })
-    } catch (error) {
-      console.error(error)
-      toast.error(getErrorMessage(error, 'An error occurred while swapping'))
-    }
-  }, [optimalRate, paraswapSwapCallback, resetSwap, slippage])
-
-  const swapWithLiquidityHub = useCallback(async () => {
-    if (!optimalRate) {
-      toast.error('An unknown error occurred')
-      return
-    }
-
-    try {
-      await liquidityHubSwapCallback({
-        inTokenAddress: inToken!.address,
-        getQuote: getLatestQuote,
-        onAcceptQuote,
-        setSwapStatus,
-        setCurrentStep,
-        onFailure: resetSwap,
-        setSignature,
-        slippage,
-        optimalRate,
-      })
-    } catch (error) {
-      // If the liquidity hub swap fails, need to set the flag to prevent further attempts, and proceed with the dex swap
-      // stop quoting from liquidity hub
-      // start new flow with dex swap
-      console.error(error)
-      console.log('Liquidity Hub Swap failed, proceeding with ParaSwap...')
-      setLiquidityHubDisabled(true)
-      swapWithParaswap()
-    }
-  }, [
-    optimalRate,
-    liquidityHubSwapCallback,
-    inToken,
-    getLatestQuote,
-    onAcceptQuote,
-    resetSwap,
-    slippage,
-    swapWithParaswap,
-  ])
-
-  const confirmSwap = useCallback(async () => {
-    if (liquidityProvider === 'liquidityhub') {
-      console.log('Proceeding with Liquidity Hub')
-      swapWithLiquidityHub()
-    } else {
-      console.log('Proceeding with ParaSwap')
-      setLiquidityHubDisabled(true)
-      swapWithParaswap()
-    }
-  }, [liquidityProvider, swapWithLiquidityHub, swapWithParaswap])
-  /* --------- End Swap ---------- */
-
-  const destAmount = optimalRate?.destAmount
-    ? fromBigNumberToStr(optimalRate.destAmount, outToken?.decimals)
-    : ''
-
-  const { openConnectModal } = useConnectModal()
+function SwapPanel() {
   return (
     <div>
-      <div className="flex justify-end">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <SettingsIcon className="w-5 h-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <div className="flex flex-col gap-4">
-              <div className="flex gap-4 items-center justify-between">
-                <Label htmlFor="slippage">Slippage</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="slippage"
-                    type="number"
-                    onChange={(e) => setSlippage(e.target.valueAsNumber)}
-                    value={slippage}
-                    step={0.1}
-                    className="text-right w-16 [&::-webkit-inner-spin-button]:appearance-none p-2 h-7"
-                  />
-                  <div>%</div>
-                </div>
-              </div>
-              <div className="flex gap-4 items-center justify-between">
-                <Label htmlFor="force-lh">Force Liquidity Hub</Label>
-                <Switch
-                  id="force-lh"
-                  onCheckedChange={(checked: any) => setForceLiquidityHub(checked)}
-                  checked={forceLiquidityHub}
-                />
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
       <div className="flex flex-col gap-2 pt-2">
-        <TokenCard
-          label="Sell"
-          amount={inputAmount}
-          amountUsd={optimalRate?.srcUSD}
-          balance={
-            (tokensWithBalances &&
-              inToken &&
-              tokensWithBalances[inToken.address].balance) ||
-            0n
-          }
-          selectedToken={inToken || defaultTokens[0]}
-          tokens={tokensWithBalances || {}}
-          onSelectToken={setInToken}
-          onValueChange={setInputAmount}
-          inputError={inputError}
-        />
-        <div className="h-0 relative z-10 flex items-center justify-center">
-          <SwitchButton onClick={handleSwitch} />
-        </div>
-        <TokenCard
-          label="Buy"
-          amount={destAmount ?? ''}
-          amountUsd={optimalRate?.destUSD}
-          balance={
-            (tokensWithBalances &&
-              outToken &&
-              tokensWithBalances[outToken.address].balance) ||
-            0n
-          }
-          selectedToken={outToken || defaultTokens[1]}
-          tokens={tokensWithBalances || {}}
-          onSelectToken={setOutToken}
-          isAmountEditable={false}
-          amountLoading={optimalRateLoading}
-        />
-        {account.address && account.isConnected && outToken && inToken ? (
-          <>
-            <SwapConfirmationDialog
-              outToken={outToken}
-              inToken={inToken}
-              onClose={onSwapConfirmClose}
-              isOpen={swapConfirmOpen}
-              confirmSwap={confirmSwap}
-              swapStatus={swapStatus}
-              currentStep={currentStep}
-              signature={signature}
-              liquidityProvider={liquidityProvider}
-              inAmount={fromBigNumber(optimalRate?.srcAmount, inToken.decimals)}
-              inAmountUsd={optimalRate?.srcUSD}
-              outAmount={
-                Number(
-                  liquidityProvider === 'liquidityhub'
-                    ? fromBigNumberToStr(
-                        liquidityHubQuote?.referencePrice || '0',
-                        outToken.decimals
-                      )
-                    : destAmount
-                ) || 0
-              }
-              outAmountUsd={optimalRate?.destUSD}
-              allowancePermitAddress={
-                liquidityProvider === 'paraswap' && optimalRate
-                  ? optimalRate.tokenTransferProxy
-                  : permit2Address
-              }
-            />
-
-            <Button
-              className="mt-2"
-              size="lg"
-              onClick={() => setSwapConfirmOpen(true)}
-              disabled={Boolean(
-                inputError ||
-                  optimalRateLoading ||
-                  !liquidityHubQuote ||
-                  !optimalRate
-              )}
-            >
-              {inputError === ErrorCodes.InsufficientBalance
-                ? 'Insufficient balance'
-                : inputAmount && !liquidityHubQuote
-                ? 'Fetching quote...'
-                : !optimalRate && inputAmount
-                ? 'No liquidity'
-                : 'Swap'}
-            </Button>
-          </>
-        ) : (
-          <Button className="mt-2" size="lg" onClick={openConnectModal}>
-            Connect wallet
-          </Button>
-        )}
-
-        {quoteError && (
-          <div className="text-red-600">
-            {getQuoteErrorMessage(quoteError.message)}
-          </div>
-        )}
-
-        <SwapDetails
-          optimalRate={optimalRate}
-          inToken={inToken}
-          outToken={outToken}
-          minAmountOut={paraswapMinAmountOut}
-          account={account.address}
-          liquidityProvider={liquidityProvider}
-        />
+        <InTokenCard />
+        <Switch />
+        <OutTokenCard />
+        <SwapDetails />
+        <ConfirmationModal />
       </div>
     </div>
-  )
+  );
 }
+
+const Switch = () => {
+  const {
+    state: { inToken, outToken },
+    updateState,
+  } = useLiquidityHubSwapContext();
+
+  const handleSwitch = useCallback(() => {
+    updateState({
+      inToken: outToken,
+      outToken: inToken,
+      inputAmount: "",
+    });
+  }, [inToken, outToken, updateState]);
+
+  return (
+    <div className="h-0 relative z-10 flex items-center justify-center">
+      <SwitchButton onClick={handleSwitch} />
+    </div>
+  );
+};
+
+const ConfirmationModal = () => {
+  const account = useAccount().address;
+  const openConnectModal = useConnectModal().openConnectModal;
+  const { data: liquidityHubQuote } = useLiquidityHubQuote();
+  const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
+  const inputError = useLiquidityHubInputError();
+  
+  const isLiquidityHubTrade = useIsLiquidityHubTrade();
+  const {
+    state: { inputAmount },
+    updateState,
+    resetState,
+  } = useLiquidityHubSwapContext();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { text, enabled } = useMemo(() => {
+    if (inputError === ErrorCodes.InsufficientBalance) {
+      return {
+        text: "Insufficient balance",
+      };
+    }
+    if (inputError === ErrorCodes.EnterAmount) {
+      return {
+        text: "Enter amount",
+      };
+    }
+
+    if (!optimalRate && inputAmount) {
+      return {
+        text: "Fetching rate...",
+      };
+    }
+
+    return {
+      text: "Swap",
+      enabled: true,
+    };
+  }, [
+    inputError,
+    inputAmount,
+    liquidityHubQuote,
+    optimalRate,
+    optimalRateLoading,
+  ]);
+
+  const onOpen = useCallback(() => {
+    setIsOpen(true);
+    updateState({ isLiquidityHubTrade });
+  }, [isLiquidityHubTrade]);
+
+  const onClose = useCallback(
+    (status?: SwapStatus) => {
+      setIsOpen(false);
+      updateState({ isLiquidityHubTrade: false });
+      if (status === SwapStatus.SUCCESS) {
+        updateState({ inputAmount: "" });
+      }
+    },
+    [resetState]
+  );
+
+  if (!account) {
+    return (
+      <Button className="mt-2" size="lg" onClick={openConnectModal}>
+        Connect wallet
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <LiquidityHubConfirmationDialog onClose={onClose} isOpen={isOpen} />
+      <Button className="mt-2" size="lg" onClick={onOpen} disabled={!enabled}>
+        {text}
+      </Button>
+    </>
+  );
+};
+
+const InTokenCard = () => {
+  const {
+    state: { inputAmount, inToken },
+    updateState,
+  } = useLiquidityHubSwapContext();
+  const optimalRate = useOptimalRate().data;
+  const onSelectToken = useCallback(
+    (inToken: Token) => {
+      updateState({ inToken });
+    },
+    [updateState]
+  );
+
+  const onValueChange = useCallback(
+    (inputAmount: string) => {
+      updateState({ inputAmount });
+    },
+    [updateState]
+  );
+
+  const inputError = useLiquidityHubInputError();
+
+  return (
+    <TokenCard
+      label="Sell"
+      amount={inputAmount}
+      amountUsd={optimalRate?.srcUSD}
+      selectedToken={inToken}
+      onSelectToken={onSelectToken}
+      onValueChange={onValueChange}
+      inputError={inputError}
+    />
+  );
+};
+
+const OutTokenCard = () => {
+  const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
+  const {
+    state: { outToken },
+    updateState,
+  } = useLiquidityHubSwapContext();
+  const destAmount = useToExactAmount(
+    optimalRate?.destAmount,
+    outToken?.decimals
+  );
+
+  const onSelectToken = useCallback(
+    (outToken: Token) => {
+      updateState({ outToken });
+    },
+    [updateState]
+  );
+
+  return (
+    <TokenCard
+      label="Buy"
+      amount={destAmount ?? ""}
+      amountUsd={optimalRate?.destUSD}
+      selectedToken={outToken}
+      onSelectToken={onSelectToken}
+      isAmountEditable={false}
+      amountLoading={optimalRateLoading}
+    />
+  );
+};
+
+export const SwapLiquidityHub = () => {
+  return (
+    <LiquidityHubSwapProvider>
+      <SwapPanel />
+    </LiquidityHubSwapProvider>
+  );
+};

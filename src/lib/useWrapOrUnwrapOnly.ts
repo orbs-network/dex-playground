@@ -3,8 +3,8 @@ import { networks } from './networks'
 import { eqIgnoreCase, isNativeAddress } from './utils'
 
 export function useWrapOrUnwrapOnly(
-  fromTokenAddress: string,
-  toTokenAddress: string
+  fromTokenAddress?: string,
+  toTokenAddress?: string
 ) {
   // Evaluates whether tokens are to be wrapped/unwrapped only
   return useMemo(() => {

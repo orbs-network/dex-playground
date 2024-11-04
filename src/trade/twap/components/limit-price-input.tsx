@@ -2,11 +2,9 @@ import { Token } from "@/types";
 import { NumericFormat } from "react-number-format";
 import {
   format,
-  networks,
   toExactAmount,
   toRawAmount,
   usePriceUsd,
-  useTokensWithBalances,
 } from "@/lib";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import BN from "bignumber.js";
 import { ArrowUpDown, X } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 import { useMarketPrice, useTradePrice } from "../hooks";
 
 const useMarketPriceUI = () => {
@@ -68,7 +66,6 @@ const useOnPercentSelect = () => {
 };
 
 export function LimitPriceInput() {
-  const tokens = useTokensWithBalances().tokensWithBalances;
   const {
     state: { values, updateState },
     isMarketOrder,
@@ -104,7 +101,7 @@ export function LimitPriceInput() {
     return marketPriceUI;
   }, [customTradePrice, marketPriceUI, isTradePriceInverted]);
 
-  const usd = usePriceUsd(networks.poly.id, selectedToken?.address).data;
+  const usd = usePriceUsd(selectedToken?.address).data;
   const amountUsd =
     !inputValue || !usd ? "" : BN(inputValue).multipliedBy(usd).toNumber();
 
@@ -152,7 +149,6 @@ export function LimitPriceInput() {
           <div className="flex flex-col gap-3">
             <TokenSelect
               selectedToken={selectedToken}
-              tokens={tokens || {}}
               onSelectToken={onSelect}
             />
           </div>

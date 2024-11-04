@@ -1,15 +1,13 @@
 import {
-  networks,
-  toBigInt,
-  toBigNumber,
+  toRawAmount,
   useInputError,
   useParaswapQuote,
   usePriceUsd,
 } from "@/lib";
 import { useMemo } from "react";
-import { useTwapContext } from "./twap-context";
+import { useTwapContext } from "./context";
 import BN from "bignumber.js";
-import { useToExactAmount } from "../hooks";
+import { useToExactAmount, useToRawAmount } from "../hooks";
 import {
   MAX_FILL_DELAY_DAYS,
   MIN_DURATION_MINUTES,
@@ -30,7 +28,6 @@ export const useDerivedTwapSwapData = () => {
   const price = useTradePrice();
 
   const { data: oneSrcTokenUsd } = usePriceUsd(
-    networks.poly.id,
     inToken?.address
   );
 
@@ -61,7 +58,7 @@ export const useOptimalRate = () => {
   return useParaswapQuote({
     inToken: inToken?.address || "",
     outToken: outToken?.address || "",
-    inAmount: toBigNumber("1", inToken?.decimals),
+    inAmount: useToRawAmount("1", inToken?.decimals),
   });
 };
 
@@ -82,7 +79,7 @@ export const useTradePrice = () => {
       result = 1 / Number(customTradePrice);
     }
 
-    return toBigInt(result, outToken?.decimals).toString();
+    return toRawAmount(result.toString(), outToken?.decimals).toString();
   }, [
     isMarketOrder,
     outToken?.decimals,
@@ -94,7 +91,7 @@ export const useTradePrice = () => {
 
 export const useInTokenUsd = () => {
   const { inToken, typedAmount } = useTwapContext().state.values;
-  const usd = usePriceUsd(networks.poly.id, inToken?.address).data;
+  const usd = usePriceUsd(inToken?.address).data;
 
   return !usd || !typedAmount
     ? ""
@@ -104,7 +101,7 @@ export const useInTokenUsd = () => {
 export const useOutTokenUsd = () => {
   const { destTokenAmount } = useDerivedTwapSwapData();
   const { outToken } = useTwapContext().state.values;
-  const usd = usePriceUsd(networks.poly.id, outToken?.address).data;
+  const usd = usePriceUsd(outToken?.address).data;
   const amount = useToExactAmount(destTokenAmount, outToken?.decimals);
 
   return !usd || !amount ? "" : BN(amount).multipliedBy(usd).toString();

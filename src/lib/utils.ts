@@ -2,24 +2,17 @@ import { zeroAddress } from "@orbs-network/liquidity-hub-sdk";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { wagmiConfig } from "@/lib/wagmi-config";
-import { LiquidityProvider, SwapSteps } from "@/types";
+import { SwapSteps } from "@/types";
 import { getTransactionConfirmations } from "wagmi/actions";
-import { networks } from "./networks";
 import BN from "bignumber.js";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const toBigInt = (amount: string | number, decimals?: number) => {
-  if (!amount) return BigInt(0);
-  const num = Number(amount);
-  return BigInt((num * 10 ** (decimals || 0)).toFixed(0));
-};
-
 export const toExactAmount = (
   amount?: string,
   decimals?: number,
-  decimalScale? : number
+  decimalScale?: number
 ) => {
   if (!decimals || !amount) return "";
   const percision = BN(10).pow(decimals || 0);
@@ -27,43 +20,11 @@ export const toExactAmount = (
   if (decimalScale) {
     return result.toFixed(decimalScale);
   }
-  return result.toString();
+  return result.toFixed();
 };
 export const toRawAmount = (amount?: string, decimals?: number) => {
   if (!decimals || !amount) return "";
   return BN(amount).times(BN(10).pow(decimals)).decimalPlaces(0).toFixed();
-};
-
-export const toBigNumber = (amount: string | number, decimals?: number) => {
-  if (amount === "") return "0";
-
-  return toBigInt(amount, decimals).toString();
-};
-
-export const fromBigNumberToStr = (
-  amount: bigint | string,
-  decimals?: number
-) => {
-  const numStr = typeof amount === "bigint" ? amount.toString() : amount;
-  const precision = decimals || 0;
-
-  if (precision > 0) {
-    const integerPart = numStr.slice(0, -precision) || "0";
-    const fractionalPart = numStr.slice(-precision).padStart(precision, "0");
-
-    return `${integerPart}.${fractionalPart}`;
-  } else {
-    return numStr;
-  }
-};
-
-export const fromBigNumber = (
-  amount: bigint | string | undefined | null,
-  decimals?: number
-) => {
-  if (amount === null || typeof amount === "undefined") return 0;
-
-  return Number(fromBigNumberToStr(amount, decimals));
 };
 
 export const nativeTokenAddresses = [
@@ -80,9 +41,6 @@ export function eqIgnoreCase(a: string, b: string) {
 
 export const isNativeAddress = (address?: string) =>
   !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ""));
-
-export const resolveNativeTokenAddress = (address?: string) =>
-  isNativeAddress(address) ? networks.poly.wToken.address : address;
 
 const dollarDisplay = Intl.NumberFormat("en-US", {
   style: "currency",
@@ -110,6 +68,7 @@ export const format = {
 };
 
 export const getMinAmountOut = (slippage: number, _destAmount: string) => {
+  
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)); // 0.5% becomes 995
 
   // Convert priceRoute.destAmount to BigInt
@@ -124,7 +83,8 @@ export const enum ErrorCodes {
   EnterAmount = "Enter amount",
 }
 
-export function getQuoteErrorMessage(errorCode: string) {
+export function getQuoteErrorMessage(errorCode?: string) {
+  if (!errorCode) return "";
   switch (errorCode) {
     case "ldv":
       return "Minimum trade amount is $30";
@@ -213,15 +173,11 @@ export function getErrorMessage(
   return errorMessage;
 }
 
-export function getLiquidityProviderName(provider: LiquidityProvider) {
-  switch (provider) {
-    case "paraswap":
-      return "ParaSwap";
-    case "liquidityhub":
-      return "Liquidity Hub";
-    default:
-      return "Unknown";
+export function getLiquidityProviderName(isLiquidityHubTrade: boolean) {
+  if (isLiquidityHubTrade) {
+    return "Liquidity Hub";
   }
+  return "ParaSwap";
 }
 
 export const makeElipsisAddress = (address?: string, padding = 6): string => {

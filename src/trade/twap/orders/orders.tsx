@@ -18,7 +18,7 @@ import {
   eqIgnoreCase,
   format,
   makeElipsisAddress,
-  useTokensList,
+  useSortedTokens,
   wagmiConfig,
   waitForConfirmations,
 } from "@/lib";
@@ -33,7 +33,7 @@ import { useGroupedOrders, useOrdersQuery } from "./use-orders-query";
 import { useExplorer, useToExactAmount } from "@/trade/hooks";
 import moment from "moment";
 import { useMutation } from "@tanstack/react-query";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 import {
   writeContract,
   simulateContract,
@@ -118,11 +118,11 @@ const OrdersMenu = () => {
 };
 
 const useToken = (tokenAddress?: string) => {
-  const { data } = useTokensList();
+  const tokens = useSortedTokens()
 
   return useMemo(
-    () => data?.find((it) => eqIgnoreCase(it.address, tokenAddress || "")),
-    [data, tokenAddress]
+    () => tokens?.find((it) => eqIgnoreCase(it.address, tokenAddress || "")),
+    [tokens, tokenAddress]
   );
 };
 

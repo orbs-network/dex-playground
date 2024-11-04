@@ -1,72 +1,68 @@
-import { WalletIcon } from 'lucide-react'
-import { Card } from '../ui/card'
-import { TokenSelect } from './token-select'
-import { Token, TokensWithBalances } from '@/types'
-import { NumericFormat } from 'react-number-format'
-import {
-  format,
-  cn,
-  fromBigNumber,
-  ErrorCodes,
-} from '@/lib'
-import { Skeleton } from '../ui/skeleton'
-import { Button } from '../ui/button'
-import { useToExactAmount } from '@/trade/hooks'
-import BN from 'bignumber.js'
+import { WalletIcon } from "lucide-react";
+import { Card } from "../ui/card";
+import { TokenSelect } from "./token-select";
+import { Token } from "@/types";
+import { NumericFormat } from "react-number-format";
+import { format, cn, ErrorCodes, useTokenBalance, toExactAmount } from "@/lib";
+import { Skeleton } from "../ui/skeleton";
+import { Button } from "../ui/button";
+import { useToExactAmount } from "@/trade/hooks";
+import BN from "bignumber.js";
 function getTextSize(amountLength: number) {
   if (amountLength > 16) {
-    return 'text-xl'
+    return "text-xl";
   }
 
   if (amountLength > 12 && amountLength <= 16) {
-    return 'text-2xl'
+    return "text-2xl";
   }
 
-  return 'text-4xl'
+  return "text-4xl";
 }
 
 export type TokenCardProps = {
-  label: string
-  amount: string
-  amountUsd?: string
-  balance: any
-  selectedToken: Token
-  tokens: TokensWithBalances
-  onSelectToken: (token: Token) => void
-  isAmountEditable?: boolean
-  onValueChange?: (value: string) => void
-  amountLoading?: boolean
-  inputError?: string | null
-}
+  label: string;
+  amount: string;
+  amountUsd?: string;
+  selectedToken: Token | null;
+  onSelectToken: (token: Token) => void;
+  isAmountEditable?: boolean;
+  onValueChange?: (value: string) => void;
+  amountLoading?: boolean;
+  inputError?: string | null;
+};
 
 export function TokenCard({
   label,
   amount,
   amountUsd,
-  balance,
   selectedToken,
-  tokens,
   onSelectToken,
   onValueChange,
   isAmountEditable = true,
   amountLoading,
   inputError,
 }: TokenCardProps) {
-
-  const balanceError = inputError === ErrorCodes.InsufficientBalance
+  const { balance } = useTokenBalance(selectedToken?.address);
+  const balanceError = inputError === ErrorCodes.InsufficientBalance;
   const balanceDisplay = selectedToken
-    ? format.crypto(fromBigNumber(balance, selectedToken.decimals))
-    : '0'
+    ? format.crypto(Number(toExactAmount(balance, selectedToken.decimals)))
+    : "0";
 
-    const maxBalance = useToExactAmount(balance, selectedToken?.decimals)
-  const halfBalance = useToExactAmount(BN(balance || 0).dividedBy(2).toString(), selectedToken?.decimals)
+  const maxBalance = useToExactAmount(balance, selectedToken?.decimals);
+  const halfBalance = useToExactAmount(
+    BN(balance || 0)
+      .dividedBy(2)
+      .toString(),
+    selectedToken?.decimals
+  );
 
   return (
     <Card
       className={cn(
-        'bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4',
+        "bg-slate-50 dark:bg-slate-900 p-4 flex flex-col gap-4",
         balanceError &&
-          'mix-blend-multiply bg-red-50 dark:mix-blend-screen dark:bg-red-950'
+          "mix-blend-multiply bg-red-50 dark:mix-blend-screen dark:bg-red-950"
       )}
     >
       <div className="flex justify-between items-center">
@@ -97,7 +93,7 @@ export function TokenCard({
         {amountLoading ? (
           <Skeleton className="h-10 w-[250px]" />
         ) : (
-          <div className={cn(getTextSize(amount?.length), 'w-full')}>
+          <div className={cn(getTextSize(amount?.length), "w-full")}>
             <NumericFormat
               className="bg-transparent w-full min-w-0 outline-none"
               value={amount}
@@ -113,8 +109,7 @@ export function TokenCard({
         )}
         <div>
           <TokenSelect
-            selectedToken={selectedToken}
-            tokens={tokens}
+            selectedToken={selectedToken || undefined}
             onSelectToken={onSelectToken}
           />
         </div>
@@ -126,7 +121,7 @@ export function TokenCard({
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-            {format.dollar(Number(amountUsd || '0'))}
+            {format.dollar(Number(amountUsd || "0"))}
           </div>
         )}
         <div className="flex gap-2 items-center text-gray-500 dark:text-gray-400 text-lg">
@@ -135,5 +130,5 @@ export function TokenCard({
         </div>
       </div>
     </Card>
-  )
+  );
 }

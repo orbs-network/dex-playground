@@ -1,10 +1,10 @@
-import { ErrorCodes, fromBigNumber } from "@/lib/utils";
+import { ErrorCodes } from "@/lib/utils";
 import { Token } from "@/types";
 import { useMemo } from "react";
-import {
-  useTokenBalance,
-  useTokensWithBalances,
-} from "./useTokensWithBalances";
+import BN from "bignumber.js";
+import { useTokenBalance } from "./useTokens";
+import { useToRawAmount } from "@/trade/hooks";
+
 
 /* Handles amount input errors */
 
@@ -15,18 +15,18 @@ export function useInputError({
   inToken: Token | null;
   inputAmount: string;
 }) {
-  const tokensWithBalances = useTokensWithBalances();
-  const tokenBalance = useTokenBalance(inToken?.address);
+  const {balance} = useTokenBalance(inToken?.address);
+  const parsedInputAmount = useToRawAmount(inputAmount, inToken?.decimals)
   return useMemo(() => {
-    if (!inToken || !tokensWithBalances) return;
-    if (!inputAmount) {
+    if(BN(inputAmount || '0').lte(0)) {
       return ErrorCodes.EnterAmount;
     }
-    const value = Number(inputAmount);
-    const balance = fromBigNumber(tokenBalance, inToken.decimals);
+    if (!balance) {
+      return ErrorCodes.EnterAmount;
+    }
 
-    if (value > balance) {
+    if (BN(parsedInputAmount).gt(balance)) {
       return ErrorCodes.InsufficientBalance;
     }
-  }, [inputAmount, inToken, tokenBalance, tokensWithBalances]);
+  }, [inputAmount, inToken, balance, parsedInputAmount]);
 }

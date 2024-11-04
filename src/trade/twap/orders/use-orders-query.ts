@@ -2,7 +2,7 @@ import { groupOrdersByStatus } from "@orbs-network/twap-sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
-import { useTwapContext } from "../twap-context";
+import { useTwapContext } from "../context";
 
 const useOrdersQueryKey = () => {
   const { address } = useAccount();
