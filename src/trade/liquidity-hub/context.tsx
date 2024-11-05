@@ -5,6 +5,7 @@ import {
   LiquidityHubSDK,
   Quote,
 } from "@orbs-network/liquidity-hub-sdk";
+import { OptimalRate } from "@paraswap/sdk";
 import {
   useContext,
   ReactNode,
@@ -12,6 +13,7 @@ import {
   useCallback,
   useMemo,
   createContext,
+  useEffect,
 } from "react";
 import { useAccount } from "wagmi";
 import { useToRawAmount } from "../hooks";
@@ -21,9 +23,11 @@ const initialState: State = {
   outToken: null,
   inputAmount: "",
   acceptedQuote: undefined,
+  acceptedOptimalRate: undefined,
   liquidityHubDisabled: false,
   forceLiquidityHub: false,
-  showConfirmation: false,
+  confirmationModalOpen: false,
+  proceedWithLiquidityHub: false,
 };
 
 interface State {
@@ -33,9 +37,10 @@ interface State {
   acceptedQuote: Quote | undefined;
   liquidityHubDisabled: boolean;
   forceLiquidityHub: boolean;
-  showConfirmation: boolean;
   signature?: string;
-  isLiquidityHubTrade?: boolean;
+  confirmationModalOpen: boolean;
+  proceedWithLiquidityHub: boolean;
+  acceptedOptimalRate?: OptimalRate
 }
 
 type Action = { type: "UPDATE"; payload: Partial<State> } | { type: "RESET" };
@@ -71,6 +76,8 @@ export const LiquidityHubSwapProvider = ({
 }) => {
   const [_state, dispatch] = useReducer(reducer, initialState);
   const defaultTokens = useDefaultTokens();
+  const chainId = useAccount().chainId;
+
 
   const state = useMemo(() => {
     return {
@@ -80,7 +87,6 @@ export const LiquidityHubSwapProvider = ({
     };
   }, [_state, defaultTokens]);
 
-  const { chainId } = useAccount();
 
   const parsedInputAmount = useToRawAmount(
     state.inputAmount,
@@ -97,6 +103,14 @@ export const LiquidityHubSwapProvider = ({
   const resetState = useCallback(() => {
     dispatch({ type: "RESET" });
   }, [dispatch]);
+
+  useEffect(() => {
+    if(chainId) {
+      resetState();
+    }
+  }, [chainId])
+  
+
 
   const sdk = useMemo(
     () => constructSDK({ partner: "widget", chainId }),

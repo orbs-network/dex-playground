@@ -6,11 +6,14 @@ export function PriceToggle() {
   const {
     isMarketOrder,
     state: { updateState },
+    isLimitPanel
   } = useTwapContext();
 
   const onMarketOrderChange = useCallback((isMarketOrder: boolean) => {
     updateState({ isMarketOrder });
   }, []);
+
+  if(isLimitPanel) return null;
   return (
     <div className="flex gap-4 justify-end mb-2">
       <div className="flex gap-2">

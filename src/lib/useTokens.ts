@@ -7,6 +7,7 @@ import { erc20Abi, Address } from "viem";
 import { zeroAddress } from "@orbs-network/liquidity-hub-sdk";
 import { eqIgnoreCase } from "./utils";
 import { useMemo } from "react";
+import { tokenLists } from "./tokens";
 
 const getFantomTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   const res = await fetch(
@@ -20,6 +21,27 @@ const getFantomTokens = async (signal?: AbortSignal): Promise<Token[]> => {
       symbol: token.symbol,
       decimals: token.decimals,
       logoUrl: token.logoURI,
+      name: token.name,
+    };
+  });
+};
+
+const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
+  const res = await fetch(
+    "https://raw.githubusercontent.com/dragonswap-app/assets/main/tokenlist-sei-mainnet.json",
+    { signal }
+  );
+  const data = await res.json();
+
+  return data.tokens.map((token: any) => {
+    return {
+      address:
+        token.address === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+          ? zeroAddress
+          : token.address,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      logoUrl: `https://raw.githubusercontent.com/dragonswap-app/assets/main/logos/${token.address}/logo.png`,
       name: token.name,
     };
   });
@@ -62,31 +84,23 @@ const getLineaTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   });
 };
 
-const fetchTokens = async (
-  chainId: number,
-  signal?: AbortSignal
-): Promise<Token[]> => {
-  let tokens: Token[] = [];
-  if (chainId === networks.linea.id) {
-    tokens = await getLineaTokens(signal);
-  } else if (chainId === networks.ftm.id) {
-    tokens = await getFantomTokens(signal);
-  } else {
-    tokens = await getSushiTokens(chainId, signal);
+const addNativeToken = (tokens: Token[], network: typeof networks.eth) => {
+  if (tokens.find((t) => eqIgnoreCase(t.address, network.native.address))) {
+    return tokens;
   }
-  const network = getNetwork(chainId);
-  if (network) {
-    const nativeToken: Token = {
+  return [
+    {
       address: network.native.address,
       symbol: network.native.symbol,
       decimals: network.native.decimals,
       logoUrl: network.native.logoUrl,
-    };
+    },
+    ...tokens,
+  ];
+};
 
-    tokens = [nativeToken, ...tokens];
-  }
-
-  const baseAssets = getNetwork(chainId)?.baseAssets;
+const sortTokens = (tokens: Token[], network: typeof networks.eth) => {
+  const baseAssets = network.baseAssets;
   if (!baseAssets) {
     return tokens;
   }
@@ -100,6 +114,56 @@ const fetchTokens = async (
   });
 
   return sortedTokens;
+};
+
+const getBaseTokens = (): Token[] => {
+  const _tokens = tokenLists.base;
+
+  return Object.values(_tokens).map((token) => {
+    return {
+      address: token.address,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      logoUrl: token.tokenInfo.logoURI,
+      name: token.name,
+    };
+  });
+};
+
+const fetchTokens = async (
+  chainId: number,
+  signal?: AbortSignal
+): Promise<Token[]> => {
+  const network = getNetwork(chainId);
+  if (!network) {
+    throw new Error(`Network with chainId ${chainId} not found`);
+  }
+
+  let tokens: Token[] = [];
+  switch (chainId) {
+    case networks.linea.id:
+      tokens = await getLineaTokens(signal);
+      break;
+    case networks.ftm.id:
+      tokens = await getFantomTokens(signal);
+      break;
+    case networks.sei.id:
+      tokens = await getSeiTokens(signal);
+      break;
+    case networks.sei.id:
+      tokens = await getSeiTokens(signal);
+      break;
+      case networks.base.id:
+      tokens = getBaseTokens();
+      break;
+
+    default:
+      tokens = await getSushiTokens(chainId, signal);
+      break;
+  }
+
+  tokens = addNativeToken(tokens, network);  
+  return sortTokens(tokens, network);
 };
 
 const useTokensList = () => {
@@ -128,6 +192,7 @@ export const useTokenBalaces = () => {
     queryKey: ["useBalances", chainId, account, tokens?.map((t) => t.address)],
     queryFn: async () => {
       if (!tokens) return {};
+
       let native = await getBalance(config, {
         address: account as Address,
         chainId,
@@ -149,11 +214,10 @@ export const useTokenBalaces = () => {
             } as const)
         ),
       });
-      
 
       const balances = addresses.reduce(
         (acc: any, address: any, index: number) => {
-          acc[address] = multicallResponse[index].result?.toString() || '0';
+          acc[address] = multicallResponse[index].result?.toString() || "0";
           return acc;
         },
         {}

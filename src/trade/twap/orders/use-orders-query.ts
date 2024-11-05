@@ -20,6 +20,7 @@ export function useOrdersQuery() {
     queryKey,
     queryFn: async ({ signal }) => {
       const orders = await twapSDK.getOrders(address!, signal);
+      
       return orders;
     },
     enabled: !!address,

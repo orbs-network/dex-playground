@@ -35,11 +35,9 @@ import moment from "moment";
 import { useMutation } from "@tanstack/react-query";
 import { useTwapContext } from "../context";
 import {
-  writeContract,
-  simulateContract,
-  getTransactionReceipt,
+  waitForTransactionReceipt,
 } from "wagmi/actions";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 
 export function Orders() {
   return (
@@ -118,7 +116,7 @@ const OrdersMenu = () => {
 };
 
 const useToken = (tokenAddress?: string) => {
-  const tokens = useSortedTokens()
+  const tokens = useSortedTokens();  
 
   return useMemo(
     () => tokens?.find((it) => eqIgnoreCase(it.address, tokenAddress || "")),
@@ -143,38 +141,44 @@ const getOrderTitle = (order: Order) => {
 const useCancelOrder = () => {
   const { twapSDK } = useTwapContext();
   const { refetch } = useOrdersQuery();
-  const {address: account} = useAccount()
+  const { address: account } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   return useMutation({
     mutationFn: async (orderID: number) => {
       twapSDK.analytics.onCancelOrderRequest(orderID);
-      const simulatedData = await simulateContract(wagmiConfig, {
+
+      const hash = await (writeContractAsync as any)({
         abi: TwapAbi,
         functionName: "cancel",
         address: twapSDK.config.twapAddress as any,
         account,
         args: [orderID],
       });
-
-      const hash = await writeContract(wagmiConfig, simulatedData.request);
       await waitForConfirmations(hash, 1, 20);
-      await getTransactionReceipt(wagmiConfig, {
+      await waitForTransactionReceipt(wagmiConfig, {
         hash,
       });
       twapSDK.analytics.onCancelOrderSuccess();
       await refetch();
     },
     onError: (error) => {
-      
       twapSDK.analytics.onCancelOrderError(error);
     },
   });
 };
 
-
 const CancelOrderButton = ({ order }: { order: Order }) => {
-  const {isPending, mutate}  =useCancelOrder();
-  return <Button className='w-full mt-4' disabled={isPending} onClick={() => mutate(order.id)}>Cancel order</Button>
-}
+  const { isPending, mutate } = useCancelOrder();
+  return (
+    <Button
+      className="w-full mt-4"
+      disabled={isPending}
+      onClick={() => mutate(order.id)}
+    >
+      Cancel order
+    </Button>
+  );
+};
 
 const SelectedOrder = () => {
   const { data } = useOrdersQuery();

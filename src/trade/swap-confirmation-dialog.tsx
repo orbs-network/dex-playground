@@ -59,7 +59,7 @@ export function SwapConfirmationDialogContent() {
           <div className="p-4">
             <SwapFlow
               inAmount={format.crypto(inAmount || 0)}
-              outAmount={format.crypto(outAmount || 0)}
+              outAmount={!outAmount ? undefined : format.crypto(outAmount || 0)}
               mainContent={mainContent}
               swapStatus={swapStatus}
               successContent={<SwapFlow.Success explorerUrl="/" />}

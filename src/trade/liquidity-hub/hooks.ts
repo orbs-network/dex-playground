@@ -1,5 +1,4 @@
 import {
-  useWrapOrUnwrapOnly,
   useParaswapQuote,
   useInputError,
   getMinAmountOut,
@@ -9,13 +8,12 @@ import {
 } from "@/lib";
 import { useAppState } from "@/store";
 import { permit2Address } from "@orbs-network/liquidity-hub-sdk";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMemo, useCallback } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { useLiquidityHubSwapContext } from "./context";
+import { QUOTE_REFETCH_INTERVAL } from "./consts";
 
-export const QUOTE_REFETCH_INTERVAL = 20_000;
 
 export const useParaswapMinAmountOut = () => {
   const { slippage } = useAppState();
@@ -25,106 +23,7 @@ export const useParaswapMinAmountOut = () => {
   }, [optimalRate?.destAmount, slippage]);
 };
 
-export function useLiquidityHubQuote() {
-  const queryClient = useQueryClient();
-  const { chainId, address: account } = useAccount();
-  const { slippage } = useAppState();
 
-  const {
-    state: { inToken, outToken, liquidityHubDisabled },
-    sdk,
-    parsedInputAmount,
-  } = useLiquidityHubSwapContext();
-  const dexMinAmountOut = useParaswapMinAmountOut();
-  const wToken = useNetwork()?.wToken.address
-  const inTokenAddress = isNativeAddress(inToken?.address) ? wToken : inToken?.address;
-  const outTokenAddress = outToken?.address;
-  // Check if the swap is wrap or unwrap only
-  const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(
-    inTokenAddress,
-    outTokenAddress
-  );
-
-  const enabled = Boolean(
-    !liquidityHubDisabled &&
-      chainId &&
-      inTokenAddress &&
-      outTokenAddress &&
-      Number(parsedInputAmount) > 0 &&
-      !isUnwrapOnly &&
-      !isWrapOnly &&
-      account
-  );
-
-  const queryKey = useMemo(
-    () => [
-      "quote",
-      inTokenAddress,
-      outTokenAddress,
-      parsedInputAmount,
-      slippage,
-      dexMinAmountOut,
-    ],
-    [
-      inTokenAddress,
-      parsedInputAmount,
-      slippage,
-      outTokenAddress,
-      dexMinAmountOut,
-    ]
-  );
-
-  const getQuote = useCallback(
-    ({ signal }: { signal: AbortSignal }) => {
-      if (!inTokenAddress || !outTokenAddress || !parsedInputAmount) {
-        return Promise.reject(new Error("Invalid input"));
-      }
-      return sdk.getQuote({
-        fromToken: inTokenAddress,
-        toToken: outTokenAddress,
-        inAmount: parsedInputAmount,
-        dexMinAmountOut,
-        account,
-        slippage,
-        signal,
-      });
-    },
-    [
-      sdk,
-      inTokenAddress,
-      outTokenAddress,
-      parsedInputAmount,
-      account,
-      slippage,
-      dexMinAmountOut,
-    ]
-  );
-
-  const query = useQuery({
-    queryKey,
-    queryFn: getQuote,
-    enabled,
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-    gcTime: 0,
-    retry: 2,
-    refetchInterval: QUOTE_REFETCH_INTERVAL,
-    placeholderData: (prev) => prev,
-  });
-
-  return useMemo(() => {
-    return {
-      // We return the result of getQuote, plus a function to get
-      // the last fetched quote in react-query cache
-      ...query,
-      getLatestQuote: () =>
-        queryClient.ensureQueryData({
-          queryKey,
-          queryFn: getQuote,
-        }),
-    };
-  }, [query, queryClient, queryKey, getQuote]);
-}
 
 export const useOptimalRate = () => {
   const {
@@ -196,3 +95,5 @@ export const useParaswapApproval = () => {
     optimalRate?.srcAmount
   );
 };
+
+

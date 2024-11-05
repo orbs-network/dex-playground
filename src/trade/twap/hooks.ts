@@ -1,4 +1,6 @@
 import {
+  networks,
+  toExactAmount,
   toRawAmount,
   useInputError,
   useParaswapQuote,
@@ -13,6 +15,7 @@ import {
   MIN_DURATION_MINUTES,
   MIN_FILL_DELAY_MINUTES,
 } from "@orbs-network/twap-sdk";
+import { useAccount } from "wagmi";
 
 export const useDerivedTwapSwapData = () => {
   const {
@@ -27,9 +30,7 @@ export const useDerivedTwapSwapData = () => {
     state.values;
   const price = useTradePrice();
 
-  const { data: oneSrcTokenUsd } = usePriceUsd(
-    inToken?.address
-  );
+  const { data: oneSrcTokenUsd } = usePriceUsd(inToken?.address);
 
   const swapValues = twapSDK.derivedSwapValues({
     srcAmount: parsedInputAmount,
@@ -63,7 +64,17 @@ export const useOptimalRate = () => {
 };
 
 export const useMarketPrice = () => {
-  return useOptimalRate().data?.destAmount;
+  const chainId = useAccount().chainId;
+  const {
+    state: {
+      values: { outToken },
+    },
+  } = useTwapContext();
+  const rate = useOptimalRate().data?.destAmount;
+  if (chainId === networks.sei.id) {
+    return toExactAmount("1", outToken?.decimals);
+  }
+  return rate;
 };
 
 export const useTradePrice = () => {
@@ -137,9 +148,9 @@ const useTradeSizeWarning = () => {
   const { warnings } = useDerivedTwapSwapData();
   const { twapSDK } = useTwapContext();
   return useMemo(() => {
-    if (warnings.tradeSize) {
-      return `Trade size must be at least ${twapSDK.config.minChunkSizeUsd}`;
-    }
+    // if (warnings.tradeSize) {
+    //   return `Trade size must be at least Z${twapSDK.config.minChunkSizeUsd}`;
+    // }
   }, [warnings.tradeSize, twapSDK.config.minChunkSizeUsd]);
 };
 

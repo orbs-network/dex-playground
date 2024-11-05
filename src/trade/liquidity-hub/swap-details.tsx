@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { useToExactAmount } from "../hooks";
 import { useLiquidityHubSwapContext } from "./context";
 import { useOptimalRate, useParaswapMinAmountOut } from "./hooks";
-import { useIsLiquidityHubTrade } from "./liquidity-hub-swap";
+import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
 
  export function SwapDetails() {
     const isLiquidityHubTrade = useIsLiquidityHubTrade();

@@ -1,49 +1,23 @@
 import { TokenCard } from "@/components/tokens/token-card";
 import { SwitchButton } from "@/components/ui/switch-button";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { _TypedDataEncoder } from "@ethersproject/hash";
-import { SwapStatus } from "@orbs-network/swap-ui";
 import { Token } from "@/types";
 import { ErrorCodes } from "@/lib";
 import "../style.css";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import BN from "bignumber.js";
 import {
   LiquidityHubSwapProvider,
   useLiquidityHubSwapContext,
 } from "./context";
 import { useToExactAmount } from "../hooks";
 import { LiquidityHubConfirmationDialog } from "./liquidity-hub-confirmation-dialog";
-import {
-  useLiquidityHubInputError,
-  useLiquidityHubQuote,
-  useOptimalRate,
-  useParaswapMinAmountOut,
-} from "./hooks";
+import { useLiquidityHubInputError, useOptimalRate } from "./hooks";
 import { SwapDetails } from "./swap-details";
-
-export const useIsLiquidityHubTrade = () => {
-  const {
-    state: { liquidityHubDisabled },
-  } = useLiquidityHubSwapContext();
-  const liquidityHubQuote = useLiquidityHubQuote().data;
-  const paraswapMinAmountOut = useParaswapMinAmountOut();
-
-  return useMemo(() => {
-    // Choose between liquidity hub and dex swap based on the min amount out
-    if (liquidityHubDisabled) return false;
-
-    return BN(liquidityHubQuote?.minAmountOut || 0).gt(
-      paraswapMinAmountOut || 0
-    );
-  }, [
-    liquidityHubDisabled,
-    liquidityHubQuote?.minAmountOut,
-    paraswapMinAmountOut,
-  ]);
-};
+import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
+import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
 
 function SwapPanel() {
   return (
@@ -53,7 +27,8 @@ function SwapPanel() {
         <Switch />
         <OutTokenCard />
         <SwapDetails />
-        <ConfirmationModal />
+        <LiquidityHubConfirmationDialog />
+        <ShowConfirmationButton />
       </div>
     </div>
   );
@@ -80,22 +55,30 @@ const Switch = () => {
   );
 };
 
-const ConfirmationModal = () => {
+const ShowConfirmationButton = () => {
   const account = useAccount().address;
   const openConnectModal = useConnectModal().openConnectModal;
   const { data: liquidityHubQuote } = useLiquidityHubQuote();
   const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
   const inputError = useLiquidityHubInputError();
-  
-  const isLiquidityHubTrade = useIsLiquidityHubTrade();
+  const proceedWithLiquidityHub = useIsLiquidityHubTrade();
+
   const {
     state: { inputAmount },
     updateState,
-    resetState,
   } = useLiquidityHubSwapContext();
-  const [isOpen, setIsOpen] = useState(false);
 
-  const { text, enabled } = useMemo(() => {
+  const onOpenConfirmation = useCallback(() => {
+    updateState({ confirmationModalOpen: true, proceedWithLiquidityHub });
+  }, [updateState, proceedWithLiquidityHub]);
+
+  const { text, onClick } = useMemo(() => {
+    if (!account) {
+      return {
+        text: "Connect wallet",
+        onClick: openConnectModal,
+      };
+    }
     if (inputError === ErrorCodes.InsufficientBalance) {
       return {
         text: "Insufficient balance",
@@ -115,7 +98,7 @@ const ConfirmationModal = () => {
 
     return {
       text: "Swap",
-      enabled: true,
+      onClick: onOpenConfirmation,
     };
   }, [
     inputError,
@@ -123,39 +106,14 @@ const ConfirmationModal = () => {
     liquidityHubQuote,
     optimalRate,
     optimalRateLoading,
+    openConnectModal,
+    onOpenConfirmation,
   ]);
 
-  const onOpen = useCallback(() => {
-    setIsOpen(true);
-    updateState({ isLiquidityHubTrade });
-  }, [isLiquidityHubTrade]);
-
-  const onClose = useCallback(
-    (status?: SwapStatus) => {
-      setIsOpen(false);
-      updateState({ isLiquidityHubTrade: false });
-      if (status === SwapStatus.SUCCESS) {
-        updateState({ inputAmount: "" });
-      }
-    },
-    [resetState]
-  );
-
-  if (!account) {
-    return (
-      <Button className="mt-2" size="lg" onClick={openConnectModal}>
-        Connect wallet
-      </Button>
-    );
-  }
-
   return (
-    <>
-      <LiquidityHubConfirmationDialog onClose={onClose} isOpen={isOpen} />
-      <Button className="mt-2" size="lg" onClick={onOpen} disabled={!enabled}>
-        {text}
-      </Button>
-    </>
+    <Button className="mt-2" size="lg" onClick={onClick} disabled={!onClick}>
+      {text}
+    </Button>
   );
 };
 

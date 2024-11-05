@@ -67,6 +67,7 @@ export const useParaswapQuote = ({
     },
     enabled: !!inToken && !!outToken && Number(inAmount) > 0,
     refetchInterval,
+    staleTime: Infinity,
   })
 }
 

@@ -375,6 +375,34 @@ export const networks = {
       "0x4300000000000000000000000000000000000003",
     ],
   },
+  sei: {
+    id: 1329,
+    name: "Sei",
+    shortname: "sei",
+    native: {
+      address: zeroAddress,
+      symbol: "SEI",
+      decimals: 18,
+      logoUrl: 'https://raw.githubusercontent.com/dragonswap-app/assets/main/logos/0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE/logo.png',
+    },
+    wToken: {
+      symbol: "WSEI",
+      address: "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7",
+      decimals: 18,
+      weth: false,
+      logoUrl: "https://raw.githubusercontent.com/dragonswap-app/assets/main/logos/0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7/logo.png",
+    },
+    publicRpcUrl: "https://evm-rpc.sei-apis.com",
+    logoUrl: "https://example.com/path-to-sei-logo.svg",
+    explorer: "https://seitrace.com",
+    eip1559: false,
+    baseAssets: [
+      '0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7',
+      '0x160345fC359604fC6e70E3c5fAcbdE5F7A9342d8',
+      '0xB75D0B03c06A926e488e2659DF1A861F860bD3d1'
+    ]
+    
+  },
 };
 
 export const getNetwork = (chainId: number) => {

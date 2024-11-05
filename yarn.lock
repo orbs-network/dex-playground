@@ -975,18 +975,18 @@
   resolved "https://registry.npmjs.org/@orbs-network/swap-ui/-/swap-ui-0.0.14.tgz"
   integrity sha512-19Blk3JYsxae6Eu8a/nsLA8EbNSMQSJfsgV7Tg52RPs6IglTjEwfGyjy3HUPzRqEYXiHCQFo8xGNHjSKx3HJ5g==
 
-"@orbs-network/twap-sdk@^2.0.38":
-  version "2.0.38"
-  resolved "https://registry.npmjs.org/@orbs-network/twap-sdk/-/twap-sdk-2.0.38.tgz"
-  integrity sha512-U7nBRA7tghIWQPbhdqqPOTm6VyoEVGHmjkZKE1ddYyAvQLSi+V/7Pnn1xi7OP7xYSBCl0YmmA3C/GPYGJGdfVA==
+"@orbs-network/twap-sdk@^2.0.40":
+  version "2.0.40"
+  resolved "https://registry.yarnpkg.com/@orbs-network/twap-sdk/-/twap-sdk-2.0.40.tgz#db88ecdcb7380af9e8e185faa432338aa0c7a772"
+  integrity sha512-9tEQXeahzovdKuPHV4uxyA2JEA1vDYqcwPQhmMO5b6Y2pvdviTn/A4k24uqVaQJt+T8GTjgB9L1dHSr65DWV6w==
   dependencies:
     "@orbs-network/twap" "^2.0.1"
     bignumber.js "9.x"
 
 "@orbs-network/twap@^2.0.1":
-  version "2.2.4"
-  resolved "https://registry.npmjs.org/@orbs-network/twap/-/twap-2.2.4.tgz"
-  integrity sha512-SeEH45f4KXh6hXjbhhE4lPgTzIvMNx9Mun+pdX9plvdKpWAbcg6f1FKfv2MZ1ghtYxHlhuDcthlx159t8ReiOA==
+  version "2.2.7"
+  resolved "https://registry.yarnpkg.com/@orbs-network/twap/-/twap-2.2.7.tgz#5d50c3d2eebf969b0ce51f1fed749a08dc093e1d"
+  integrity sha512-tS3gpg3bI6hlz/9cQj3YB3C9R5rXLEla6KcM1Aom6O01UUvMQN2dAK56Nqz0uaqTsQoB+fveBGHW27g1qTAkSA==
 
 "@paraswap/core@2.2.0":
   version "2.2.0"

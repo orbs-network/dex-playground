@@ -4,44 +4,31 @@ import { Card } from "@/components/ui/card";
 import { SwapStep, SwapStatus } from "@orbs-network/swap-ui";
 import { useCallback, useMemo } from "react";
 import { DataDetails } from "@/components/ui/data-details";
-import BN from "bignumber.js";
 import {
   format,
-  getErrorMessage,
   getLiquidityProviderName,
-  getSteps,
-  isNativeAddress,
-  promiseWithTimeout,
   toExactAmount,
-  useParaswapBuildTxCallback,
   usePriceUsd,
-  wagmiConfig,
-  waitForConfirmations,
+  useTokenBalaces,
+  useUsdAmount,
 } from "@/lib";
 import { useAccount } from "wagmi";
-import { Address } from "viem";
-import { estimateGas, sendTransaction, signTypedData } from "wagmi/actions";
-import { approveAllowance } from "@/lib/approveAllowance";
-import { useMutation } from "@tanstack/react-query";
 import { useLiquidityHubSwapContext } from "./context";
 import {
   useLiquidityHubApproval,
-  useLiquidityHubQuote,
   useOptimalRate,
   useParaswapApproval,
 } from "./hooks";
 import {
   SwapConfirmationDialog,
-  SwapProgressState,
   useSwapProgress,
 } from "../swap-confirmation-dialog";
-import { wrapToken } from "@/lib/wrapToken";
 import { _TypedDataEncoder } from "@ethersproject/hash";
-import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
-import { TransactionParams } from "@paraswap/sdk";
-import { toast } from "sonner";
-import { useNetwork, useToExactAmount } from "../hooks";
-import { useAppState } from "@/store";
+import { useToExactAmount } from "../hooks";
+import { useLiquidityHubSwapCallback } from "./useLiquidityHubSwapCallback";
+import { useParaswapSwapCallback } from "./useParaswapSwapCallback";
+import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
+import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
 
 // Construct steps for swap to display in UI
 const useSteps = (steps?: number[]) => {
@@ -79,15 +66,10 @@ const useSteps = (steps?: number[]) => {
   }, [inToken, steps, signature]);
 };
 
-export function LiquidityHubConfirmationDialog({
-  isOpen,
-  onClose: _onClose,
-}: {
-  isOpen: boolean;
-  onClose: (swapStatus?: SwapStatus) => void;
-}) {
+export function LiquidityHubConfirmationDialog() {
   const {
-    state: { inputAmount, inToken, outToken, isLiquidityHubTrade },
+    state: { inputAmount, inToken, outToken, confirmationModalOpen },
+    updateState,
   } = useLiquidityHubSwapContext();
 
   const {
@@ -97,6 +79,8 @@ export function LiquidityHubConfirmationDialog({
   } = useSwapProgress();
 
   const parsedSteps = useSteps(progressState.steps);
+  const isLiquidityHubTrade = useIsLiquidityHubTrade();
+  const { refetch: refetchBalances } = useTokenBalaces();
 
   const { mutate: swapWithLiquidityHub } =
     useLiquidityHubSwapCallback(updateProgressState);
@@ -124,30 +108,29 @@ export function LiquidityHubConfirmationDialog({
   ]);
 
   const onClose = useCallback(() => {
-    _onClose(progressState.swapStatus);
+    updateState({
+      confirmationModalOpen: false,
+      proceedWithLiquidityHub: false,
+      acceptedQuote: undefined,
+      acceptedOptimalRate: undefined,
+    });
+    if (progressState.swapStatus === SwapStatus.SUCCESS) {
+      updateState({ inputAmount: "" });
+      refetchBalances();
+    }
     setTimeout(() => {
-      if (progressState.currentStep) {
-        resetProgressState();
-      }
-    }, 500);
+      resetProgressState();
+    }, 5_00);
   }, [
-    _onClose,
     progressState.swapStatus,
     progressState.currentStep,
     resetProgressState,
+    updateState,
+    refetchBalances,
   ]);
 
-  const usdValues = useUSDValues();
-
-  const optimalRate = useOptimalRate().data;
-
-  const quote = useLiquidityHubQuote().data;
-
-  const result = isLiquidityHubTrade
-    ? quote?.outAmount
-    : optimalRate?.destAmount;
-
-  const outAmount = useToExactAmount(result, outToken?.decimals);
+  const usd = useUSD();
+  const outAmount = useOutAmount();
 
   return (
     <SwapConfirmationDialog
@@ -155,7 +138,7 @@ export function LiquidityHubConfirmationDialog({
       inToken={inToken}
       inAmount={Number(inputAmount)}
       outAmount={Number(outAmount)}
-      isOpen={isOpen}
+      isOpen={confirmationModalOpen}
       onClose={onClose}
       swapStatus={progressState.swapStatus}
       mainContent={
@@ -163,9 +146,9 @@ export function LiquidityHubConfirmationDialog({
           fromTitle="Sell"
           toTitle="Buy"
           steps={parsedSteps}
-          inUsd={format.dollar(Number(usdValues.srcUSD || "0"))}
+          inUsd={format.dollar(Number(usd.srcUSD || "0"))}
           currentStep={progressState.currentStep}
-          outUsd={format.dollar(Number(usdValues.destUSD || "0"))}
+          outUsd={format.dollar(Number(usd.destUSD || "0"))}
           submitSwapButton={
             <SubmitSwapButton
               approvalLoading={approvalLoading}
@@ -179,39 +162,53 @@ export function LiquidityHubConfirmationDialog({
   );
 }
 
-const useUSDValues = () => {
+const useOutAmount = () => {
+  const _quote = useLiquidityHubQuote().data;
+  const _optimalRate = useOptimalRate().data;
+  const isLiquidityHubTrade = useIsLiquidityHubTrade();
+  const { outToken, acceptedQuote, acceptedOptimalRate } =
+    useLiquidityHubSwapContext().state;
+  const quote = acceptedQuote || _quote;
+  const optimalRate = acceptedOptimalRate || _optimalRate;
+  const result = isLiquidityHubTrade
+    ? quote?.outAmount
+    : optimalRate?.destAmount;
+
+  return useToExactAmount(result, outToken?.decimals);
+};
+
+const useUSD = () => {
   const {
-    state: { inToken, outToken, inputAmount, isLiquidityHubTrade },
+    state: {
+      inToken,
+      outToken,
+      inputAmount,
+      acceptedQuote,
+      acceptedOptimalRate,
+    },
   } = useLiquidityHubSwapContext();
-  const srcUSD = usePriceUsd(inToken?.address).data;
-  const destUSD = usePriceUsd(outToken?.address).data;
-  const optimalRate = useOptimalRate().data;
-  const quote = useLiquidityHubQuote().data;
+  const _quote = useLiquidityHubQuote().data;
+  const _optimalRate = useOptimalRate().data;
+  const isLiquidityHubTrade = useIsLiquidityHubTrade();
+  const quote = acceptedQuote || _quote;
+  const optimalRate = acceptedOptimalRate || _optimalRate;
+
+  const lhAmountOutExact = useToExactAmount(
+    acceptedQuote?.outAmount || quote?.outAmount,
+    outToken?.decimals
+  );
+
+  const lhSrcUsd = useUsdAmount(inToken?.address, inputAmount);
+  const lhDestUsd = useUsdAmount(outToken?.address, lhAmountOutExact);
+  const srcUSD = isLiquidityHubTrade ? lhSrcUsd : optimalRate?.srcUSD;
+  const destUSD = isLiquidityHubTrade ? lhDestUsd : optimalRate?.destUSD;
 
   return useMemo(() => {
-    if (!isLiquidityHubTrade) {
-      return {
-        srcUSD: optimalRate?.srcUSD,
-        destUSD: optimalRate?.destUSD,
-      };
-    }
     return {
-      srcUSD: BN(inputAmount)
-        .multipliedBy(srcUSD || 0)
-        .toString(),
-      destUSD: BN(toExactAmount(quote?.outAmount, outToken?.decimals))
-        .multipliedBy(destUSD || 0)
-        .toString(),
+      srcUSD,
+      destUSD,
     };
-  }, [
-    isLiquidityHubTrade,
-    srcUSD,
-    destUSD,
-    optimalRate,
-    quote,
-    inputAmount,
-    outToken?.decimals,
-  ]);
+  }, [srcUSD, destUSD]);
 };
 
 const SubmitSwapButton = ({
@@ -241,9 +238,10 @@ const Details = () => {
   const quote = useLiquidityHubQuote().data;
   const address = useAccount().address;
   const {
-    state: { outToken, isLiquidityHubTrade },
+    state: { outToken },
   } = useLiquidityHubSwapContext();
   const outTokenUsd = usePriceUsd(outToken?.address).data;
+  const isLiquidityHubTrade = useIsLiquidityHubTrade();
 
   const gasPrice = useMemo(() => {
     if (!isLiquidityHubTrade) {
@@ -289,308 +287,3 @@ const Details = () => {
     </div>
   );
 };
-
-export const useParaswapSwapCallback = (
-  updateSwapProgressState: (value: Partial<SwapProgressState>) => void
-) => {
-  const buildParaswapTxCallback = useParaswapBuildTxCallback();
-  const optimalRate = useOptimalRate().data;
-  const {
-    state: { inToken },
-  } = useLiquidityHubSwapContext();
-  const { slippage } = useAppState();
-  const wToken = useNetwork()?.wToken.address;
-  const requiresApproval = useParaswapApproval().requiresApproval;
-  
-  const { address } = useAccount();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!address) {
-        throw new Error("Wallet not connected");
-      }
-
-      if (!inToken) {
-        throw new Error("Input token not found");
-      }
-
-      if (!optimalRate) {
-        throw new Error("No optimal rate found");
-      }
-      if (!wToken) {
-        throw new Error("WToken not found");
-      }
-
-      try {
-        updateSwapProgressState({ swapStatus: SwapStatus.LOADING });
-
-        const steps = getSteps({
-          inTokenAddress: inToken.address,
-          requiresApproval,
-          noWrap: true,
-        });
-        updateSwapProgressState({ steps });
-        if (requiresApproval) {
-          updateSwapProgressState({ currentStep: SwapSteps.Approve });
-          await approveAllowance(
-            address,
-            isNativeAddress(inToken.address) ? wToken : inToken.address,
-            optimalRate.tokenTransferProxy as Address
-          );
-        }
-
-        updateSwapProgressState({ currentStep: SwapSteps.Swap });
-
-        let txPayload: unknown | null = null;
-
-        try {
-          const txData = await buildParaswapTxCallback(optimalRate, slippage);
-
-          txPayload = {
-            account: txData.from as Address,
-            to: txData.to as Address,
-            data: txData.data as `0x${string}`,
-            gasPrice: BigInt(txData.gasPrice),
-            gas: txData.gas ? BigInt(txData.gas) : undefined,
-            value: BigInt(txData.value),
-          };
-        } catch (error) {
-          // Handle error in UI
-          console.error(error);
-
-          updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
-        }
-
-        if (!txPayload) {
-          updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
-
-          throw new Error("Failed to build transaction");
-        }
-
-        console.log("Swapping...");
-
-        await estimateGas(wagmiConfig, txPayload);
-
-        const txHash = await sendTransaction(wagmiConfig, txPayload);
-
-        await waitForConfirmations(txHash, 1, 20);
-
-        updateSwapProgressState({ swapStatus: SwapStatus.SUCCESS });
-
-        return txHash;
-      } catch (error) {
-        console.error(error);
-        updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
-        toast.error("An error occurred while swapping");
-        throw error;
-      }
-    },
-  });
-};
-
-// Analytics events are optional for integration but are useful for your business insights
-type AnalyticsEvents = {
-  onRequest: () => void;
-  onSuccess: (result?: string) => void;
-  onFailure: (error: string) => void;
-};
-
-async function wrapTokenCallback(
-  quote: Quote,
-  analyticsEvents: AnalyticsEvents
-) {
-  try {
-    console.log("Wrapping token...");
-    analyticsEvents.onRequest();
-
-    // Perform the deposit contract function
-    const txHash = await wrapToken(quote.user, quote.inAmount);
-
-    // Check for confirmations for a maximum of 20 seconds
-    await waitForConfirmations(txHash, 1, 20);
-    console.log("Token wrapped");
-    analyticsEvents.onSuccess();
-
-    return txHash;
-  } catch (error) {
-    analyticsEvents.onFailure(
-      getErrorMessage(error, "An error occurred while wrapping your token")
-    );
-    throw error;
-  }
-}
-
-async function approveCallback(
-  account: string,
-  inToken: string,
-  analyticsEvents: AnalyticsEvents
-) {
-  try {
-    analyticsEvents.onRequest();
-    // Perform the approve contract function
-    const txHash = await approveAllowance(account, inToken, permit2Address);
-
-    analyticsEvents.onSuccess(txHash);
-    return txHash;
-  } catch (error) {
-    analyticsEvents.onFailure(
-      getErrorMessage(error, "An error occurred while approving the allowance")
-    );
-    throw error;
-  }
-}
-
-async function signTransaction(quote: Quote, analyticsEvents: AnalyticsEvents) {
-  // Encode the payload to get signature
-  const { permitData } = quote;
-  const populated = await _TypedDataEncoder.resolveNames(
-    permitData.domain,
-    permitData.types,
-    permitData.values,
-    async (name: string) => name
-  );
-  const payload = _TypedDataEncoder.getPayload(
-    populated.domain,
-    permitData.types,
-    populated.value
-  );
-
-  try {
-    console.log("Signing transaction...");
-    analyticsEvents.onRequest();
-
-    // Sign transaction and get signature
-    const signature = await promiseWithTimeout<string>(
-      (signTypedData as any)(wagmiConfig, payload),
-      40_000
-    );
-
-    console.log("Transaction signed");
-    analyticsEvents.onSuccess(signature);
-
-    return signature;
-  } catch (error) {
-    console.error(error);
-
-    analyticsEvents.onFailure(
-      getErrorMessage(error, "An error occurred while getting the signature")
-    );
-    throw error;
-  }
-}
-
-export function useLiquidityHubSwapCallback(
-  updateSwapProgressState: (partial: Partial<SwapProgressState>) => void
-) {
-  const {
-    sdk: liquidityHub,
-    state: { inToken },
-    updateState,
-  } = useLiquidityHubSwapContext();
-  const { slippage } = useAppState();
-
-  const buildParaswapTxCallback = useParaswapBuildTxCallback();
-  const optimalRate = useOptimalRate().data;
-  const { getLatestQuote, data: quote } = useLiquidityHubQuote();
-  const requiresApproval = useLiquidityHubApproval().requiresApproval;
-
-  const inTokenAddress = inToken?.address;
-
-  return useMutation({
-    mutationFn: async () => {
-      // Fetch latest quote just before swap
-      if (!inTokenAddress) {
-        throw new Error("In token address is not set");
-      }
-
-      if (!quote || !optimalRate) {
-        throw new Error("Quote or optimal rate is not set");
-      }
-      // Set swap status for UI
-      updateSwapProgressState({ swapStatus: SwapStatus.LOADING });
-
-      try {
-        // Check if the inToken needs approval for allowance
-
-        // Get the steps required for swap e.g. [Wrap, Approve, Swap]
-        const steps = getSteps({
-          inTokenAddress,
-          requiresApproval,
-        });
-
-        updateSwapProgressState({ steps });
-
-        // If the inToken needs to be wrapped then wrap
-        if (steps.includes(SwapSteps.Wrap)) {
-          updateSwapProgressState({ currentStep: SwapSteps.Wrap });
-          await wrapTokenCallback(quote, {
-            onRequest: liquidityHub.analytics.onWrapRequest,
-            onSuccess: liquidityHub.analytics.onWrapSuccess,
-            onFailure: liquidityHub.analytics.onWrapFailure,
-          });
-        }
-
-        // If an appropriate allowance for inToken has not been approved
-        // then get user to approve
-        if (steps.includes(SwapSteps.Approve)) {
-          updateSwapProgressState({ currentStep: SwapSteps.Approve });
-          await approveCallback(quote.user, quote.inToken, {
-            onRequest: liquidityHub.analytics.onApprovalRequest,
-            onSuccess: liquidityHub.analytics.onApprovalSuccess,
-            onFailure: liquidityHub.analytics.onApprovalFailed,
-          });
-        }
-
-        // Fetch the latest quote again after the approval
-        const latestQuote = await getLatestQuote();
-        updateState({ acceptedQuote: latestQuote });
-
-        // Set the current step to swap
-        updateSwapProgressState({ currentStep: SwapSteps.Swap });
-
-        // Sign the transaction for the swap
-        const signature = await signTransaction(latestQuote, {
-          onRequest: liquidityHub.analytics.onSignatureRequest,
-          onSuccess: (signature) =>
-            liquidityHub.analytics.onSignatureSuccess(signature || ""),
-          onFailure: liquidityHub.analytics.onSignatureFailed,
-        });
-        updateState({ signature });
-
-        // Pass the liquidity provider txData if possible
-        let paraswapTxData: TransactionParams | undefined;
-
-        try {
-          paraswapTxData = await buildParaswapTxCallback(optimalRate, slippage);
-        } catch (error) {
-          console.error(error);
-        }
-
-        console.log("Swapping...");
-        // Call Liquidity Hub sdk swap and wait for transaction hash
-        const txHash = await liquidityHub.swap(
-          latestQuote,
-          signature as string,
-          {
-            data: paraswapTxData?.data,
-            to: paraswapTxData?.to,
-          }
-        );
-
-        if (!txHash) {
-          throw new Error("Swap failed");
-        }
-
-        // Fetch the successful transaction details
-        await liquidityHub.getTransactionDetails(txHash, latestQuote);
-
-        console.log("Swapped");
-        updateSwapProgressState({ swapStatus: SwapStatus.SUCCESS });
-      } catch (error) {
-        updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
-
-        throw error;
-      }
-    },
-  });
-}

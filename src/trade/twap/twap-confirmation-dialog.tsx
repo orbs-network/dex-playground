@@ -3,7 +3,6 @@ import { SwapSteps } from "@/types";
 import { useCallback, useMemo } from "react";
 import {
   SwapConfirmationDialog,
-  SwapProgressState,
   useSwapProgress,
 } from "../swap-confirmation-dialog";
 import {
@@ -15,28 +14,10 @@ import {
 import { useTwapContext } from "./context";
 import { format, useGetRequiresApproval } from "@/lib";
 import { OrderDetails } from "@/components/order-details";
-import { useNetwork, useToExactAmount } from "../hooks";
-import { useAccount } from "wagmi";
+import { useToExactAmount } from "../hooks";
 import { SwapStatus } from "@orbs-network/swap-ui";
-import { Address, hexToNumber } from "viem";
-import {
-  getSteps,
-  isNativeAddress,
-  isTxRejected,
-  wagmiConfig,
-  waitForConfirmations,
-} from "@/lib";
-import { approveAllowance } from "@/lib/approveAllowance";
-import { wrapToken } from "@/lib/wrapToken";
-import { TwapAbi, zeroAddress } from "@orbs-network/twap-sdk";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import {
-  getTransactionReceipt,
-  simulateContract,
-  writeContract,
-} from "wagmi/actions";
-import { useWaitForNewOrderCallback } from "./orders/use-orders-query";
+import { Address } from "viem";
+import { useSubmitOrderCallback } from "./useSubmitOrderCallback";
 
 export function TwapConfirmationDialog({
   isOpen,
@@ -60,7 +41,7 @@ export function TwapConfirmationDialog({
     inToken?.address,
     parsedInputAmount
   );
-  const { mutate: onCreateOrder } = useCreateOrder(
+  const { mutate: onCreateOrder } = useSubmitOrderCallback(
     updateState,
     requiresApproval
   );
@@ -199,154 +180,3 @@ const TradePrice = () => {
     </OrderDetails.Detail>
   );
 };
-
-const useWrapCallback = () => {
-  const { twapSDK } = useTwapContext();
-
-  return useCallback(
-    async (account: string, inAmount: string) => {
-      try {
-        twapSDK.analytics.onWrapRequest();
-        await wrapToken(account, inAmount);
-        twapSDK.analytics.onWrapSuccess();
-      } catch (error) {
-        twapSDK.analytics.onWrapError(error);
-        throw error;
-      }
-    },
-    [twapSDK]
-  );
-};
-
-const useApproveCallback = () => {
-  const { twapSDK } = useTwapContext();
-  const wToken = useNetwork()?.wToken.address;
-  return useCallback(
-    async (account: string, inTokenAddress: string) => {
-      try {
-        twapSDK.analytics.onApproveRequest();
-
-        const tokenAddress = isNativeAddress(inTokenAddress)
-          ? wToken
-          : inTokenAddress;
-
-        if (!tokenAddress) {
-          throw new Error("Token address not found");
-        }
-
-        await approveAllowance(
-          account,
-          tokenAddress,
-          twapSDK.config.twapAddress as Address
-        );
-        twapSDK.analytics.onApproveSuccess();
-      } catch (error) {
-        twapSDK.analytics.onApproveError(error);
-        throw error;
-      }
-    },
-    [twapSDK]
-  );
-};
-
-function useCreateOrder(
-  updateState: (state: Partial<SwapProgressState>) => void,
-  requiresApproval: boolean
-) {
-  const {
-    twapSDK,
-    parsedInputAmount,
-    state: {
-      values: { inToken, outToken },
-    },
-  } = useTwapContext();
-  const derivedValues = useDerivedTwapSwapData();
-  const { address: account } = useAccount();
-  const { mutateAsync: waitForNewOrder } = useWaitForNewOrderCallback();
-  const wrapTokenCallback = useWrapCallback();
-  const approveAllowanceCallback = useApproveCallback();
-  const wToken = useNetwork()?.wToken.address;
-  return useMutation({
-    mutationFn: async () => {
-      try {
-        const srcTokenAddress = isNativeAddress(inToken?.address)
-          ? wToken
-          : inToken?.address;
-        if (
-          !inToken ||
-          !account ||
-          !parsedInputAmount ||
-          !outToken ||
-          !srcTokenAddress
-        ) {
-          throw new Error("Missing required dependencies");
-        }
-
-        updateState({ swapStatus: SwapStatus.LOADING });
-
-        const steps = getSteps({
-          inTokenAddress: inToken.address,
-          requiresApproval,
-        });
-        updateState({ steps });
-
-        if (steps.includes(SwapSteps.Wrap)) {
-          updateState({ currentStep: SwapSteps.Wrap });
-          await wrapTokenCallback(account, parsedInputAmount);
-          // wrap
-        }
-
-        if (steps.includes(SwapSteps.Approve)) {
-          updateState({ currentStep: SwapSteps.Approve });
-          await approveAllowanceCallback(account, inToken.address);
-        }
-
-        updateState({ currentStep: SwapSteps.Swap });
-        const askParams = twapSDK
-          .prepareOrderArgs({
-            fillDelay: derivedValues.fillDelay,
-            deadline: derivedValues.deadline,
-            srcAmount: parsedInputAmount ?? "0",
-            destTokenMinAmount: derivedValues.destTokenMinAmount,
-            srcChunkAmount: derivedValues.srcChunkAmount,
-            srcTokenAddress,
-            destTokenAddress: isNativeAddress(outToken?.address)
-              ? zeroAddress
-              : outToken.address,
-          })
-          .map((it) => it.toString());
-
-        twapSDK.analytics.onCreateOrderRequest(askParams, account);
-        const simulatedData = await simulateContract(wagmiConfig, {
-          abi: TwapAbi,
-          functionName: "ask",
-          account: account as Address,
-          address: twapSDK.config.twapAddress as Address,
-          args: [askParams],
-        });
-
-        const hash = await writeContract(wagmiConfig, simulatedData.request);
-        await waitForConfirmations(hash, 1, 20);
-        const receipt = await getTransactionReceipt(wagmiConfig, {
-          hash,
-        });
-
-        const orderID = hexToNumber(receipt.logs[0].topics[1]!);
-
-        await waitForNewOrder(orderID);
-        twapSDK.analytics.onCreateOrderSuccess(hash);
-        toast.success("Order created successfully!");
-        updateState({ swapStatus: SwapStatus.SUCCESS });
-
-        return receipt;
-      } catch (error) {
-        if (isTxRejected(error)) {
-          updateState({ swapStatus: undefined });
-        } else {
-          twapSDK.analytics.onCreateOrderError(error);
-          updateState({ swapStatus: SwapStatus.FAILED });
-        }
-      }
-    },
-  });
-}

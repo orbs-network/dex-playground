@@ -23,7 +23,7 @@ export function useGetRequiresApproval(
     args: [account as Address, contractAddress],
     query: { enabled: Boolean(inTokenAddress && address && contractAddress) },
   });
-
+  
   return {
     requiresApproval: (allowance || 0n) < BigInt(inAmount || 0),
     approvalLoading: isLoading,

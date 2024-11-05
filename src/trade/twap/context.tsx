@@ -16,6 +16,7 @@ import {
   useReducer,
   useState,
 } from "react";
+import { useAccount } from "wagmi";
 import { useToRawAmount } from "../hooks";
 
 interface Context {
@@ -59,8 +60,7 @@ type TwapState = {
   isTradePriceInverted?: boolean;
 };
 
-const initialState = {typedAmount: ''} as TwapState;
-
+const initialState = { typedAmount: "" } as TwapState;
 const useTwapState = () => {
   const [_values, dispatch] = useReducer(
     (state: TwapState, action: Action<TwapState>) =>
@@ -70,15 +70,13 @@ const useTwapState = () => {
 
   const defaultTokens = useDefaultTokens();
 
-
   const values = useMemo(() => {
     return {
       ..._values,
       inToken: _values.inToken || defaultTokens?.inToken || null,
       outToken: _values.outToken || defaultTokens?.outToken || null,
-    }
-  }, [_values, defaultTokens?.inToken, defaultTokens?.outToken])
-
+    };
+  }, [_values, defaultTokens?.inToken, defaultTokens?.outToken]);
 
   const updateState = useCallback(
     (payload: Partial<TwapState>) => {
@@ -98,6 +96,16 @@ const useTwapState = () => {
   };
 };
 
+const useConfig = () => {
+  const chainId = useAccount().chainId;
+  return useMemo(
+    () =>
+      Object.values(Configs).find((it: any) => it.chainId === chainId) ||
+      Configs.QuickSwap,
+    [chainId]
+  );
+};
+
 export const TwapContextProvider = ({
   children,
   isLimitPanel = false,
@@ -106,11 +114,18 @@ export const TwapContextProvider = ({
   isLimitPanel?: boolean;
 }) => {
   const state = useTwapState();
+  const chainId = useAccount()?.chainId;
+
   const [currentTime, setCurrentTime] = useState(Date.now());
-  const twapSDK = useMemo(
-    () => constructSDK({ config: Configs.QuickSwap }),
-    []
-  );
+  const config = useConfig();
+  
+  const twapSDK = useMemo(() => constructSDK({ config }), [config]);
+
+  useEffect(() => {
+    if (chainId) {
+      state.resetState();
+    }
+  }, [chainId]);
 
   useEffect(() => {
     setInterval(() => {
