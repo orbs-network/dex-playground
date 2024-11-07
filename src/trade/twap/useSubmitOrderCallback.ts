@@ -39,7 +39,7 @@ const useCreateOrder = () => {
       const askParams = twapSDK
         .prepareOrderArgs({
           fillDelay: derivedValues.fillDelay,
-          deadline: 1733401003000,
+          deadline: derivedValues.deadline,
           srcAmount: parsedInputAmount ?? "0",
           destTokenMinAmount: derivedValues.destTokenMinAmount,
           srcChunkAmount: derivedValues.srcChunkAmount,

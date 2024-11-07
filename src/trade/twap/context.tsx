@@ -98,6 +98,7 @@ const useTwapState = () => {
 
 const useConfig = () => {
   const chainId = useAccount().chainId;
+
   return useMemo(
     () =>
       Object.values(Configs).find((it: any) => it.chainId === chainId) ||
@@ -118,7 +119,7 @@ export const TwapContextProvider = ({
 
   const [currentTime, setCurrentTime] = useState(Date.now());
   const config = useConfig();
-  
+
   const twapSDK = useMemo(() => constructSDK({ config }), [config]);
 
   useEffect(() => {
