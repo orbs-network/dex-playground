@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface AppStore {
   slippage: number;
@@ -12,7 +12,7 @@ export const useAppState = create(
       setSlippage: (slippage: number) => set({ slippage }),
     }),
     {
-      name: "main-store",
+      name: 'main-store',
     }
   )
 );

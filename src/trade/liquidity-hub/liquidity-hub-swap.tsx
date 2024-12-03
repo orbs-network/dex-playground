@@ -1,23 +1,19 @@
-import { TokenCard } from "@/components/tokens/token-card";
-import { SwitchButton } from "@/components/ui/switch-button";
-import { useCallback, useMemo } from "react";
-import { useAccount } from "wagmi";
-import { Button } from "@/components/ui/button";
-import { _TypedDataEncoder } from "@ethersproject/hash";
-import { Token } from "@/types";
-import { ErrorCodes } from "@/lib";
-import "../style.css";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
-import {
-  LiquidityHubSwapProvider,
-  useLiquidityHubSwapContext,
-} from "./context";
-import { useToExactAmount } from "../hooks";
-import { LiquidityHubConfirmationDialog } from "./liquidity-hub-confirmation-dialog";
-import { useLiquidityHubInputError, useOptimalRate } from "./hooks";
-import { SwapDetails } from "./swap-details";
-import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
-import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
+import { TokenCard } from '@/components/tokens/token-card';
+import { SwitchButton } from '@/components/ui/switch-button';
+import { useCallback, useMemo } from 'react';
+import { useAccount } from 'wagmi';
+import { Button } from '@/components/ui/button';
+import { Token } from '@/types';
+import { ErrorCodes } from '@/lib';
+import '../style.css';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { LiquidityHubSwapProvider } from './context';
+import { useToExactAmount } from '../hooks';
+import { LiquidityHubConfirmationDialog } from './liquidity-hub-confirmation-dialog';
+import { useLiquidityHubInputError, useOptimalRate } from './hooks';
+import { SwapDetails } from './swap-details';
+import { useIsLiquidityHubTrade } from './useIsLiquidityHubTrade';
+import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 
 function SwapPanel() {
   return (
@@ -44,7 +40,7 @@ const Switch = () => {
     updateState({
       inToken: outToken,
       outToken: inToken,
-      inputAmount: "",
+      inputAmount: '',
     });
   }, [inToken, outToken, updateState]);
 
@@ -58,8 +54,7 @@ const Switch = () => {
 const ShowConfirmationButton = () => {
   const account = useAccount().address;
   const openConnectModal = useConnectModal().openConnectModal;
-  const { data: liquidityHubQuote } = useLiquidityHubQuote();
-  const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
+  const { data: optimalRate } = useOptimalRate();
   const inputError = useLiquidityHubInputError();
   const proceedWithLiquidityHub = useIsLiquidityHubTrade();
 
@@ -75,40 +70,32 @@ const ShowConfirmationButton = () => {
   const { text, onClick } = useMemo(() => {
     if (!account) {
       return {
-        text: "Connect wallet",
+        text: 'Connect wallet',
         onClick: openConnectModal,
       };
     }
     if (inputError === ErrorCodes.InsufficientBalance) {
       return {
-        text: "Insufficient balance",
+        text: 'Insufficient balance',
       };
     }
     if (inputError === ErrorCodes.EnterAmount) {
       return {
-        text: "Enter amount",
+        text: 'Enter amount',
       };
     }
 
     if (!optimalRate && inputAmount) {
       return {
-        text: "Fetching rate...",
+        text: 'Fetching rate...',
       };
     }
 
     return {
-      text: "Swap",
+      text: 'Swap',
       onClick: onOpenConfirmation,
     };
-  }, [
-    inputError,
-    inputAmount,
-    liquidityHubQuote,
-    optimalRate,
-    optimalRateLoading,
-    openConnectModal,
-    onOpenConfirmation,
-  ]);
+  }, [account, inputError, optimalRate, inputAmount, onOpenConfirmation, openConnectModal]);
 
   return (
     <Button className="mt-2" size="lg" onClick={onClick} disabled={!onClick}>
@@ -158,10 +145,7 @@ const OutTokenCard = () => {
     state: { outToken },
     updateState,
   } = useLiquidityHubSwapContext();
-  const destAmount = useToExactAmount(
-    optimalRate?.destAmount,
-    outToken?.decimals
-  );
+  const destAmount = useToExactAmount(optimalRate?.destAmount, outToken?.decimals);
 
   const onSelectToken = useCallback(
     (outToken: Token) => {
@@ -173,7 +157,7 @@ const OutTokenCard = () => {
   return (
     <TokenCard
       label="Buy"
-      amount={destAmount ?? ""}
+      amount={destAmount ?? ''}
       amountUsd={optimalRate?.destUSD}
       selectedToken={outToken}
       onSelectToken={onSelectToken}

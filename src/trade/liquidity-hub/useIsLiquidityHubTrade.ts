@@ -1,8 +1,8 @@
-import { useMemo } from "react";
-import { useLiquidityHubSwapContext } from "./context";
-import { useParaswapMinAmountOut } from "./hooks";
-import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
-import BN from "bignumber.js";
+import { useMemo } from 'react';
+import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
+import { useParaswapMinAmountOut } from './hooks';
+import { useLiquidityHubQuote } from './useLiquidityHubQuote';
+import BN from 'bignumber.js';
 
 export const useIsLiquidityHubTrade = () => {
   const {
@@ -22,8 +22,12 @@ export const useIsLiquidityHubTrade = () => {
     }
     if (liquidityHubDisabled) return false;
 
-    return BN(liquidityHubQuote?.minAmountOut || 0).gt(
-      paraswapMinAmountOut || 0
-    );
-  }, [forceLiquidityHub, liquidityHubDisabled, liquidityHubQuote?.minAmountOut, paraswapMinAmountOut, proceedWithLiquidityHub]);
+    return BN(liquidityHubQuote?.minAmountOut || 0).gt(paraswapMinAmountOut || 0);
+  }, [
+    forceLiquidityHub,
+    liquidityHubDisabled,
+    liquidityHubQuote?.minAmountOut,
+    paraswapMinAmountOut,
+    proceedWithLiquidityHub,
+  ]);
 };

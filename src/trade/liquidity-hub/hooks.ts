@@ -11,7 +11,7 @@ import { permit2Address } from "@orbs-network/liquidity-hub-sdk";
 import { useMemo, useCallback } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { useLiquidityHubSwapContext } from "./context";
+import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { QUOTE_REFETCH_INTERVAL } from "./consts";
 
 
@@ -59,7 +59,7 @@ const useNetwork = () => {
 
 const useNativeOrWrapped = (address?: string) => {
   const callback = useNativeOrWrappedAddressCallback();
-  return useMemo(() => callback(address), [address]);
+  return useMemo(() => callback(address), [address, callback]);
 };
 
 const useNativeOrWrappedAddressCallback = () => {

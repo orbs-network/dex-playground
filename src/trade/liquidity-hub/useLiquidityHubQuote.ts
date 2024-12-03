@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useNetwork } from "../hooks";
 import { QUOTE_REFETCH_INTERVAL } from "./consts";
-import { useLiquidityHubSwapContext } from "./context";
+import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useParaswapMinAmountOut } from "./hooks";
 
 export function useLiquidityHubQuote() {

@@ -11,7 +11,7 @@ export function PriceToggle() {
 
   const onMarketOrderChange = useCallback((isMarketOrder: boolean) => {
     updateState({ isMarketOrder });
-  }, []);
+  }, [updateState]);
 
   if(isLimitPanel) return null;
   return (

@@ -13,7 +13,7 @@ import {
   useUsdAmount,
 } from "@/lib";
 import { useAccount } from "wagmi";
-import { useLiquidityHubSwapContext } from "./context";
+import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import {
   useLiquidityHubApproval,
   useOptimalRate,
@@ -23,7 +23,6 @@ import {
   SwapConfirmationDialog,
   useSwapProgress,
 } from "../swap-confirmation-dialog";
-import { _TypedDataEncoder } from "@ethersproject/hash";
 import { useToExactAmount } from "../hooks";
 import { useLiquidityHubSwapCallback } from "./useLiquidityHubSwapCallback";
 import { useParaswapSwapCallback } from "./useParaswapSwapCallback";
@@ -100,12 +99,7 @@ export function LiquidityHubConfirmationDialog() {
     } else {
       swapWithLiquidityHub();
     }
-  }, [
-    isLiquidityHubTrade,
-    swapWithLiquidityHub,
-    swapWithParaswap,
-    updateProgressState,
-  ]);
+  }, [isLiquidityHubTrade, swapWithLiquidityHub, swapWithParaswap]);
 
   const onClose = useCallback(() => {
     updateState({
@@ -121,13 +115,7 @@ export function LiquidityHubConfirmationDialog() {
     setTimeout(() => {
       resetProgressState();
     }, 5_00);
-  }, [
-    progressState.swapStatus,
-    progressState.currentStep,
-    resetProgressState,
-    updateState,
-    refetchBalances,
-  ]);
+  }, [progressState.swapStatus, resetProgressState, updateState, refetchBalances]);
 
   const usd = useUSD();
   const outAmount = useOutAmount();

@@ -14,7 +14,7 @@ import { TransactionParams } from "@paraswap/sdk";
 import { useMutation } from "@tanstack/react-query";
 import { useSignTypedData } from "wagmi";
 import { SwapProgressState } from "../swap-confirmation-dialog";
-import { useLiquidityHubSwapContext } from "./context";
+import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useOptimalRate, useLiquidityHubApproval } from "./hooks";
 import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
 

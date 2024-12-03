@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useAccount, useSendTransaction } from "wagmi";
 import { useNetwork } from "../hooks";
 import { SwapProgressState } from "../swap-confirmation-dialog";
-import { useLiquidityHubSwapContext } from "./context";
+import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useOptimalRate, useParaswapApproval } from "./hooks";
 
 export const useParaswapSwapCallback = (
@@ -78,7 +78,9 @@ export const useParaswapSwapCallback = (
           if (result.data) {
             acceptedOptimalRate = result.data;
           }
-        } catch (error) {}
+        } catch (error) {
+          console.error(error);
+        }
 
         updateState({ acceptedOptimalRate });
 

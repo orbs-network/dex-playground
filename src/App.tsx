@@ -1,8 +1,8 @@
-import { Header } from "@/components/header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { SwapLiquidityHub } from "./trade/liquidity-hub/liquidity-hub-swap";
-import { Settings } from "./trade/settings";
-import { SwapTwap, SwapLimit } from "./trade/twap/twap";
+import { Header } from '@/components/header';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { SwapLiquidityHub } from './trade/liquidity-hub/liquidity-hub-swap';
+import { Settings } from './trade/settings';
+import { SwapTwap, SwapLimit } from './trade/twap/twap';
 
 export function App() {
   return (
