@@ -19,7 +19,7 @@ export function useOrdersQuery() {
   return useQuery({
     queryKey,
     queryFn: async ({ signal }) => {
-      const orders = await twapSDK.getOrders(address!, signal);
+      const orders = await twapSDK.getUserOrders({ account: address!, signal });
       
       return orders;
     },

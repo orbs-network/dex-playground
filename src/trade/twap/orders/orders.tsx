@@ -147,10 +147,10 @@ const useCancelOrder = () => {
     mutationFn: async (orderID: number) => {
       twapSDK.analytics.onCancelOrderRequest(orderID);
 
-      const hash = await (writeContractAsync as any)({
+      const hash = await (writeContractAsync)({
         abi: TwapAbi,
         functionName: "cancel",
-        address: twapSDK.config.twapAddress as any,
+        address: twapSDK.config.twapAddress,
         account,
         args: [orderID],
       });
@@ -377,7 +377,7 @@ export const SelectedOrderDetails = ({
   const executionPrice = useMemo(() => {
     if (!inToken || !outToken) return;
     return order.getExcecutionPrice(inToken.decimals, outToken.decimals);
-  }, [inToken, outToken]);
+  }, [inToken, order, outToken]);
 
   const limitPrice = useMemo(() => {
     if (!inToken || !outToken) return;
@@ -386,7 +386,7 @@ export const SelectedOrderDetails = ({
     return `1 ${inToken.symbol} = ${format.crypto(Number(price))} ${
       outToken.symbol
     }`;
-  }, [inToken, outToken]);
+  }, [inToken, order, outToken]);
 
   return (
     <RadixAccordion.Root type="single">
