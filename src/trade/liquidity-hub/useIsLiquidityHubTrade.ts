@@ -6,12 +6,16 @@ import BN from "bignumber.js";
 
 export const useIsLiquidityHubTrade = () => {
   const {
-    state: { liquidityHubDisabled, proceedWithLiquidityHub },
+    state: { liquidityHubDisabled, proceedWithLiquidityHub, forceLiquidityHub },
   } = useLiquidityHubSwapContext();
   const liquidityHubQuote = useLiquidityHubQuote().data;
   const paraswapMinAmountOut = useParaswapMinAmountOut();
 
   return useMemo(() => {
+    if (forceLiquidityHub) {
+      return true;
+    }
+
     // Choose between liquidity hub and dex swap based on the min amount out
     if (proceedWithLiquidityHub) {
       return true;
@@ -21,10 +25,5 @@ export const useIsLiquidityHubTrade = () => {
     return BN(liquidityHubQuote?.minAmountOut || 0).gt(
       paraswapMinAmountOut || 0
     );
-  }, [
-    liquidityHubDisabled,
-    liquidityHubQuote?.minAmountOut,
-    paraswapMinAmountOut,
-    proceedWithLiquidityHub,
-  ]);
+  }, [forceLiquidityHub, liquidityHubDisabled, liquidityHubQuote?.minAmountOut, paraswapMinAmountOut, proceedWithLiquidityHub]);
 };

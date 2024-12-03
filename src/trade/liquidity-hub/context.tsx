@@ -25,7 +25,7 @@ const initialState: State = {
   acceptedQuote: undefined,
   acceptedOptimalRate: undefined,
   liquidityHubDisabled: false,
-  forceLiquidityHub: false,
+  forceLiquidityHub: true,
   confirmationModalOpen: false,
   proceedWithLiquidityHub: false,
 };
@@ -65,6 +65,7 @@ interface ContextType {
 }
 
 const Context = createContext({} as ContextType);
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLiquidityHubSwapContext = () => {
   return useContext(Context);
 };
@@ -108,7 +109,7 @@ export const LiquidityHubSwapProvider = ({
     if(chainId) {
       resetState();
     }
-  }, [chainId])
+  }, [chainId, resetState])
   
 
 

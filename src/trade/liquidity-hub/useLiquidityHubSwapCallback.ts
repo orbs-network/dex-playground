@@ -66,7 +66,7 @@ export function useLiquidityHubSwapCallback(
         if (steps.includes(SwapSteps.Wrap)) {
           updateSwapProgressState({ currentStep: SwapSteps.Wrap });
           try {
-            liquidityHub.analytics.onWrapRequest;
+            liquidityHub.analytics.onWrapRequest();
             await wrap(quote.inAmount);
             liquidityHub.analytics.onWrapSuccess();
           } catch (error) {
@@ -88,7 +88,6 @@ export function useLiquidityHubSwapCallback(
               amount: quote.inAmount,
             });
             liquidityHub.analytics.onApprovalSuccess(txHash);
-            return txHash;
           } catch (error) {
             liquidityHub.analytics.onApprovalFailed((error as Error).message);
             throw error;
@@ -178,7 +177,7 @@ const useSign = () => {
       );
 
       const signature = await promiseWithTimeout<string>(
-        (signTypedDataAsync as any)(payload),
+        (signTypedDataAsync)(payload),
         40_000
       );
 
