@@ -22,7 +22,9 @@ export const useIsLiquidityHubTrade = () => {
     }
     if (liquidityHubDisabled) return false;
 
-    return BN(liquidityHubQuote?.minAmountOut || 0).gt(paraswapMinAmountOut || 0);
+    return BN(liquidityHubQuote?.userMinOutAmountWithGas || 0).gt(
+      paraswapMinAmountOut || 0
+    );
   }, [
     forceLiquidityHub,
     liquidityHubDisabled,

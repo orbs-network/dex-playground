@@ -20,10 +20,12 @@ import {
   useSortedTokens,
   useTokenBalance,
 } from "@/lib";
-import { useToExactAmount } from "@/trade/hooks";
+import { useToExactAmount, useToken } from "@/trade/hooks";
 import { Skeleton } from "../ui/skeleton";
 import { Virtuoso } from "react-virtuoso";
 import BN from "bignumber.js";
+
+
 
 type TokenSelectProps = {
   selectedToken: Token | undefined;
@@ -37,17 +39,25 @@ export function TokenSelect({
   const [open, setOpen] = useState(false);
   const tokens = useSortedTokens();
   const [filterInput, setFilterInput] = useState("");
+  const token = useToken(filterInput)
+  
 
   const filteredTokens = useMemo(() => {
     if (!filterInput) return tokens || [];
-    return (
+    const res = (
       tokens?.filter(
         (t) =>
           eqIgnoreCase(t.address, filterInput) ||
           t.symbol.toLowerCase().includes(filterInput.toLowerCase())
       ) || []
     );
-  }, [tokens, filterInput]);
+
+    return !token ? res : [...res, token]
+
+
+  }, [tokens, filterInput, token]);
+
+
 
   return (
     <Dialog modal={true} open={open} onOpenChange={(o) => setOpen(o)}>

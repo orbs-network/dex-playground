@@ -23,7 +23,7 @@ function getTextSize(amountLength: number) {
 export type TokenCardProps = {
   label: string;
   amount: string;
-  amountUsd?: string;
+  amountUsd?: any;
   selectedToken: Token | null;
   onSelectToken: (token: Token) => void;
   isAmountEditable?: boolean;
