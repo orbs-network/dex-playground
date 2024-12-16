@@ -3,11 +3,13 @@ import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { useParaswapMinAmountOut } from './hooks';
 import { useLiquidityHubQuote } from './useLiquidityHubQuote';
 import BN from 'bignumber.js';
+import { useAppState } from '@/store';
 
 export const useIsLiquidityHubTrade = () => {
   const {
-    state: { liquidityHubDisabled, proceedWithLiquidityHub, forceLiquidityHub },
+    state: { liquidityHubDisabled, proceedWithLiquidityHub },
   } = useLiquidityHubSwapContext();
+  const {forceLiquidityHub} = useAppState()
   const liquidityHubQuote = useLiquidityHubQuote().data;
   const paraswapMinAmountOut = useParaswapMinAmountOut();
 

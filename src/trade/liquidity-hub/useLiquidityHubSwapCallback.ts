@@ -18,6 +18,12 @@ import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useOptimalRate, useLiquidityHubApproval } from "./hooks";
 import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
 
+export const isRejectedError = (error: any) => {
+  const message = error.message?.toLowerCase();
+  return message?.includes('rejected') || message?.includes('denied');
+};
+
+
 export function useLiquidityHubSwapCallback(
   updateSwapProgressState: (values: Partial<SwapProgressState>) => void
 ) {
@@ -118,6 +124,7 @@ export function useLiquidityHubSwapCallback(
           updateState({ signature });
         } catch (error) {
           liquidityHub.analytics.onSignatureFailed((error as Error).message);
+          throw error;
         }
 
         // Pass the liquidity provider txData if possible
@@ -150,9 +157,13 @@ export function useLiquidityHubSwapCallback(
         console.log("Swapped");
         updateSwapProgressState({ swapStatus: SwapStatus.SUCCESS });
       } catch (error) {
-        updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
+        if(isRejectedError(error)) {
+          updateSwapProgressState({ swapStatus: undefined });
+        }else{
+          updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
+          throw error;
+        }
 
-        throw error;
       }
     },
   });

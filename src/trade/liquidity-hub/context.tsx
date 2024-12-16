@@ -13,7 +13,6 @@ const initialState: State = {
   acceptedQuote: undefined,
   acceptedOptimalRate: undefined,
   liquidityHubDisabled: false,
-  forceLiquidityHub: false,
   confirmationModalOpen: false,
   proceedWithLiquidityHub: false,
 };
@@ -24,7 +23,6 @@ interface State {
   inputAmount: string;
   acceptedQuote: Quote | undefined;
   liquidityHubDisabled: boolean;
-  forceLiquidityHub: boolean;
   signature?: string;
   confirmationModalOpen: boolean;
   proceedWithLiquidityHub: boolean;
@@ -88,13 +86,6 @@ export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) 
 
   const sdk = useMemo(() => constructSDK({ partner: 'widget', chainId }), [chainId]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const lh = params.get('lh');
-    if (lh) {
-      updateState({ forceLiquidityHub: true });
-    }
-  }, [updateState]);
 
   return (
     <LiquidityHubContext.Provider

@@ -1,16 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useAppState } from "@/store";
-import { SettingsIcon } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { useAppState } from '@/store';
+import { SettingsIcon } from 'lucide-react';
 
 export const Settings = () => {
-  const { slippage, setSlippage } = useAppState();
+  const { slippage, setSlippage, forceLiquidityHub, setForceLiquidityHub } = useAppState();
   return (
     <div className="flex justify-end">
       <Popover>
@@ -33,6 +30,15 @@ export const Settings = () => {
                   className="text-right w-16 [&::-webkit-inner-spin-button]:appearance-none p-2 h-7"
                 />
                 <div>%</div>
+              </div>
+            </div>
+            <div className="flex gap-4 items-center justify-between">
+              <Label htmlFor="slippage">Liquidity Hub only</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={forceLiquidityHub}
+                  onCheckedChange={() => setForceLiquidityHub(!forceLiquidityHub)}
+                />
               </div>
             </div>
           </div>
