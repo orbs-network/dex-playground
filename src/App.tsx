@@ -1,6 +1,6 @@
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { SwapLiquidityHub } from './trade/liquidity-hub/liquidity-hub-swap';
+import { Swap } from './trade/swap/swap';
 import { Settings } from './trade/settings';
 import { SwapTwap, SwapLimit } from './trade/twap/twap';
 
@@ -19,7 +19,7 @@ export function App() {
               <TabsTrigger value="limit">Limit</TabsTrigger>
             </TabsList>
             <TabsContent value="swap">
-              <SwapLiquidityHub />
+              <Swap />
             </TabsContent>
             <TabsContent value="twap">
               <SwapTwap />

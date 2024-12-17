@@ -1,19 +1,21 @@
 import { TokenCard } from '@/components/tokens/token-card';
 import { SwitchButton } from '@/components/ui/switch-button';
-import { useCallback, useMemo } from 'react';
-import { useAccount } from 'wagmi';
-import { Button } from '@/components/ui/button';
+import { useCallback } from 'react';
 import { Token } from '@/types';
-import { ErrorCodes } from '@/lib';
 import '../style.css';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { LiquidityHubSwapProvider } from './context';
 import { useToExactAmount } from '../hooks';
-import { LiquidityHubConfirmationDialog } from './liquidity-hub-confirmation-dialog';
-import { useLiquidityHubInputError, useOptimalRate } from './hooks';
+import {
+  useLiquidityHubInputError,
+  useOptimalRate,
+  useQuoteLoading,
+  useSwapOutAmount,
+} from './hooks';
 import { SwapDetails } from './swap-details';
-import { useIsLiquidityHubTrade } from './useIsLiquidityHubTrade';
 import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
+import { ConfirmSwap } from './confirm-swap';
+import { useAppState } from '@/store';
+import { useUsdAmount } from '@/lib';
 
 function SwapPanel() {
   return (
@@ -23,8 +25,7 @@ function SwapPanel() {
         <Switch />
         <OutTokenCard />
         <SwapDetails />
-        <LiquidityHubConfirmationDialog />
-        <ShowConfirmationButton />
+        <ConfirmSwap />
       </div>
     </div>
   );
@@ -51,65 +52,13 @@ const Switch = () => {
   );
 };
 
-const ShowConfirmationButton = () => {
-  const account = useAccount().address;
-  const openConnectModal = useConnectModal().openConnectModal;
-  const { data: optimalRate } = useOptimalRate();
-  const inputError = useLiquidityHubInputError();
-  const proceedWithLiquidityHub = useIsLiquidityHubTrade();
-
-  const {
-    state: { inputAmount },
-    updateState,
-  } = useLiquidityHubSwapContext();
-
-  const onOpenConfirmation = useCallback(() => {
-    updateState({ confirmationModalOpen: true, proceedWithLiquidityHub });
-  }, [updateState, proceedWithLiquidityHub]);
-
-  const { text, onClick } = useMemo(() => {
-    if (!account) {
-      return {
-        text: 'Connect wallet',
-        onClick: openConnectModal,
-      };
-    }
-    if (inputError === ErrorCodes.InsufficientBalance) {
-      return {
-        text: 'Insufficient balance',
-      };
-    }
-    if (inputError === ErrorCodes.EnterAmount) {
-      return {
-        text: 'Enter amount',
-      };
-    }
-
-    if (!optimalRate && inputAmount) {
-      return {
-        text: 'Fetching rate...',
-      };
-    }
-
-    return {
-      text: 'Swap',
-      onClick: onOpenConfirmation,
-    };
-  }, [account, inputError, optimalRate, inputAmount, onOpenConfirmation, openConnectModal]);
-
-  return (
-    <Button className="mt-2" size="lg" onClick={onClick} disabled={!onClick}>
-      {text}
-    </Button>
-  );
-};
 
 const InTokenCard = () => {
   const {
     state: { inputAmount, inToken },
     updateState,
   } = useLiquidityHubSwapContext();
-  const optimalRate = useOptimalRate().data;
+  const { isLiquidityHubOnly } = useAppState();
   const onSelectToken = useCallback(
     (inToken: Token) => {
       updateState({ inToken });
@@ -125,12 +74,14 @@ const InTokenCard = () => {
   );
 
   const inputError = useLiquidityHubInputError();
+  const lh = useUsdAmount(inToken?.address, inputAmount);
+  const paraswap = useOptimalRate().data;
 
   return (
     <TokenCard
       label="Sell"
       amount={inputAmount}
-      amountUsd={optimalRate?.srcUSD}
+      amountUsd={isLiquidityHubOnly ? lh : paraswap?.srcUSD}
       selectedToken={inToken}
       onSelectToken={onSelectToken}
       onValueChange={onValueChange}
@@ -140,12 +91,15 @@ const InTokenCard = () => {
 };
 
 const OutTokenCard = () => {
-  const { data: optimalRate, isLoading: optimalRateLoading } = useOptimalRate();
+  const paraswap = useOptimalRate().data?.destUSD;
   const {
     state: { outToken },
     updateState,
   } = useLiquidityHubSwapContext();
-  const destAmount = useToExactAmount(optimalRate?.destAmount, outToken?.decimals);
+  const destAmount = useToExactAmount(useSwapOutAmount(), outToken?.decimals);
+  console.log({destAmount});
+  
+  const { isLiquidityHubOnly } = useAppState();
 
   const onSelectToken = useCallback(
     (outToken: Token) => {
@@ -154,20 +108,23 @@ const OutTokenCard = () => {
     [updateState]
   );
 
+  const lh = useUsdAmount(outToken?.address, destAmount);
+
+  const isLoading = useQuoteLoading();
   return (
     <TokenCard
       label="Buy"
       amount={destAmount ?? ''}
-      amountUsd={optimalRate?.destUSD}
+      amountUsd={isLiquidityHubOnly ? lh : paraswap}
       selectedToken={outToken}
       onSelectToken={onSelectToken}
       isAmountEditable={false}
-      amountLoading={optimalRateLoading}
+      amountLoading={isLoading}
     />
   );
 };
 
-export const SwapLiquidityHub = () => {
+export const Swap = () => {
   return (
     <LiquidityHubSwapProvider>
       <SwapPanel />

@@ -1,15 +1,13 @@
 import { DataDetails } from "@/components/ui/data-details";
-import { toExactAmount, getLiquidityProviderName, format } from "@/lib";
+import { toExactAmount, format } from "@/lib";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useToExactAmount } from "../hooks";
 import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useOptimalRate, useParaswapMinAmountOut } from "./hooks";
-import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
 
  export function SwapDetails() {
-    const isLiquidityHubTrade = useIsLiquidityHubTrade();
     const optimalRate = useOptimalRate().data;
     const account = useAccount().address;
     const {
@@ -48,7 +46,6 @@ import { useIsLiquidityHubTrade } from "./useIsLiquidityHubTrade";
       "Min. Received": `${format.crypto(Number(minOutAmount))} ${
         outToken.symbol
       }`,
-      "Routing source": getLiquidityProviderName(isLiquidityHubTrade),
     };
   
     return (

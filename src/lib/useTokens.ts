@@ -1,17 +1,16 @@
-import { Token } from "@/types";
-import { getNetwork, networks } from "./networks";
-import { useQuery } from "@tanstack/react-query";
-import { getBalance, multicall } from "@wagmi/core";
-import { useAccount, useConfig } from "wagmi";
-import { erc20Abi, Address } from "viem";
-import { zeroAddress } from "@orbs-network/liquidity-hub-sdk";
-import { eqIgnoreCase } from "./utils";
-import { useMemo } from "react";
-import { tokenLists } from "./tokens";
+import { Token } from '@/types';
+import { getNetwork, networks } from './networks';
+import { useQuery } from '@tanstack/react-query';
+import { useAccount, useBalance, useReadContracts } from 'wagmi';
+import { erc20Abi } from 'viem';
+import { zeroAddress } from '@orbs-network/liquidity-hub-sdk';
+import { eqIgnoreCase } from './utils';
+import { useCallback, useMemo } from 'react';
+import { tokenLists } from './tokens';
 
 const getFantomTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   const res = await fetch(
-    "https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/ftm.json",
+    'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/ftm.json',
     { signal }
   );
   const data = await res.json();
@@ -28,7 +27,7 @@ const getFantomTokens = async (signal?: AbortSignal): Promise<Token[]> => {
 
 const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   const res = await fetch(
-    "https://raw.githubusercontent.com/dragonswap-app/assets/main/tokenlist-sei-mainnet.json",
+    'https://raw.githubusercontent.com/dragonswap-app/assets/main/tokenlist-sei-mainnet.json',
     { signal }
   );
   const data = await res.json();
@@ -36,7 +35,7 @@ const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   return data.tokens.map((token: any) => {
     return {
       address:
-        token.address === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+        token.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
           ? zeroAddress
           : token.address,
       symbol: token.symbol,
@@ -47,15 +46,9 @@ const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   });
 };
 
-const getSushiTokens = async (
-  chainId: number,
-  signal?: AbortSignal
-): Promise<Token[]> => {
-  const tokens = await fetch("https://token-list.sushi.com/", { signal }).then(
-    (res) =>
-      res
-        .json()
-        .then((it) => it.tokens.filter((it: any) => it.chainId === chainId))
+const getSushiTokens = async (chainId: number, signal?: AbortSignal): Promise<Token[]> => {
+  const tokens = await fetch('https://token-list.sushi.com/', { signal }).then((res) =>
+    res.json().then((it) => it.tokens.filter((it: any) => it.chainId === chainId))
   );
 
   return Object.values(tokens).map((token: any) => {
@@ -70,7 +63,7 @@ const getSushiTokens = async (
 };
 
 const getLineaTokens = async (signal?: AbortSignal): Promise<Token[]> => {
-  const tokens = await fetch("https://api.lynex.fi/api/v1/assets", { signal })
+  const tokens = await fetch('https://api.lynex.fi/api/v1/assets', { signal })
     .then((res) => res.json())
     .then((res) => res.data);
   return tokens.map((token: any) => {
@@ -130,10 +123,7 @@ const getBaseTokens = (): Token[] => {
   });
 };
 
-const fetchTokens = async (
-  chainId: number,
-  signal?: AbortSignal
-): Promise<Token[]> => {
+const fetchTokens = async (chainId: number, signal?: AbortSignal): Promise<Token[]> => {
   const network = getNetwork(chainId);
   if (!network) {
     throw new Error(`Network with chainId ${chainId} not found`);
@@ -153,7 +143,7 @@ const fetchTokens = async (
     case networks.sei.id:
       tokens = await getSeiTokens(signal);
       break;
-      case networks.base.id:
+    case networks.base.id:
       tokens = getBaseTokens();
       break;
 
@@ -162,7 +152,7 @@ const fetchTokens = async (
       break;
   }
 
-  tokens = addNativeToken(tokens, network);  
+  tokens = addNativeToken(tokens, network);
   return sortTokens(tokens, network);
 };
 
@@ -174,88 +164,94 @@ const useTokensList = () => {
       const response = await fetchTokens(chainId!, signal);
       return response;
     },
-    queryKey: ["useTokensList", chainId],
+    queryKey: ['useTokensList', chainId],
     staleTime: Infinity,
     enabled: !!chainId,
   });
 };
 
-type BalancesReponse = Record<string, string>;
-
 export const useTokenBalaces = () => {
   const { data: tokens } = useTokensList();
   const { address: account, chainId } = useAccount();
-
-  const config = useConfig();
-
-  return useQuery<BalancesReponse>({
-    queryKey: ["useBalances", chainId, account, tokens?.map((t) => t.address)],
-    queryFn: async () => {
-      if (!tokens) return {};
-
-      let native = await getBalance(config, {
-        address: account as Address,
-        chainId,
-      });
-
-      const addresses = tokens
-        .map((token) => token.address)
-        .filter((it) => !eqIgnoreCase(it, zeroAddress));
-
-      const multicallResponse = await (multicall as any)(config, {
-        contracts: addresses.map(
-          (address) =>
-            ({
-              chainId,
-              address,
-              abi: erc20Abi,
-              functionName: "balanceOf",
-              args: [account],
-            } as const)
-        ),
-      });
-
-      const balances = addresses.reduce(
-        (acc: any, address: any, index: number) => {
-          acc[address] = multicallResponse[index].result?.toString() || "0";
-          return acc;
-        },
-        {}
-      );
-
-      balances[zeroAddress] = native.value.toString();
-
-      return balances;
-    },
-    refetchInterval: 20_000,
-    staleTime: Infinity,
-    enabled: Boolean(chainId && account && tokens?.length),
+  const native = useBalance({
+    address: account,
+    chainId,
   });
+  const nativeBalance = native?.data?.value.toString();
+
+  const addresses = useMemo(
+    () => tokens?.map((token) => token.address).filter((it) => !eqIgnoreCase(it, zeroAddress)),
+    [tokens]
+  );
+
+  const contracts = useMemo(() => {
+    if (!tokens) return [];
+
+    return addresses?.map(
+      (address) =>
+        ({
+          chainId,
+          address,
+          abi: erc20Abi,
+          type: 'function',
+          functionName: 'balanceOf',
+          args: [account],
+        } as const)
+    );
+  }, [addresses, account, chainId]);
+
+  const result = (useReadContracts as any)({
+    contracts, // Pass an array of contract calls
+  });
+
+  const { data } = result;
+
+  const balances = useMemo(() => {
+    if (!addresses || !data || !nativeBalance) return;
+    const result = addresses?.reduce((acc: any, address: any, index: number) => {
+      acc[address] = data[index].result?.toString() || '0';
+      return acc;
+    }, {});
+
+    result[zeroAddress] = nativeBalance;
+    return result;
+  }, [addresses, data, nativeBalance]);
+
+  const refetch = useCallback(() => {
+    native.refetch();
+    result.refetch();
+  }, [result, native]);
+
+  return {
+    ...result,
+    balances,
+    refetch,
+  };
 };
 
 export const useTokenBalance = (tokenAddress?: string) => {
-  const { data: balances, isLoading } = useTokenBalaces();
+  const { balances, isLoading } = useTokenBalaces();
   return useMemo(() => {
     if (!tokenAddress) {
       return {
         isLoading,
-        balance: "0",
+        balance: '0',
       };
     }
     return {
       isLoading,
-      balance: balances?.[tokenAddress] || "0",
+      balance: balances?.[tokenAddress] || '0',
     };
   }, [balances, tokenAddress, isLoading]);
 };
 
 export const useSortedTokens = () => {
   const { data: tokens } = useTokensList();
-  const { data: balances } = useTokenBalaces();
+  const { balances } = useTokenBalaces();
   return useMemo(() => {
     const sorted = tokens?.sort((a, b) => {
-      const balanceA = BigInt(balances?.[a.address] || "0");
-      const balanceB = BigInt(balances?.[b.address] || "0");
+      const balanceA = BigInt(balances?.[a.address] || '0');
+      const balanceB = BigInt(balances?.[b.address] || '0');
       return balanceB > balanceA ? 1 : balanceB < balanceA ? -1 : 0;
     });
 

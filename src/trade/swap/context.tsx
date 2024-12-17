@@ -1,32 +1,25 @@
 import { useDefaultTokens } from '@/lib';
 import { Token } from '@/types';
-import { constructSDK, LiquidityHubSDK, Quote } from '@orbs-network/liquidity-hub-sdk';
-import { OptimalRate } from '@paraswap/sdk';
+import { constructSDK, LiquidityHubSDK } from '@orbs-network/liquidity-hub-sdk';
 import { ReactNode, useReducer, useCallback, useMemo, createContext, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useToRawAmount } from '../hooks';
 
 const initialState: State = {
-  inToken: null,
-  outToken: null,
+  inToken: undefined,
+  outToken: undefined,
   inputAmount: '',
-  acceptedQuote: undefined,
-  acceptedOptimalRate: undefined,
-  liquidityHubDisabled: false,
   confirmationModalOpen: false,
-  proceedWithLiquidityHub: false,
+  isLiquidityHubTrade: false,
 };
 
 interface State {
-  inToken: Token | null;
-  outToken: Token | null;
+  inToken?: Token;
+  outToken?: Token;
   inputAmount: string;
-  acceptedQuote: Quote | undefined;
-  liquidityHubDisabled: boolean;
   signature?: string;
   confirmationModalOpen: boolean;
-  proceedWithLiquidityHub: boolean;
-  acceptedOptimalRate?: OptimalRate;
+  isLiquidityHubTrade: boolean;
 }
 
 type Action = { type: 'UPDATE'; payload: Partial<State> } | { type: 'RESET' };
@@ -60,8 +53,8 @@ export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) 
   const state = useMemo(() => {
     return {
       ..._state,
-      inToken: _state.inToken || defaultTokens?.inToken || null,
-      outToken: _state.outToken || defaultTokens?.outToken || null,
+      inToken: _state.inToken || defaultTokens?.inToken,
+      outToken: _state.outToken || defaultTokens?.outToken,
     };
   }, [_state, defaultTokens]);
 

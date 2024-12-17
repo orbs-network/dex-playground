@@ -73,8 +73,8 @@ const useTwapState = () => {
   const values = useMemo(() => {
     return {
       ..._values,
-      inToken: _values.inToken || defaultTokens?.inToken || null,
-      outToken: _values.outToken || defaultTokens?.outToken || null,
+      inToken: _values.inToken || defaultTokens?.inToken || undefined,
+      outToken: _values.outToken || defaultTokens?.outToken || undefined,
     };
   }, [_values, defaultTokens?.inToken, defaultTokens?.outToken]);
 

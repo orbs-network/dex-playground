@@ -12,7 +12,7 @@ export function useInputError({
   inputAmount,
   inToken,
 }: {
-  inToken: Token | null;
+  inToken?: Token;
   inputAmount: string;
 }) {
   const {balance} = useTokenBalance(inToken?.address);

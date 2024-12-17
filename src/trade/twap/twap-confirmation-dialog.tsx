@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { SwapSteps } from "@/types";
 import { useCallback, useMemo } from "react";
 import {
-  SwapConfirmationDialog,
+  ConfirmationDialog,
   useSwapProgress,
-} from "../swap-confirmation-dialog";
+} from "../confirmation-dialog";
 import {
   useDerivedTwapSwapData,
   useInputLabels,
@@ -54,16 +54,16 @@ export function TwapConfirmationDialog({
   }, [_onClose, state.swapStatus, state.currentStep, resetState]);
 
   return (
-    <SwapConfirmationDialog
-      outToken={outToken}
-      inToken={inToken}
+    <ConfirmationDialog
+      outToken={outToken || undefined}
+      inToken={inToken || undefined}
       inAmount={typedAmount ? Number(typedAmount) : 0}
       outAmount={isMarketOrder ? undefined : Number(dstAmount)}
       isOpen={isOpen}
       onClose={onClose}
       swapStatus={state.swapStatus}
       mainContent={
-        <SwapConfirmationDialog.Main
+        <ConfirmationDialog.Main
           fromTitle={inputLabel}
           toTitle={outputLabel}
           steps={parsedSteps}

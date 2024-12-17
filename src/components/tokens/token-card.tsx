@@ -24,7 +24,7 @@ export type TokenCardProps = {
   label: string;
   amount: string;
   amountUsd?: any;
-  selectedToken: Token | null;
+  selectedToken?: Token;
   onSelectToken: (token: Token) => void;
   isAmountEditable?: boolean;
   onValueChange?: (value: string) => void;

@@ -12,8 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCallback, useReducer } from "react";
 
 export type Props = {
-  inToken: Token | null;
-  outToken: Token | null;
+  inToken?: Token;
+  outToken?: Token;
   inAmount?: number;
   outAmount?: number;
   errorContent?: React.ReactNode;
@@ -38,7 +38,7 @@ const useConfirmationContext = () => {
   return context;
 };
 
-export function SwapConfirmationDialogContent() {
+export function ConfirmationDialogContent() {
   const {
     inToken,
     outToken,
@@ -80,10 +80,10 @@ export function SwapConfirmationDialogContent() {
   );
 }
 
-export const SwapConfirmationDialog = (props: Props) => {
+export const ConfirmationDialog = (props: Props) => {
   return (
     <ConfirmationContext.Provider value={props}>
-      <SwapConfirmationDialogContent />
+      <ConfirmationDialogContent />
     </ConfirmationContext.Provider>
   );
 };
@@ -139,7 +139,7 @@ const StepsLoader = () => {
   );
 };
 
-SwapConfirmationDialog.Main = Main;
+ConfirmationDialog.Main = Main;
 
 
 

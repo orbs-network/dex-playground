@@ -4,16 +4,16 @@ import { persist } from 'zustand/middleware';
 interface AppStore {
   slippage: number;
   setSlippage: (slippage: number) => void;
-  forceLiquidityHub: boolean;
-  setForceLiquidityHub: (forceLiquidityHub: boolean) => void;
+  isLiquidityHubOnly: boolean;
+  setLiquidityHubOnly: (liquidityHubOnly: boolean) => void;
 }
 export const useAppState = create(
   persist<AppStore>(
     (set) => ({
       slippage: 0.5,
       setSlippage: (slippage: number) => set({ slippage }),
-      forceLiquidityHub: false,
-      setForceLiquidityHub: (forceLiquidityHub: boolean) => set({ forceLiquidityHub }),
+      isLiquidityHubOnly: false,
+      setLiquidityHubOnly: (isLiquidityHubOnly: boolean) => set({ isLiquidityHubOnly }),
     }),
     {
       name: 'main-store',

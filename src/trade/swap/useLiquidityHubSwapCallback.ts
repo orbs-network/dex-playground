@@ -4,39 +4,40 @@ import {
   useWrapToken,
   useApproveAllowance,
   promiseWithTimeout,
-} from "@/lib";
-import { useAppState } from "@/store";
-import { SwapSteps } from "@/types";
-import { _TypedDataEncoder } from "@ethersproject/hash";
-import { permit2Address, Quote } from "@orbs-network/liquidity-hub-sdk";
-import { SwapStatus } from "@orbs-network/swap-ui";
-import { TransactionParams } from "@paraswap/sdk";
-import { useMutation } from "@tanstack/react-query";
-import { useSignTypedData } from "wagmi";
-import { SwapProgressState } from "../swap-confirmation-dialog";
-import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
-import { useOptimalRate, useLiquidityHubApproval } from "./hooks";
-import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
+  useTokenBalaces,
+} from '@/lib';
+import { useAppState } from '@/store';
+import { SwapSteps } from '@/types';
+import { _TypedDataEncoder } from '@ethersproject/hash';
+import { permit2Address, Quote } from '@orbs-network/liquidity-hub-sdk';
+import { SwapStatus } from '@orbs-network/swap-ui';
+import { TransactionParams } from '@paraswap/sdk';
+import { useMutation } from '@tanstack/react-query';
+import { useSignTypedData } from 'wagmi';
+import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
+import { useOptimalRate, useLiquidityHubApproval } from './hooks';
+import { useLiquidityHubQuote } from './useLiquidityHubQuote';
+import { SwapProgressState } from '../confirmation-dialog';
 
 export const isRejectedError = (error: any) => {
   const message = error.message?.toLowerCase();
   return message?.includes('rejected') || message?.includes('denied');
 };
 
-
 export function useLiquidityHubSwapCallback(
-  updateSwapProgressState: (values: Partial<SwapProgressState>) => void
+  updateProgress: (value: Partial<SwapProgressState>) => void
 ) {
   const {
     sdk: liquidityHub,
     state: { inToken },
     updateState,
   } = useLiquidityHubSwapContext();
-  const { slippage } = useAppState();
+  const { slippage, isLiquidityHubOnly } = useAppState();
+  const { refetch: refetchBalances } = useTokenBalaces();
 
   const buildParaswapTxCallback = useParaswapBuildTxCallback();
   const optimalRate = useOptimalRate().data;
-  const { getLatestQuote, data: quote } = useLiquidityHubQuote();
+  const { refetch: refetchQuote, data: _quote } = useLiquidityHubQuote();
   const requiresApproval = useLiquidityHubApproval().requiresApproval;
   const { mutateAsync: wrap } = useWrapToken();
   const { mutateAsync: approve } = useApproveAllowance();
@@ -48,29 +49,29 @@ export function useLiquidityHubSwapCallback(
     mutationFn: async () => {
       // Fetch latest quote just before swap
       if (!inTokenAddress) {
-        throw new Error("In token address is not set");
+        throw new Error('In token address is not set');
       }
 
-      if (!quote || !optimalRate) {
-        throw new Error("Quote or optimal rate is not set");
+      const steps = getSteps({
+        inTokenAddress,
+        requiresApproval,
+      });
+      updateProgress({ steps });
+
+      let quote = _quote;
+      const shouldRefetchQuote =
+        steps.includes(SwapSteps.Approve) || steps.includes(SwapSteps.Wrap) || isLiquidityHubOnly;
+
+      if (!quote) {
+        throw new Error('Quote or optimal rate is not set');
       }
       // Set swap status for UI
-      updateSwapProgressState({ swapStatus: SwapStatus.LOADING });
+      updateProgress({ swapStatus: SwapStatus.LOADING });
 
       try {
-        // Check if the inToken needs approval for allowance
-
-        // Get the steps required for swap e.g. [Wrap, Approve, Swap]
-        const steps = getSteps({
-          inTokenAddress,
-          requiresApproval,
-        });
-
-        updateSwapProgressState({ steps });
-
         // If the inToken needs to be wrapped then wrap
         if (steps.includes(SwapSteps.Wrap)) {
-          updateSwapProgressState({ currentStep: SwapSteps.Wrap });
+          updateProgress({ currentStep: SwapSteps.Wrap });
           try {
             liquidityHub.analytics.onWrapRequest();
             await wrap(quote.inAmount);
@@ -84,7 +85,7 @@ export function useLiquidityHubSwapCallback(
         // If an appropriate allowance for inToken has not been approved
         // then get user to approve
         if (steps.includes(SwapSteps.Approve)) {
-          updateSwapProgressState({ currentStep: SwapSteps.Approve });
+          updateProgress({ currentStep: SwapSteps.Approve });
           try {
             liquidityHub.analytics.onApprovalRequest();
             // Perform the approve contract function
@@ -101,25 +102,21 @@ export function useLiquidityHubSwapCallback(
         }
 
         // Fetch the latest quote again after the approval
-        let latestQuote = quote;
-        try {
-          const result = await getLatestQuote();
-          if (result) {
-            latestQuote = result;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        updateState({ acceptedQuote: latestQuote });
+        updateProgress({ currentStep: SwapSteps.Swap });
 
-        // Set the current step to swap
-        updateSwapProgressState({ currentStep: SwapSteps.Swap });
+        if (shouldRefetchQuote) {
+          quote = await refetchQuote();
+        }
+
+        if (!quote) {
+          throw new Error('Quote is not set');
+        }
 
         // Sign the transaction for the swap
-        let signature = "";
+        let signature = '';
         try {
           liquidityHub.analytics.onSignatureRequest();
-          signature = await sign(latestQuote);
+          signature = await sign(quote);
           liquidityHub.analytics.onSignatureSuccess(signature);
           updateState({ signature });
         } catch (error) {
@@ -131,39 +128,35 @@ export function useLiquidityHubSwapCallback(
         let paraswapTxData: TransactionParams | undefined;
 
         try {
-          paraswapTxData = await buildParaswapTxCallback(optimalRate, slippage);
+          paraswapTxData = optimalRate && (await buildParaswapTxCallback(optimalRate, slippage));
         } catch (error) {
           console.error(error);
         }
 
-        console.log("Swapping...", latestQuote);
+        console.log('Swapping...', quote);
         // Call Liquidity Hub sdk swap and wait for transaction hash
-        const txHash = await liquidityHub.swap(
-          latestQuote,
-          signature as string,
-          {
-            data: paraswapTxData?.data,
-            to: paraswapTxData?.to,
-          }
-        );
+        const txHash = await liquidityHub.swap(quote, signature as string, {
+          data: paraswapTxData?.data,
+          to: paraswapTxData?.to,
+        });
 
         if (!txHash) {
-          throw new Error("Swap failed");
+          throw new Error('Swap failed');
         }
 
         // Fetch the successful transaction details
-        await liquidityHub.getTransactionDetails(txHash, latestQuote);
+        await liquidityHub.getTransactionDetails(txHash, quote);
 
-        console.log("Swapped");
-        updateSwapProgressState({ swapStatus: SwapStatus.SUCCESS });
+        updateProgress({ swapStatus: SwapStatus.SUCCESS });
       } catch (error) {
-        if(isRejectedError(error)) {
-          updateSwapProgressState({ swapStatus: undefined });
-        }else{
-          updateSwapProgressState({ swapStatus: SwapStatus.FAILED });
+        if (isRejectedError(error)) {
+          updateProgress({ swapStatus: undefined });
+        } else {
+          updateProgress({ swapStatus: SwapStatus.FAILED });
           throw error;
         }
-
+      }finally{
+        refetchBalances()
       }
     },
   });
@@ -188,11 +181,11 @@ const useSign = () => {
       );
 
       const signature = await promiseWithTimeout<string>(
-        (signTypedDataAsync)(payload),
+        (signTypedDataAsync as any)(payload),
         40_000
       );
 
-      console.log("Transaction signed", signature);
+      console.log('Transaction signed', signature);
       return signature;
     },
   });

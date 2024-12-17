@@ -67,7 +67,7 @@ export const format = {
   address: formatAddress,
 };
 
-export const getMinAmountOut = (slippage: number, _destAmount: string) => {
+export const amountMinusSlippage = (slippage: number, _destAmount: string) => {
   
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)); // 0.5% becomes 995
 
@@ -159,7 +159,7 @@ export async function waitForConfirmations(
     } catch (error) {
       /// console.error(error)
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
   }
 }
 
@@ -195,3 +195,4 @@ export const isTxRejected = (error: any) => {
     );
   }
 };
+

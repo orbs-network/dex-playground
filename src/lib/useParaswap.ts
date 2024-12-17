@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from 'react'
 import {
-  getMinAmountOut,
+  amountMinusSlippage,
   isNativeAddress,
 } from '@/lib/utils'
 import { constructSimpleSDK, OptimalRate, SwapSide } from '@paraswap/sdk'
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
+import { useAppState } from '@/store'
 
 
 const PARASWAP_NATIVE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -36,6 +37,7 @@ export const useParaswapQuote = ({
 }) => {
   const paraswap = useParaswap()
   const { chainId } = useAccount()
+  const {isLiquidityHubOnly} = useAppState()
 
   return useQuery({
     queryKey: ['paraswap-quote', inToken, outToken, inAmount, chainId],
@@ -65,7 +67,7 @@ export const useParaswapQuote = ({
 
       return dexQuote
     },
-    enabled: !!inToken && !!outToken && Number(inAmount) > 0,
+    enabled: !!inToken && !!outToken && Number(inAmount) > 0 && !isLiquidityHubOnly,
     refetchInterval,
     staleTime: Infinity,
   })
@@ -84,7 +86,7 @@ export const useParaswapBuildTxCallback = () => {
         srcToken: optimalRate.srcToken,
         destToken: optimalRate.destToken,
         srcAmount: optimalRate.srcAmount,
-        destAmount: getMinAmountOut(slippage, optimalRate.destAmount)!,
+        destAmount: amountMinusSlippage(slippage, optimalRate.destAmount)!,
         priceRoute: optimalRate,
         userAddress: address,
         receiver: address,

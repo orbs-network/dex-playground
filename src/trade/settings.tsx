@@ -7,7 +7,7 @@ import { useAppState } from '@/store';
 import { SettingsIcon } from 'lucide-react';
 
 export const Settings = () => {
-  const { slippage, setSlippage, forceLiquidityHub, setForceLiquidityHub } = useAppState();
+  const { slippage, setSlippage, isLiquidityHubOnly, setLiquidityHubOnly } = useAppState();
   return (
     <div className="flex justify-end">
       <Popover>
@@ -36,8 +36,8 @@ export const Settings = () => {
               <Label htmlFor="slippage">Liquidity Hub only</Label>
               <div className="flex items-center gap-2">
                 <Switch
-                  checked={forceLiquidityHub}
-                  onCheckedChange={() => setForceLiquidityHub(!forceLiquidityHub)}
+                  checked={isLiquidityHubOnly}
+                  onCheckedChange={() => setLiquidityHubOnly(!isLiquidityHubOnly)}
                 />
               </div>
             </div>

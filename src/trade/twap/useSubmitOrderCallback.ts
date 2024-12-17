@@ -16,7 +16,7 @@ import { hexToNumber, zeroAddress } from "viem";
 import { useWriteContract, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { useNetwork } from "../hooks";
-import { SwapProgressState } from "../swap-confirmation-dialog";
+import { SwapProgressState } from "../confirmation-dialog";
 import { useTwapContext } from "./context";
 import { useDerivedTwapSwapData } from "./hooks";
 import { useWaitForNewOrderCallback } from "./orders/use-orders-query";
