@@ -8,6 +8,7 @@ export async function getRequiresApproval(
   inAmount = '',
   account: string
 ) {
+  if(!inAmount) return false
   const allowance = await readContract(wagmiConfig, {
     address: inTokenAddress as Address,
     abi: erc20Abi,

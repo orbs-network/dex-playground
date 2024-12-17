@@ -97,7 +97,6 @@ const OutTokenCard = () => {
     updateState,
   } = useLiquidityHubSwapContext();
   const destAmount = useToExactAmount(useSwapOutAmount(), outToken?.decimals);
-  console.log({destAmount});
   
   const { isLiquidityHubOnly } = useAppState();
 

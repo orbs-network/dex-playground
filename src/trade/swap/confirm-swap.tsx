@@ -37,7 +37,7 @@ export const useSubmitSwap = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [optimalRate, slippage]);
+  }, [optimalRate, slippage, updateState, refetchQuote, isLiquidityHubOnly]);
 
   return  {
     isLoading,

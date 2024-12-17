@@ -176,6 +176,11 @@ export const useTokenBalaces = () => {
   const native = useBalance({
     address: account,
     chainId,
+    query:{
+      enabled: Boolean(account && chainId),
+      staleTime: Infinity,
+      refetchOnWindowFocus: false
+    }
   });
   const nativeBalance = native?.data?.value.toString();
 
@@ -201,7 +206,13 @@ export const useTokenBalaces = () => {
   }, [addresses, account, chainId]);
 
   const result = (useReadContracts as any)({
-    contracts, // Pass an array of contract calls
+    batchSize: 1024,
+    contracts, // Pass an array of contract calls,
+    query:{
+      enabled: Boolean(account && chainId && addresses?.length),
+      staleTime: Infinity,
+      refetchOnWindowFocus: false
+    }
   });
 
   const { data } = result;

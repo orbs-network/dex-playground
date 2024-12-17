@@ -36,7 +36,7 @@ export function useLiquidityHubSwapCallback(
   const { refetch: refetchBalances } = useTokenBalaces();
 
   const buildParaswapTxCallback = useParaswapBuildTxCallback();
-  const optimalRate = useOptimalRate().data;
+  const { refetch: refetchOptimalRate } = useOptimalRate();
   const { refetch: refetchQuote, data: _quote } = useLiquidityHubQuote();
   const requiresApproval = useLiquidityHubApproval().requiresApproval;
   const { mutateAsync: wrap } = useWrapToken();
@@ -128,6 +128,7 @@ export function useLiquidityHubSwapCallback(
         let paraswapTxData: TransactionParams | undefined;
 
         try {
+          const optimalRate = (await refetchOptimalRate()).data;
           paraswapTxData = optimalRate && (await buildParaswapTxCallback(optimalRate, slippage));
         } catch (error) {
           console.error(error);
@@ -155,8 +156,8 @@ export function useLiquidityHubSwapCallback(
           updateProgress({ swapStatus: SwapStatus.FAILED });
           throw error;
         }
-      }finally{
-        refetchBalances()
+      } finally {
+        refetchBalances();
       }
     },
   });

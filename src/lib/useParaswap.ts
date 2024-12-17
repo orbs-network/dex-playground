@@ -92,9 +92,10 @@ export const useParaswapBuildTxCallback = () => {
         receiver: address,
         // set your partner name here, we use quickswapv3 for example
         partner: 'quickswapv3',
+        
       }
 
-      return paraswap.swap.buildTx(payload)
+      return paraswap.swap.buildTx(payload, {ignoreChecks: true})
     },
     [address, paraswap]
   )
