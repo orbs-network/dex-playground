@@ -109,6 +109,20 @@ const sortTokens = (tokens: Token[], network: typeof networks.eth) => {
   return sortedTokens;
 };
 
+const getSonicTokens = async (): Promise<Token[]> => {
+  const response = await fetch('https://assets.spooky.fi/sonic_spooky_tokens.json');
+  const result = await response.json();
+  return result.tokens.map((it: any) => {
+    return {
+      address: it.address,
+      symbol: it.symbol,
+      decimals: it.decimals,
+      logoUrl: it.logoURI,
+      name: it.name,
+    };
+  });
+};
+
 const getBaseTokens = (): Token[] => {
   const _tokens = tokenLists.base;
 
@@ -146,6 +160,9 @@ const fetchTokens = async (chainId: number, signal?: AbortSignal): Promise<Token
     case networks.base.id:
       tokens = getBaseTokens();
       break;
+    case networks.sonic.id:
+      tokens = await getSonicTokens();
+      break;
 
     default:
       tokens = await getSushiTokens(chainId, signal);
@@ -176,11 +193,11 @@ export const useTokenBalaces = () => {
   const native = useBalance({
     address: account,
     chainId,
-    query:{
+    query: {
       enabled: Boolean(account && chainId),
       staleTime: Infinity,
-      refetchOnWindowFocus: false
-    }
+      refetchOnWindowFocus: false,
+    },
   });
   const nativeBalance = native?.data?.value.toString();
 
@@ -208,11 +225,11 @@ export const useTokenBalaces = () => {
   const result = (useReadContracts as any)({
     batchSize: 1024,
     contracts, // Pass an array of contract calls,
-    query:{
+    query: {
       enabled: Boolean(account && chainId && addresses?.length),
       staleTime: Infinity,
-      refetchOnWindowFocus: false
-    }
+      refetchOnWindowFocus: false,
+    },
   });
 
   const { data } = result;

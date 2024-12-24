@@ -1,6 +1,6 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http } from 'viem';
-import { polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base } from 'viem/chains';
+import { polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base,sonic } from 'viem/chains';
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
@@ -10,7 +10,7 @@ export const wagmiConfig = getDefaultConfig({
   pollingInterval: 60_0000,
   appName: 'DEX Playground',
   projectId: walletConnectProjectId,
-  chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base],
+  chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base, sonic],
   transports: {
     [mainnet.id]: rpcUrl,
     [polygon.id]: rpcUrl,
@@ -21,5 +21,6 @@ export const wagmiConfig = getDefaultConfig({
     [linea.id]: rpcUrl,
     [sei.id]: rpcUrl,
     [base.id]: rpcUrl,
+    [sonic.id]: rpcUrl,
   },
 });

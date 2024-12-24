@@ -403,6 +403,32 @@ export const networks = {
     ]
     
   },
+
+  sonic: {
+    id: 146,
+    name: "Sonic",
+    shortname: "sonic",
+    native: {
+      address: zeroAddress,
+      symbol: "S",
+      decimals: 18,
+      logoUrl: 'https://d2j9klt7rsw34c.cloudfront.net/frontend/cms/logo/850e8fae-51d6-4cfe-a957-ec35be5bdb61.png',
+    },
+    wToken: {
+      symbol: "WS",
+      address: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+      decimals: 18,
+      weth: false,
+      logoUrl: "https://assets.spooky.fi/tokens/sonic_black.png",
+    },
+    publicRpcUrl: "https://sonic.drpc.org",
+    logoUrl: "https://d2j9klt7rsw34c.cloudfront.net/frontend/cms/logo/850e8fae-51d6-4cfe-a957-ec35be5bdb61.png",
+    explorer: "https://explorer.soniclabs.com/",
+    eip1559: false,
+    baseAssets: []
+    
+  },
+
 };
 
 export const getNetwork = (chainId: number) => {
