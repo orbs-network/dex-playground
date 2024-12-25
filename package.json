@@ -1,6 +1,5 @@
 {
-  "name": "dex-playground",
-  "private": true,
+  "name": "playground",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -40,6 +39,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "test-sdk1222": "^0.1.4",
     "viem": "^2.21.57",
     "wagmi": "^2.12.8",
     "zustand": "^5.0.0-rc.2"

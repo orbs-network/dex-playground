@@ -24,3 +24,6 @@ export const wagmiConfig = getDefaultConfig({
     [sonic.id]: rpcUrl,
   },
 });
+
+
+console.log({sonic});
