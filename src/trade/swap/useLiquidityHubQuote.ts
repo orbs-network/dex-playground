@@ -30,7 +30,7 @@ export function useLiquidityHubQuote() {
         fromToken: inTokenAddress!,
         toToken: outTokenAddress!,
         inAmount: parsedInputAmount!,
-        dexMinAmountOut: isLiquidityHubOnly ? '-1': dexMinAmountOut,
+        dexMinAmountOut: isLiquidityHubOnly ? '-1' : dexMinAmountOut,
         account,
         slippage,
         signal,

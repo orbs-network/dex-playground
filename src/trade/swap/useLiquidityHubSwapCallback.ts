@@ -179,8 +179,7 @@ const useSign = () => {
         populated.domain,
         permitData.types,
         populated.value
-      );
-
+      );        
       const signature = await promiseWithTimeout<string>(
         (signTypedDataAsync as any)(payload),
         40_000

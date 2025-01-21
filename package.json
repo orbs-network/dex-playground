@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ethersproject/hash": "^5.7.0",
-    "@orbs-network/liquidity-hub-sdk": "^1.0.48",
+    "@orbs-network/liquidity-hub-sdk": "^1.0.49",
     "@orbs-network/swap-ui": "^0.0.14",
     "@orbs-network/twap-sdk": "^2.0.40",
     "@paraswap/sdk": "^6.10.0",
