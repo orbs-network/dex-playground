@@ -3,8 +3,7 @@ import {
   getSteps,
   useWrapToken,
   useApproveAllowance,
-  promiseWithTimeout,
-  useTokenBalaces,
+  useTokenBalances,
 } from '@/lib';
 import { useAppState } from '@/store';
 import { SwapSteps } from '@/types';
@@ -14,13 +13,12 @@ import { SwapStatus } from '@orbs-network/swap-ui';
 import { TransactionParams } from '@paraswap/sdk';
 import { useMutation } from '@tanstack/react-query';
 import { useSignTypedData } from 'wagmi';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { useOptimalRate, useLiquidityHubApproval } from './hooks';
 import { useLiquidityHubQuote } from './useLiquidityHubQuote';
 import { SwapProgressState } from '../confirmation-dialog';
-import { LampWallDown } from 'lucide-react';
+import { useLiquidityHubSwapContext } from './context';
 
-export const isRejectedError = (error: any) => {
+export const isRejectedError = (error: Error) => {
   const message = error.message?.toLowerCase();
   return message?.includes('rejected') || message?.includes('denied');
 };
@@ -34,7 +32,7 @@ export function useLiquidityHubSwapCallback(
     updateState,
   } = useLiquidityHubSwapContext();
   const { slippage, isLiquidityHubOnly } = useAppState();
-  const { refetch: refetchBalances } = useTokenBalaces();
+  const { refetch: refetchBalances } = useTokenBalances();
 
   const buildParaswapTxCallback = useParaswapBuildTxCallback();
   const { refetch: refetchOptimalRate } = useOptimalRate();
@@ -151,7 +149,7 @@ export function useLiquidityHubSwapCallback(
 
         updateProgress({ swapStatus: SwapStatus.SUCCESS });
       } catch (error) {
-        if (isRejectedError(error)) {
+        if (isRejectedError(error as Error)) {
           updateProgress({ swapStatus: undefined });
         } else {
           updateProgress({ swapStatus: SwapStatus.FAILED });
@@ -180,10 +178,8 @@ const useSign = () => {
         populated.domain,
         permitData.types,
         populated.value
-      );        
-      const signature = await promiseWithTimeout<string>(
-        (signTypedDataAsync as any)(payload)
       );
+      const signature = await signTypedDataAsync(payload);
 
       console.log('Transaction signed', signature);
       return signature;

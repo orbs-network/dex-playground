@@ -1,30 +1,46 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http } from 'viem';
-import { polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base,sonic, arbitrumNova } from 'viem/chains';
+import {
+  polygon,
+  mainnet,
+  arbitrum,
+  bsc,
+  fantom,
+  blast,
+  linea,
+  sei,
+  base,
+  sonic,
+  arbitrumNova,
+  mantle,
+} from 'viem/chains';
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
-const _rpcUrl = localStorage.getItem('rpcUrl');
-const rpcUrl = _rpcUrl ? http(_rpcUrl) : http();
+const localRpcUrl = localStorage.getItem('rpcUrl');
+const getRpcUrl = (chainId: number) => {
+  if (localRpcUrl) {
+    return http(`${localRpcUrl}?chainId=${chainId}&appId=playground`);
+  }
+  return http();
+};
 export const wagmiConfig = getDefaultConfig({
   pollingInterval: 60_0000,
   appName: 'DEX Playground',
   projectId: walletConnectProjectId,
   chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base, sonic, arbitrumNova],
   transports: {
-    [mainnet.id]: rpcUrl,
-    [polygon.id]: rpcUrl,
-    [arbitrum.id]: rpcUrl,
-    [bsc.id]: rpcUrl,
-    [fantom.id]: rpcUrl,
-    [blast.id]: rpcUrl,
-    [linea.id]: rpcUrl,
-    [sei.id]: rpcUrl,
-    [base.id]: rpcUrl,
-    [sonic.id]: rpcUrl,
-    [arbitrumNova.id]: rpcUrl,
+    [mainnet.id]: getRpcUrl(mainnet.id),
+    [polygon.id]: getRpcUrl(polygon.id),
+    [arbitrum.id]: getRpcUrl(arbitrum.id),
+    [bsc.id]: getRpcUrl(bsc.id),
+    [fantom.id]: getRpcUrl(fantom.id),
+    [blast.id]: getRpcUrl(blast.id),
+    [linea.id]: getRpcUrl(linea.id),
+    [sei.id]: getRpcUrl(sei.id),
+    [base.id]: getRpcUrl(base.id),
+    [sonic.id]: getRpcUrl(sonic.id),
+    [arbitrumNova.id]: getRpcUrl(arbitrumNova.id),
+    [mantle.id]: getRpcUrl(mantle.id),
   },
 });
-
-
-console.log({sonic});

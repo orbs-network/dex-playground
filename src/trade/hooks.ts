@@ -1,7 +1,7 @@
 import { getNetwork, toExactAmount, toRawAmount } from "@/lib";
 import { Token } from "@/types";
 import { useMemo } from "react";
-import { erc20Abi } from "viem";
+import { Address, erc20Abi } from "viem";
 import { useChainId, useReadContracts } from "wagmi";
 
 export const useToExactAmount = (amount?: string, decimals?: number) => {
@@ -27,7 +27,8 @@ export const useExplorer = () => {
   return network?.explorer;
 };
 
-export const useToken = (address?: any) => {
+export const useToken = (_address?: string) => {
+  const address = _address as Address
   const {data: token} = useReadContracts({
     allowFailure: false,
     contracts: [

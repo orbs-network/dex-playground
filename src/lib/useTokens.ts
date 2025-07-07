@@ -1,28 +1,26 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Token } from '@/types';
-import { getNetwork, networks } from './networks';
 import { useQuery } from '@tanstack/react-query';
-import { useAccount, useBalance, useReadContracts } from 'wagmi';
-import { erc20Abi } from 'viem';
+import { useAccount, usePublicClient } from 'wagmi';
+import { erc20Abi, formatUnits } from 'viem';
 import { zeroAddress } from '@orbs-network/liquidity-hub-sdk';
 import { eqIgnoreCase } from './utils';
-import { useCallback, useMemo } from 'react';
-import { tokenLists } from './tokens';
+import { useMemo } from 'react';
+import * as chains from 'viem/chains';
+import { BASE_TOKENS } from '@/trade/swap/consts';
+import { getNetwork } from './networks';
 
-const getFantomTokens = async (signal?: AbortSignal): Promise<Token[]> => {
-  const res = await fetch(
-    'https://raw.githubusercontent.com/viaprotocol/tokenlists/main/tokenlists/ftm.json',
-    { signal }
-  );
-  const data = await res.json();
-  return data.map((token: any) => {
-    return {
-      address: token.address,
-      symbol: token.symbol,
-      decimals: token.decimals,
-      logoUrl: token.logoURI,
-      name: token.name,
-    };
-  });
+const chainToName = {
+  [chains.flare.id]: 'flare-network',
+  [chains.fantom.id]: 'fantom',
+  [chains.arbitrum.id]: 'arbitrum-one',
+  [chains.polygon.id]: 'polygon-pos',
+  [chains.base.id]: 'base',
+  [chains.mainnet.id]: 'ethereum',
+  [chains.bsc.id]: 'binance-smart-chain',
+  [chains.linea.id]: 'linea',
+  [chains.sonic.id]: 'sonic',
+  [chains.cronoszkEVM.id]: 'cronos-zkevm',
 };
 
 const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
@@ -46,150 +44,46 @@ const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
   });
 };
 
-const getSushiTokens = async (chainId: number, signal?: AbortSignal): Promise<Token[]> => {
-  const tokens = await fetch('https://token-list.sushi.com/', { signal }).then((res) =>
-    res.json().then((it) => it.tokens.filter((it: any) => it.chainId === chainId))
-  );
-
-  return Object.values(tokens).map((token: any) => {
-    return {
-      address: token.address,
-      symbol: token.symbol,
-      decimals: token.decimals,
-      logoUrl: token.logoURI,
-      name: token.name,
-    };
-  });
-};
-
-const getLineaTokens = async (signal?: AbortSignal): Promise<Token[]> => {
-  const tokens = await fetch('https://api.lynex.fi/api/v1/assets', { signal })
-    .then((res) => res.json())
-    .then((res) => res.data);
-  return tokens.map((token: any) => {
-    return {
-      address: token.address,
-      symbol: token.symbol,
-      decimals: token.decimals,
-      logoUrl: token.logoURI,
-      name: token.name,
-    };
-  });
-};
-
-const addNativeToken = (tokens: Token[], network: typeof networks.eth) => {
-  if (tokens.find((t) => eqIgnoreCase(t.address, network.native.address))) {
-    return tokens;
-  }
-  return [
-    {
-      address: network.native.address,
-      symbol: network.native.symbol,
-      decimals: network.native.decimals,
-      logoUrl: network.native.logoUrl,
-    },
-    ...tokens,
-  ];
-};
-
-const sortTokens = (tokens: Token[], network: typeof networks.eth) => {
-  const baseAssets = network.baseAssets;
-  if (!baseAssets) {
-    return tokens;
-  }
-  const sortedTokens = tokens.sort((a, b) => {
-    const aPriority = baseAssets.includes(a.address) ? 0 : 1;
-    const bPriority = baseAssets.includes(b.address) ? 0 : 1;
-    if (aPriority !== bPriority) {
-      return aPriority - bPriority;
-    }
-    return a.address.localeCompare(b.address);
-  });
-
-  return sortedTokens;
-};
-
-const getSonicTokens = async (): Promise<Token[]> => {
-  const response = await fetch('https://assets.spooky.fi/sonic_spooky_tokens.json');
-  const result = await response.json();
-  return result.tokens.map((it: any) => {
-    return {
-      address: it.address,
-      symbol: it.symbol,
-      decimals: it.decimals,
-      logoUrl: it.logoURI,
-      name: it.name,
-    };
-  });
-};
-
-
-
-const getPolygonTokens = async (): Promise<Token[]> => {
-  const response = await fetch('https://tokens.coingecko.com/polygon-pos/all.json');
-  const result = await response.json();
-  return result.tokens.map((it: any) => {
-    return {
-      address: it.address,
-      symbol: it.symbol,
-      decimals: it.decimals,
-      logoUrl: it.logoURI,
-      name: it.name,
-    };
-  });
-};
-
-const getBaseTokens = (): Token[] => {
-  const _tokens = tokenLists.base;
-
-  return Object.values(_tokens).map((token) => {
-    return {
-      address: token.address,
-      symbol: token.symbol,
-      decimals: token.decimals,
-      logoUrl: token.tokenInfo.logoURI,
-      name: token.name,
-    };
-  });
-};
-
 const fetchTokens = async (chainId: number, signal?: AbortSignal): Promise<Token[]> => {
-  const network = getNetwork(chainId);
-  if (!network) {
-    throw new Error(`Network with chainId ${chainId} not found`);
-  }
-
+  const name = chainToName[chainId as keyof typeof chainToName];
   let tokens: Token[] = [];
-  switch (chainId) {
-    case networks.linea.id:
-      tokens = await getLineaTokens(signal);
-      break;
-    case networks.ftm.id:
-      tokens = await getFantomTokens(signal);
-      break;
-    case networks.sei.id:
-      tokens = await getSeiTokens(signal);
-      break;
-    case networks.sei.id:
-      tokens = await getSeiTokens(signal);
-      break;
-      case networks.poly.id:
-        tokens = await getPolygonTokens(signal);
-        break;
-    case networks.base.id:
-      tokens = getBaseTokens();
-      break;
-    case networks.sonic.id:
-      tokens = await getSonicTokens();
-      break;
 
-    default:
-      tokens = await getSushiTokens(chainId, signal);
-      break;
+  if (name) {
+    const result = await fetch(`https://tokens.coingecko.com/${name}/all.json`, { signal }).then(
+      (res) => res.json()
+    );
+    tokens = result.tokens.map((token: any): Token => {
+      return {
+        address: token.address,
+        symbol: token.symbol,
+        decimals: token.decimals,
+        logoUrl: token.logoURI,
+      };
+    });
+  } else {
+    switch (chainId) {
+      case chains.sei.id:
+        tokens = await getSeiTokens(signal);
+        break;
+    }
   }
 
-  tokens = addNativeToken(tokens, network);
-  return sortTokens(tokens, network);
+  const nativeToken = getNetwork(chainId)?.native;
+
+  if (nativeToken) {
+    tokens.unshift(nativeToken);
+  }
+
+  return tokens
+    .sort((a, b) => {
+      const aPriority = BASE_TOKENS.includes(a.symbol) ? 0 : 1;
+      const bPriority = BASE_TOKENS.includes(b.symbol) ? 0 : 1;
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+      return a.address.localeCompare(b.address);
+    })
+    .slice(0, 100);
 };
 
 const useTokensList = () => {
@@ -206,107 +100,82 @@ const useTokensList = () => {
   });
 };
 
-export const useTokenBalaces = () => {
+export const useTokenBalances = () => {
   const { data: tokens } = useTokensList();
   const { address: account, chainId } = useAccount();
-  const native = useBalance({
-    address: account,
-    chainId,
-    query: {
-      enabled: Boolean(account && chainId),
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
+  const client = usePublicClient();
+
+  const query = useQuery<Record<string, string>>({
+    queryKey: ['token-balances', chainId, account, tokens?.length],
+    queryFn: async () => {
+      const addressesWithoutNative = tokens!
+        .map((token) => token.address)
+        .filter((it) => !eqIgnoreCase(it, zeroAddress));
+
+      const [nativeBalance, multicallResponse] = await Promise.all([
+        client!.getBalance({ address: account as `0x${string}` }),
+        client!.multicall({
+          contracts: addressesWithoutNative!.map((address) => {
+            return {
+              address: address as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [account],
+            };
+          }),
+        }),
+      ]);
+
+      return multicallResponse.reduce(
+        (acc: Record<string, string>, it: any, index: number) => {
+          acc[addressesWithoutNative![index]] = it.result?.toString() || '0';
+          return acc;
+        },
+        { [zeroAddress]: nativeBalance.toString() }
+      );
     },
-  });
-  const nativeBalance = native?.data?.value.toString();
-
-  const addresses = useMemo(
-    () => tokens?.map((token) => token.address).filter((it) => !eqIgnoreCase(it, zeroAddress)),
-    [tokens]
-  );
-
-  const contracts = useMemo(() => {
-    if (!tokens) return [];
-
-    return addresses?.map(
-      (address) =>
-        ({
-          chainId,
-          address,
-          abi: erc20Abi,
-          type: 'function',
-          functionName: 'balanceOf',
-          args: [account],
-        } as const)
-    );
-  }, [addresses, account, chainId]);
-
-  const result = (useReadContracts as any)({
-    batchSize: 1024,
-    contracts, // Pass an array of contract calls,
-    query: {
-      enabled: Boolean(account && chainId && addresses?.length),
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
-    },
+    enabled: Boolean(client && tokens?.length && account),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
-  const { data } = result;
-
-  const balances = useMemo(() => {
-    if (!addresses || !data || !nativeBalance) return;
-    const result = addresses?.reduce((acc: any, address: any, index: number) => {
-      acc[address] = data[index].result?.toString() || '0';
-      return acc;
-    }, {});
-
-    result[zeroAddress] = nativeBalance;
-    return result;
-  }, [addresses, data, nativeBalance]);
-
-  const refetch = useCallback(() => {
-    native.refetch();
-    result.refetch();
-  }, [result, native]);
-
-  return {
-    ...result,
-    balances,
-    refetch,
-  };
+  return query;
 };
 
 export const useTokenBalance = (tokenAddress?: string) => {
-  const { balances, isLoading } = useTokenBalaces();
+  const { data: balances, isLoading } = useTokenBalances();
   return useMemo(() => {
-    if (!tokenAddress) {
-      return {
-        isLoading,
-        balance: '0',
-      };
-    }
     return {
       isLoading,
-      balance: balances?.[tokenAddress] || '0',
+      balance: !tokenAddress ? '0' : balances?.[tokenAddress],
     };
   }, [balances, tokenAddress, isLoading]);
 };
 
-export const useSortedTokens = () => {
-  const { data: tokens } = useTokensList();
-  const { balances } = useTokenBalaces();
-  return useMemo(() => {
-    const sorted = tokens?.sort((a, b) => {
-      const balanceA = BigInt(balances?.[a.address] || '0');
-      const balanceB = BigInt(balances?.[b.address] || '0');
-      return balanceB > balanceA ? 1 : balanceB < balanceA ? -1 : 0;
+export const useTokens = () => {
+  const { data: allTokens, isLoading: tokensLoading } = useTokensList();
+  const { data: balances, isLoading: balancesLoading } = useTokenBalances();
+  const tokens = useMemo(() => {
+    if (!allTokens || !balances) {
+      return [];
+    }
+    const sorted = allTokens.sort((a, b) => {
+      const balanceA = formatUnits(BigInt(balances?.[a.address] ?? '0'), a.decimals || 18);
+      const balanceB = formatUnits(BigInt(balances?.[b.address] ?? '0'), b.decimals || 18);
+      return Number(balanceB) - Number(balanceA);
     });
-
-    const native = sorted?.find((it) => eqIgnoreCase(it.address, zeroAddress));
+    console.log({sorted, balances});
+    
+    const native = sorted.find((it) => eqIgnoreCase(it.address, zeroAddress));
     if (native) {
-      sorted?.splice(sorted.indexOf(native), 1);
-      sorted?.unshift(native);
+      sorted.splice(sorted.indexOf(native), 1);
+      sorted.unshift(native);
     }
     return sorted;
-  }, [tokens, balances]);
+  }, [allTokens, balances]);
+
+  return {
+    tokens,
+    isLoading: tokensLoading || balancesLoading,
+  };
 };

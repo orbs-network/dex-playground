@@ -4,10 +4,10 @@ import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useToExactAmount } from "../hooks";
-import { useLiquidityHubSwapContext } from "./useLiquidityHubSwapContext";
 import { useOptimalRate, useParaswapMinAmountOut } from "./hooks";
 import { useLiquidityHubQuote } from "./useLiquidityHubQuote";
 import { useAppState } from "@/store";
+import { useLiquidityHubSwapContext } from "./context";
 
  export function ParaswapSwapDetails() {
     const optimalRate = useOptimalRate().data;

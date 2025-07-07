@@ -3,7 +3,7 @@ import { SwitchButton } from '@/components/ui/switch-button';
 import { useCallback } from 'react';
 import { Token } from '@/types';
 import '../style.css';
-import { LiquidityHubSwapProvider } from './context';
+import { LiquidityHubSwapProvider, useLiquidityHubSwapContext } from './context';
 import { useToExactAmount } from '../hooks';
 import {
   useLiquidityHubInputError,
@@ -12,7 +12,6 @@ import {
   useSwapOutAmount,
 } from './hooks';
 import { SwapDetails } from './swap-details';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { ConfirmSwap } from './confirm-swap';
 import { useAppState } from '@/store';
 import { useUsdAmount } from '@/lib';
@@ -56,14 +55,15 @@ const Switch = () => {
 const InTokenCard = () => {
   const {
     state: { inputAmount, inToken },
+    onTokenSelect,
     updateState,
   } = useLiquidityHubSwapContext();
   const { isLiquidityHubOnly } = useAppState();
   const onSelectToken = useCallback(
     (inToken: Token) => {
-      updateState({ inToken });
+      onTokenSelect('in', inToken);
     },
-    [updateState]
+    [onTokenSelect]
   );
 
   const onValueChange = useCallback(
@@ -94,7 +94,7 @@ const OutTokenCard = () => {
   const paraswap = useOptimalRate().data?.destUSD;
   const {
     state: { outToken },
-    updateState,
+    onTokenSelect
   } = useLiquidityHubSwapContext();
   const destAmount = useToExactAmount(useSwapOutAmount(), outToken?.decimals);
   
@@ -102,9 +102,9 @@ const OutTokenCard = () => {
 
   const onSelectToken = useCallback(
     (outToken: Token) => {
-      updateState({ outToken });
+      onTokenSelect('out', outToken);
     },
-    [updateState]
+    [onTokenSelect]
   );
 
   const lh = useUsdAmount(outToken?.address, destAmount);

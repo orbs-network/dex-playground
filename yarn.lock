@@ -991,28 +991,15 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@orbs-network/liquidity-hub-sdk@^1.0.49":
-  version "1.0.49"
-  resolved "https://registry.yarnpkg.com/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.49.tgz#313028798d074cd0a796ee3440662d52f1632456"
-  integrity sha512-1rR7Hfx2j0x63hBuwWArVipiyMghL4JMupUerlc6w/eWL/OmsMEuugKFrAf6m+eFt9gwCuyY7jqKzTDWYT4jLg==
+"@orbs-network/liquidity-hub-sdk@^1.0.78":
+  version "1.0.78"
+  resolved "https://registry.yarnpkg.com/@orbs-network/liquidity-hub-sdk/-/liquidity-hub-sdk-1.0.78.tgz#77145c3b9ab92bafa548b37f703a33d586d27dca"
+  integrity sha512-SWOmwIdPEQOWKhJuekdcbc4lHFDHhhiob79LbAgFaphSDBOUfhRqxVoNgDAs/+SFZpQ1fJhNFeEVNvWkEiiiwg==
 
 "@orbs-network/swap-ui@^0.0.14":
   version "0.0.14"
   resolved "https://registry.yarnpkg.com/@orbs-network/swap-ui/-/swap-ui-0.0.14.tgz#7604c3604d9bb089c07b1ea1f222f2719d26bb23"
   integrity sha512-19Blk3JYsxae6Eu8a/nsLA8EbNSMQSJfsgV7Tg52RPs6IglTjEwfGyjy3HUPzRqEYXiHCQFo8xGNHjSKx3HJ5g==
-
-"@orbs-network/twap-sdk@^2.0.40":
-  version "2.0.53"
-  resolved "https://registry.yarnpkg.com/@orbs-network/twap-sdk/-/twap-sdk-2.0.53.tgz#acfd18fd51557ae129d8da2114d723fe940b4973"
-  integrity sha512-HmbdZSBdni4EE4G8KTnAdi4/TOV1cF+U9Om7NwJ9T0gU+clb9hvq7ZwVi9hlBgt16Y5c63vjuo97bpLGTsJ0hg==
-  dependencies:
-    "@orbs-network/twap" "^2.2.7"
-    bignumber.js "9.x"
-
-"@orbs-network/twap@^2.2.7":
-  version "2.2.9"
-  resolved "https://registry.yarnpkg.com/@orbs-network/twap/-/twap-2.2.9.tgz#fc8946492f95f0af3f25c24ecb33c355a8b855fb"
-  integrity sha512-7DUuzZgxXWSnytWdolDab1aBqg1CHceM4W1632oNxStMcKaBpALohTBD9r3/aAsA0hqMe4IjmxvrMnARiuUJGQ==
 
 "@paraswap/core@2.4.0":
   version "2.4.0"
@@ -2465,7 +2452,7 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-bignumber.js@9.x, bignumber.js@^9.0.2:
+bignumber.js@^9.0.2:
   version "9.1.2"
   resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.1.2.tgz#b7c4242259c008903b13707983b5f4bbd31eda0c"
   integrity sha512-2/mKyZH9K85bzOEfhXDBFZTGd1CTs+5IHpeFQo9luiBG7hghdC851Pj2WAhb6E3R6b9tZj/XKhbg4fum+Kepug==
@@ -4912,6 +4899,11 @@ tailwindcss@^3.4.10:
     postcss-selector-parser "^6.1.2"
     resolve "^1.22.8"
     sucrase "^3.35.0"
+
+test-sdk1222@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/test-sdk1222/-/test-sdk1222-0.1.4.tgz#266f0af474afecf62ef2f6af3c8adc545089944b"
+  integrity sha512-lD1Hjd/PWGTXqx4zDpI0YvJ8aaGVefjYpAacYzhCv0D9GhJxLn2lU1t1C+HuJ+/gMKBUtQn7D2f91d7LlsU96g==
 
 thenify-all@^1.0.0:
   version "1.6.0"

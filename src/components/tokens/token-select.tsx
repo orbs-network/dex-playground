@@ -17,8 +17,8 @@ import {
   eqIgnoreCase,
   format,
   usePriceUsd,
-  useSortedTokens,
   useTokenBalance,
+  useTokens,
 } from "@/lib";
 import { useToExactAmount, useToken } from "@/trade/hooks";
 import { Skeleton } from "../ui/skeleton";
@@ -37,7 +37,7 @@ export function TokenSelect({
   onSelectToken,
 }: TokenSelectProps) {
   const [open, setOpen] = useState(false);
-  const tokens = useSortedTokens();
+  const {tokens} = useTokens();
   const [filterInput, setFilterInput] = useState("");
   const token = useToken(filterInput)
   

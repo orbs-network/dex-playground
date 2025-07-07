@@ -1,9 +1,19 @@
-import { useDefaultTokens } from '@/lib';
+/* eslint-disable react-refresh/only-export-components */
+
 import { Token } from '@/types';
 import { constructSDK, LiquidityHubSDK } from '@orbs-network/liquidity-hub-sdk';
-import { ReactNode, useReducer, useCallback, useMemo, createContext, useEffect } from 'react';
+import {
+  ReactNode,
+  useReducer,
+  useCallback,
+  useMemo,
+  createContext,
+  useEffect,
+  useContext,
+} from 'react';
 import { useAccount } from 'wagmi';
 import { useToRawAmount } from '../hooks';
+import { eqIgnoreCase, useTokens } from '@/lib';
 
 const initialState: State = {
   inToken: undefined,
@@ -41,22 +51,27 @@ interface ContextType {
   resetState: () => void;
   sdk: LiquidityHubSDK;
   parsedInputAmount?: string;
+  onTokenSelect: (type: 'in' | 'out', token: Token) => void;
 }
 
-export const LiquidityHubContext = createContext({} as ContextType);
+const LiquidityHubContext = createContext<ContextType>({} as ContextType);
+
+export const useLiquidityHubSwapContext = () => {
+  return useContext(LiquidityHubContext);
+};
 
 export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) => {
   const [_state, dispatch] = useReducer(reducer, initialState);
-  const defaultTokens = useDefaultTokens();
+  const { tokens } = useTokens();
   const chainId = useAccount().chainId;
 
   const state = useMemo(() => {
     return {
       ..._state,
-      inToken: _state.inToken || defaultTokens?.inToken,
-      outToken: _state.outToken || defaultTokens?.outToken,
+      inToken: _state.inToken || tokens?.[0],
+      outToken: _state.outToken || tokens?.[1],
     };
-  }, [_state, defaultTokens]);
+  }, [_state, tokens]);
 
   const parsedInputAmount = useToRawAmount(state.inputAmount, state.inToken?.decimals);
 
@@ -79,6 +94,26 @@ export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) 
 
   const sdk = useMemo(() => constructSDK({ partner: 'widget', chainId }), [chainId]);
 
+  const onTokenSelect = useCallback(
+    (type: 'in' | 'out', token: Token) => {
+      if (type === 'in') {
+        updateState({
+          inToken: token,
+          outToken: eqIgnoreCase(token.address, state.outToken?.address)
+            ? state.inToken
+            : state.outToken,
+        });
+      } else {
+        updateState({
+          outToken: token,
+          inToken: eqIgnoreCase(token.address, state.inToken?.address)
+            ? state.outToken
+            : state.inToken,
+        });
+      }
+    },
+    [updateState, state]
+  );
 
   return (
     <LiquidityHubContext.Provider
@@ -88,6 +123,7 @@ export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) 
         updateState,
         resetState,
         sdk,
+        onTokenSelect,
       }}
     >
       {children}

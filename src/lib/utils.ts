@@ -1,64 +1,64 @@
-import { zeroAddress } from "@orbs-network/liquidity-hub-sdk";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { wagmiConfig } from "@/lib/wagmi-config";
-import { SwapSteps } from "@/types";
-import { getTransactionConfirmations } from "wagmi/actions";
-import BN from "bignumber.js";
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { wagmiConfig } from '@/lib/wagmi-config';
+import { SwapSteps } from '@/types';
+import { getTransactionConfirmations } from 'wagmi/actions';
+import { formatUnits, parseUnits } from 'viem';
+import { getNetwork } from './networks';
+import { nativeTokenAddresses } from '@/trade/swap/consts';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const toExactAmount = (
-  amount?: string,
-  decimals?: number,
-  decimalScale?: number
-) => {
-  if (!decimals || !amount) return "";
-  const percision = BN(10).pow(decimals || 0);
-  const result = BN(amount).times(percision).idiv(percision).div(percision);
-  if (decimalScale) {
-    return result.toFixed(decimalScale);
-  }
-  return result.toFixed();
-};
-export const toRawAmount = (amount?: string, decimals?: number) => {
-  if (!decimals || !amount) return "";
-  return BN(amount).times(BN(10).pow(decimals)).decimalPlaces(0).toFixed();
+export const getWrappedNativeAddress = (chainId?: number, address?: string) => {
+  if (!chainId) return address;
+  const network = getNetwork(chainId);
+  return isNativeAddress(address) ? network?.wToken.address : address;
 };
 
-export const nativeTokenAddresses = [
-  zeroAddress,
-  "0x0000000000000000000000000000000000001010",
-  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-  "0x000000000000000000000000000000000000dEaD",
-  "0x000000000000000000000000000000000000800A",
-];
+export const toExactAmount = (amount?: string, decimals?: number) => {
+  if (!decimals || !amount) return '';
+  try {
+    return formatUnits(BigInt(amount), decimals);
+  } catch (error) {
+    console.error(error);
+    return '';
+  }
+};
+export const toRawAmount = (amount?: string, decimals?: number) => {
+  if (!decimals || !amount) return '';
+  try {
+    return parseUnits(amount, decimals).toString();
+  } catch (error) {
+    console.error(error);
+    return '';
+  }
+};
+
+
 
 export function eqIgnoreCase(a: string, b: string) {
   return a == b || a.toLowerCase() == b.toLowerCase();
 }
 
 export const isNativeAddress = (address?: string) =>
-  !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ""));
+  !!nativeTokenAddresses.find((a) => eqIgnoreCase(a, address || ''));
 
-const dollarDisplay = Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const dollarDisplay = Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
-const cryptoDisplay = Intl.NumberFormat("en-US", {
-  style: "decimal",
+const cryptoDisplay = Intl.NumberFormat('en-US', {
+  style: 'decimal',
   minimumFractionDigits: 0,
   maximumFractionDigits: 5,
 });
 
 function formatAddress(address: string): string {
-  return address.length >= 8
-    ? `${address.slice(0, 4)}...${address.slice(-4)}`
-    : address;
+  return address.length >= 8 ? `${address.slice(0, 4)}...${address.slice(-4)}` : address;
 }
 
 export const format = {
@@ -68,7 +68,6 @@ export const format = {
 };
 
 export const amountMinusSlippage = (slippage: number, _destAmount: string) => {
-  
   const slippageFactor = BigInt(1000 - Math.floor(slippage * 10)); // 0.5% becomes 995
 
   // Convert priceRoute.destAmount to BigInt
@@ -79,17 +78,17 @@ export const amountMinusSlippage = (slippage: number, _destAmount: string) => {
 };
 
 export const enum ErrorCodes {
-  InsufficientBalance = "Insufficient balance",
-  EnterAmount = "Enter amount",
+  InsufficientBalance = 'Insufficient balance',
+  EnterAmount = 'Enter amount',
 }
 
 export function getQuoteErrorMessage(errorCode?: string) {
-  if (!errorCode) return "";
+  if (!errorCode) return '';
   switch (errorCode) {
-    case "ldv":
-      return "Minimum trade amount is $30";
+    case 'ldv':
+      return 'Minimum trade amount is $30';
     default:
-      return "An unknown error occurred";
+      return 'An unknown error occurred';
   }
 }
 
@@ -99,11 +98,7 @@ type GetStepsArgs = {
   requiresApproval: boolean;
 };
 
-export function getSteps({
-  noWrap,
-  inTokenAddress,
-  requiresApproval,
-}: GetStepsArgs) {
+export function getSteps({ noWrap, inTokenAddress, requiresApproval }: GetStepsArgs) {
   const steps: SwapSteps[] = [];
 
   if (!noWrap && isNativeAddress(inTokenAddress)) {
@@ -117,28 +112,6 @@ export function getSteps({
   steps.push(SwapSteps.Swap);
 
   return steps;
-}
-
-export async function promiseWithTimeout<T>(
-  promise: Promise<T>,
-  timeout: number
-): Promise<T> {
-  let timer: NodeJS.Timeout | null = null;
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error("timeout"));
-    }, timeout);
-  });
-
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    if (timer) clearTimeout(timer);
-    return result;
-  } catch (error) {
-    if (timer) clearTimeout(timer);
-    throw error;
-  }
 }
 
 export async function waitForConfirmations(
@@ -163,36 +136,30 @@ export async function waitForConfirmations(
   }
 }
 
-export function getErrorMessage(
-  error: unknown,
-  placeholder = "An unknown error occurred"
-) {
+export function getErrorMessage(error: unknown, placeholder = 'An unknown error occurred') {
   const err = error as Error;
-  const errorMessage = "message" in err ? err.message : placeholder;
+  const errorMessage = 'message' in err ? err.message : placeholder;
 
   return errorMessage;
 }
 
 export function getLiquidityProviderName(isLiquidityHubTrade: boolean) {
   if (isLiquidityHubTrade) {
-    return "Liquidity Hub";
+    return 'Liquidity Hub';
   }
-  return "ParaSwap";
+  return 'ParaSwap';
 }
 
 export const makeElipsisAddress = (address?: string, padding = 6): string => {
-  if (!address) return "";
-  return `${address.substring(0, padding)}...${address.substring(
-    address.length - padding
-  )}`;
+  if (!address) return '';
+  return `${address.substring(0, padding)}...${address.substring(address.length - padding)}`;
 };
 
-export const isTxRejected = (error: any) => {
+export const isTxRejected = (error: Error) => {
   if (error?.message) {
     return (
-      error.message?.toLowerCase()?.includes("rejected") ||
-      error.message?.toLowerCase()?.includes("denied")
+      error.message?.toLowerCase()?.includes('rejected') ||
+      error.message?.toLowerCase()?.includes('denied')
     );
   }
 };
-

@@ -2,8 +2,7 @@ import { Button } from '@/components/ui/button';
 import { SwapSteps } from '@/types';
 import { SwapStep, SwapStatus } from '@orbs-network/swap-ui';
 import { useCallback, useMemo } from 'react';
-import { format, useTokenBalaces } from '@/lib';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
+import { format, useTokenBalances } from '@/lib';
 import { useOptimalRate, useParaswapApproval } from './hooks';
 import { ConfirmationDialog, useSwapProgress } from '../confirmation-dialog';
 import { useToExactAmount } from '../hooks';
@@ -16,6 +15,7 @@ import { useLiquidityHubSwapCallback } from './useLiquidityHubSwapCallback';
 import { useLiquidityHubQuote } from './useLiquidityHubQuote';
 import { useParaswapSwapCallback } from './useParaswapSwapCallback';
 import { Spinner } from '@/components/spinner';
+import { useLiquidityHubSwapContext } from './context';
 
 
 const useLiquidityHubSteps = (steps?: number[]) => {
@@ -93,7 +93,7 @@ export function SwapConfirmationDialog({ isLoading }: { isLoading: boolean }) {
     updateState,
   } = useLiquidityHubSwapContext();
 
-  const { refetch: refetchBalances } = useTokenBalaces();
+  const { refetch: refetchBalances } = useTokenBalances();
 
   const {
     state: { steps, swapStatus, currentStep },

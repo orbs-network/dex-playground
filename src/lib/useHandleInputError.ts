@@ -28,5 +28,5 @@ export function useInputError({
     if (BN(parsedInputAmount).gt(balance)) {
       return ErrorCodes.InsufficientBalance;
     }
-  }, [inputAmount, inToken, balance, parsedInputAmount]);
+  }, [inputAmount, balance, parsedInputAmount]);
 }

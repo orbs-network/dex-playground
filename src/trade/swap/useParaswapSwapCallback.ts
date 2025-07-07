@@ -11,9 +11,9 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAccount, useSendTransaction } from 'wagmi';
 import { useNetwork } from '../hooks';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { useOptimalRate, useParaswapApproval } from './hooks';
 import { SwapProgressState } from '../confirmation-dialog';
+import { useLiquidityHubSwapContext } from './context';
 
 export const useParaswapSwapCallback = (updateProgress: (value: Partial<SwapProgressState>) => void) => {
   const buildParaswapTxCallback = useParaswapBuildTxCallback();

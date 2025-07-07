@@ -3,17 +3,16 @@ import {
   useInputError,
   amountMinusSlippage,
   useGetRequiresApproval,
-  networks,
-  isNativeAddress,
+  getWrappedNativeAddress,
 } from '@/lib';
 import { useAppState } from '@/store';
 import { permit2Address } from '@orbs-network/liquidity-hub-sdk';
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { Address } from 'viem';
 import { useAccount } from 'wagmi';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { QUOTE_REFETCH_INTERVAL } from './consts';
 import { useLiquidityHubQuote } from './useLiquidityHubQuote';
+import { useLiquidityHubSwapContext } from './context';
 
 export const useParaswapMinAmountOut = () => {
   const { slippage } = useAppState();
@@ -46,43 +45,21 @@ export const useLiquidityHubInputError = () => {
     inToken,
   });
 };
-
-const useNetwork = () => {
-  const { chainId } = useAccount();
-
-  return useMemo(() => {
-    return Object.values(networks).find((network) => network.id === chainId);
-  }, [chainId]);
-};
-
-const useNativeOrWrapped = (address?: string) => {
-  const callback = useNativeOrWrappedAddressCallback();
-  return useMemo(() => callback(address), [address, callback]);
-};
-
-const useNativeOrWrappedAddressCallback = () => {
-  const network = useNetwork();
-  return useCallback(
-    (address?: string) => {
-      return isNativeAddress(address) ? network?.wToken.address : address;
-    },
-    [network]
-  );
-};
-
 export const useLiquidityHubApproval = () => {
+  const {chainId} = useAccount()
   const {
     parsedInputAmount,
     state: { inToken },
   } = useLiquidityHubSwapContext();
-  const tokenAddress = useNativeOrWrapped(inToken?.address);
+  const tokenAddress = getWrappedNativeAddress(chainId, inToken?.address);
   return useGetRequiresApproval(permit2Address, tokenAddress, parsedInputAmount);
 };
 
 export const useParaswapApproval = () => {
   const optimalRate = useOptimalRate().data;
+  const {chainId} = useAccount()
 
-  const tokenAddress = useNativeOrWrapped(optimalRate?.srcToken);
+  const tokenAddress = getWrappedNativeAddress(chainId, optimalRate?.srcToken);
   return useGetRequiresApproval(
     optimalRate?.tokenTransferProxy as Address,
     tokenAddress,

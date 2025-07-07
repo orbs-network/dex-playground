@@ -7,7 +7,6 @@ import { format, cn, ErrorCodes, useTokenBalance, toExactAmount } from "@/lib";
 import { Skeleton } from "../ui/skeleton";
 import { Button } from "../ui/button";
 import { useToExactAmount } from "@/trade/hooks";
-import BN from "bignumber.js";
 function getTextSize(amountLength: number) {
   if (amountLength > 16) {
     return "text-xl";
@@ -50,12 +49,9 @@ export function TokenCard({
     : "0";
 
   const maxBalance = useToExactAmount(balance, selectedToken?.decimals);
-  const halfBalance = useToExactAmount(
-    BN(balance || 0)
-      .dividedBy(2)
-      .toString(),
-    selectedToken?.decimals
-  );
+  const halfBalance = Number(maxBalance) / 2;
+
+  
 
   return (
     <Card
@@ -70,7 +66,7 @@ export function TokenCard({
         {isAmountEditable && (
           <div className="flex items-center">
             <Button
-              onClick={() => onValueChange && onValueChange(halfBalance)}
+              onClick={() => onValueChange && onValueChange(halfBalance.toString())}
               size="sm"
               variant="link"
               className="text-xs"

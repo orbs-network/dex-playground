@@ -5,8 +5,8 @@ import { useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { useNetwork } from '../hooks';
 import { QUOTE_REFETCH_INTERVAL } from './consts';
-import { useLiquidityHubSwapContext } from './useLiquidityHubSwapContext';
 import { useParaswapMinAmountOut } from './hooks';
+import { useLiquidityHubSwapContext } from './context';
 
 export function useLiquidityHubQuote() {
   const { chainId, address: account } = useAccount();

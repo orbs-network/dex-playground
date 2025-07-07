@@ -5,7 +5,7 @@ import { isNativeAddress } from "./utils";
 
 /* Determines whether user needs tp approve allowance for quoted token */
 export function useGetRequiresApproval(
-  contractAddress?: any,
+  contractAddress?: string,
   inTokenAddress = "",
   inAmount = ""
 ) {
@@ -20,7 +20,7 @@ export function useGetRequiresApproval(
     address: address as Address,
     abi: erc20Abi,
     functionName: "allowance",
-    args: [account as Address, contractAddress],
+    args: [account as Address, contractAddress as Address],
     query: { enabled: Boolean(inTokenAddress && address && contractAddress) },
   });
   
