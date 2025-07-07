@@ -10,7 +10,7 @@ import { useLiquidityHubSwapContext } from './context';
 
 export function useLiquidityHubQuote() {
   const { chainId, address: account } = useAccount();
-  const { slippage, isLiquidityHubOnly } = useAppState();
+  const { slippage, isLiquidityHubOnly, partner } = useAppState();
 
   const {
     state: { inToken, outToken },
@@ -24,7 +24,7 @@ export function useLiquidityHubQuote() {
   const { isUnwrapOnly, isWrapOnly } = useWrapOrUnwrapOnly(inTokenAddress, outTokenAddress);
 
   const query = useQuery({
-    queryKey: ['quote', inTokenAddress, outTokenAddress, parsedInputAmount, slippage],
+    queryKey: ['quote', inTokenAddress, outTokenAddress, parsedInputAmount, slippage, partner, isLiquidityHubOnly],
     queryFn: ({ signal }) => {
       return sdk.getQuote({
         fromToken: inTokenAddress!,

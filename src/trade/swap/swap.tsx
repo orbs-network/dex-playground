@@ -16,6 +16,7 @@ import { ConfirmSwap } from './confirm-swap';
 import { useAppState } from '@/store';
 import { useUsdAmount } from '@/lib';
 
+
 function SwapPanel() {
   return (
     <div>
@@ -50,7 +51,6 @@ const Switch = () => {
     </div>
   );
 };
-
 
 const InTokenCard = () => {
   const {
@@ -94,10 +94,10 @@ const OutTokenCard = () => {
   const paraswap = useOptimalRate().data?.destUSD;
   const {
     state: { outToken },
-    onTokenSelect
+    onTokenSelect,
   } = useLiquidityHubSwapContext();
   const destAmount = useToExactAmount(useSwapOutAmount(), outToken?.decimals);
-  
+
   const { isLiquidityHubOnly } = useAppState();
 
   const onSelectToken = useCallback(

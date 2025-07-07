@@ -1,3 +1,4 @@
+import { useAppState } from '@/store';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http } from 'viem';
 import {
@@ -17,13 +18,13 @@ import {
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
-const localRpcUrl = localStorage.getItem('rpcUrl');
+const localRpcUrl = useAppState.getState().rpcUrl;
 const getRpcUrl = (chainId: number) => {
   if(!localRpcUrl) { 
     return http();
   }
   if (localRpcUrl.includes('rpcman')) {
-    return http(`${localRpcUrl}?chainId=${chainId}&appId=playground`);
+    return http(`${localRpcUrl}/rpc?chainId=${chainId}&appId=playground`);
   }
   return http(localRpcUrl);
 };

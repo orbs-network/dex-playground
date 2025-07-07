@@ -14,6 +14,7 @@ import {
 import { useAccount } from 'wagmi';
 import { useToRawAmount } from '../hooks';
 import { eqIgnoreCase, useTokens } from '@/lib';
+import { usePartner } from '@/store';
 
 const initialState: State = {
   inToken: undefined,
@@ -62,6 +63,7 @@ export const useLiquidityHubSwapContext = () => {
 
 export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) => {
   const [_state, dispatch] = useReducer(reducer, initialState);
+  const { partner } = usePartner();
   const { tokens } = useTokens();
   const chainId = useAccount().chainId;
 
@@ -92,7 +94,7 @@ export const LiquidityHubSwapProvider = ({ children }: { children: ReactNode }) 
     }
   }, [chainId, resetState]);
 
-  const sdk = useMemo(() => constructSDK({ partner: 'widget', chainId }), [chainId]);
+  const sdk = useMemo(() => constructSDK({ partner, chainId }), [partner, chainId]);
 
   const onTokenSelect = useCallback(
     (type: 'in' | 'out', token: Token) => {
