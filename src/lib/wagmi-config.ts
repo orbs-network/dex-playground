@@ -11,24 +11,27 @@ import {
   sei,
   base,
   sonic,
-  arbitrumNova,
   mantle,
+  berachain
 } from 'viem/chains';
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
 const localRpcUrl = localStorage.getItem('rpcUrl');
 const getRpcUrl = (chainId: number) => {
-  if (localRpcUrl) {
+  if(!localRpcUrl) { 
+    return http();
+  }
+  if (localRpcUrl.includes('rpcman')) {
     return http(`${localRpcUrl}?chainId=${chainId}&appId=playground`);
   }
-  return http();
+  return http(localRpcUrl);
 };
 export const wagmiConfig = getDefaultConfig({
   pollingInterval: 60_0000,
   appName: 'DEX Playground',
   projectId: walletConnectProjectId,
-  chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base, sonic, arbitrumNova],
+  chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base, sonic, mantle, berachain],
   transports: {
     [mainnet.id]: getRpcUrl(mainnet.id),
     [polygon.id]: getRpcUrl(polygon.id),
@@ -40,7 +43,7 @@ export const wagmiConfig = getDefaultConfig({
     [sei.id]: getRpcUrl(sei.id),
     [base.id]: getRpcUrl(base.id),
     [sonic.id]: getRpcUrl(sonic.id),
-    [arbitrumNova.id]: getRpcUrl(arbitrumNova.id),
     [mantle.id]: getRpcUrl(mantle.id),
+    [berachain.id]: getRpcUrl(berachain.id),
   },
 });

@@ -21,6 +21,8 @@ const chainToName = {
   [chains.linea.id]: 'linea',
   [chains.sonic.id]: 'sonic',
   [chains.cronoszkEVM.id]: 'cronos-zkevm',
+  [chains.mantle.id]: 'mantle',
+  [chains.berachain.id]: 'berachain',
 };
 
 const getSeiTokens = async (signal?: AbortSignal): Promise<Token[]> => {
@@ -73,6 +75,7 @@ const fetchTokens = async (chainId: number, signal?: AbortSignal): Promise<Token
   if (nativeToken) {
     tokens.unshift(nativeToken);
   }
+  
 
   return tokens
     .sort((a, b) => {
@@ -125,6 +128,8 @@ export const useTokenBalances = () => {
           }),
         }),
       ]);
+
+      
 
       return multicallResponse.reduce(
         (acc: Record<string, string>, it: any, index: number) => {
