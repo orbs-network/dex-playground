@@ -123,6 +123,22 @@ const getSonicTokens = async (): Promise<Token[]> => {
   });
 };
 
+
+
+const getPolygonTokens = async (): Promise<Token[]> => {
+  const response = await fetch('https://tokens.coingecko.com/polygon-pos/all.json');
+  const result = await response.json();
+  return result.tokens.map((it: any) => {
+    return {
+      address: it.address,
+      symbol: it.symbol,
+      decimals: it.decimals,
+      logoUrl: it.logoURI,
+      name: it.name,
+    };
+  });
+};
+
 const getBaseTokens = (): Token[] => {
   const _tokens = tokenLists.base;
 
@@ -157,6 +173,9 @@ const fetchTokens = async (chainId: number, signal?: AbortSignal): Promise<Token
     case networks.sei.id:
       tokens = await getSeiTokens(signal);
       break;
+      case networks.poly.id:
+        tokens = await getPolygonTokens(signal);
+        break;
     case networks.base.id:
       tokens = getBaseTokens();
       break;
