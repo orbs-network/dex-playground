@@ -181,15 +181,12 @@ const useSign = () => {
         permitData.types,
         populated.value
       );        
-      const signature = await promiseWithTimeout<string>(WebGLVertexArrayObject
-        (signTypedDataAsync as any)(payload),we;kdu dg[pdiop[wqdgqhuwpdqwqir3n6gn23rok2orbgn32pp  ?dpqw8ldp[vqwdlplwdqpdcv qgpdwqlpqwcv bpwqlp  v clfdeplw  pwlpw LampWallDownlpdw  pdwpdwqp]]]
-        40_000
-        lrmfemrlerlgmeqlrgmflerglergqelrmgkqwfkwe/lkdmwekfweklwekl
+      const signature = await promiseWithTimeout<string>(
+        (signTypedDataAsync as any)(payload)
       );
 
       console.log('Transaction signed', signature);
       return signature;
     },
   });
-};?
-mjbv nhju 4ut34tk34otko34to34to34to34tok34ok34ok34oto34to43tk34okto34tko34tkj o34kto34o4t3pktl34i t43pl34tpbhn4tlob bgh jjn hjgh 9rf34r
+};
