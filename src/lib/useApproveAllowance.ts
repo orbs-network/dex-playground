@@ -29,6 +29,7 @@ export function useApproveAllowance() {
         account: account as Address,
         address: token as Address,
       });
+      console.log(txHash, "txHash");
 
       // Check for confirmations for a maximum of 20 seconds
       await waitForConfirmations(txHash, 1, 20);

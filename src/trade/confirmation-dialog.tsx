@@ -52,7 +52,9 @@ export function ConfirmationDialogContent() {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent  onInteractOutside={(event) => {
+            event.preventDefault(); // stops it from closing
+          }}>
         <DialogTitle>Swap</DialogTitle>
         <DialogDescription></DialogDescription>
         <div className="flex flex-col gap-4">

@@ -1,5 +1,7 @@
 import { useAppState } from '@/store';
+import { toPrivyWallet } from '@privy-io/cross-app-connect/rainbow-kit';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+
 import { http } from 'viem';
 import {
   polygon,
@@ -15,8 +17,9 @@ import {
   mantle,
   berachain
 } from 'viem/chains';
-
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
+
+
 
 const localRpcUrl = useAppState.getState().rpcUrl;
 const getRpcUrl = (chainId: number) => {
@@ -47,4 +50,16 @@ export const wagmiConfig = getDefaultConfig({
     [mantle.id]: getRpcUrl(mantle.id),
     [berachain.id]: getRpcUrl(berachain.id),
   },
+  wallets: [
+    {
+      groupName: 'Test Wallets',
+      wallets: [
+        toPrivyWallet({
+          id: 'cme0xafwl01l5l70cahm5p4ln', 
+          name: 'Test Wallet',
+          iconUrl: '',
+        })
+      ]
+    }
+  ],
 });

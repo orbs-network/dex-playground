@@ -1,4 +1,5 @@
 import {
+
   darkTheme,
   lightTheme,
   RainbowKitProvider,
@@ -15,6 +16,8 @@ function getThemeMode(theme: Theme) {
   return theme
 }
 
+
+
 export function RainbowProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme()
 
@@ -22,6 +25,7 @@ export function RainbowProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <RainbowKitProvider
+
       modalSize="compact"
       theme={mode === 'light' ? lightTheme() : darkTheme()}
     >

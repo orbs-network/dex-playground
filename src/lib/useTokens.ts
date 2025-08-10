@@ -168,9 +168,7 @@ export const useTokens = () => {
       const balanceA = formatUnits(BigInt(balances?.[a.address] ?? '0'), a.decimals || 18);
       const balanceB = formatUnits(BigInt(balances?.[b.address] ?? '0'), b.decimals || 18);
       return Number(balanceB) - Number(balanceA);
-    });
-    console.log({sorted, balances});
-    
+    });    
     const native = sorted.find((it) => eqIgnoreCase(it.address, zeroAddress));
     if (native) {
       sorted.splice(sorted.indexOf(native), 1);
