@@ -1,6 +1,6 @@
 import { ThemeToggle } from '@/components/theme-toggle'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import Logo from '@/assets/orbslogo.svg'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 export function Header() {
   return (
@@ -11,7 +11,7 @@ export function Header() {
       </div>
       <div className="flex gap-4">
         <ThemeToggle />
-        <ConnectButton  />
+        <ConnectButton  showBalance  />
       </div>
     </div>
   )

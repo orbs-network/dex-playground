@@ -8,8 +8,27 @@ import { useConnect } from 'wagmi';
 import { Button } from './components/ui/button';
 
 export function App() {
+
+  return (
+    <>
+      <Header />
+      <div className="flex justify-center h-full py-32">
+        <div className="max-w-lg w-full px-4">
+          <Settings />
+          <PrevyButton />
+          <Swap />
+          <Toaster />
+        </div>
+      </div>
+    </>
+  );
+}
+
+const PrevyButton = () => {
   const { login, logout, authenticated, user } = usePrivy();
   const { wallets } = useWallets();
+
+  
 
   const { connectors, connect } = useConnect();
 
@@ -18,28 +37,21 @@ export function App() {
     () => connectors.find((c) => c.id?.toLowerCase().includes('privy')),
     [connectors]
   );
-
   useEffect(() => {
     if (!authenticated || !privyConnector) return;
     // Only switch if user has an embedded wallet available
+    if(!localStorage.getItem('privy-debug')) return 
     connect({ connector: privyConnector });
   }, [authenticated, wallets, privyConnector, connect]);
 
+
   return (
     <>
-      <Header />
-      <div className="flex justify-center h-full py-32">
-        <div className="max-w-lg w-full px-4">
-          <Settings />
-          {user ? (
-            <Button onClick={() => logout()}>Logout</Button>
-          ) : (
-            <Button onClick={() => login()}>Connect with Prevy</Button>
-          )}
-          <Swap />
-          <Toaster />
-        </div>
-      </div>
+      {user ? (
+        <Button onClick={() => logout()}>Logout</Button>
+      ) : (
+        <Button onClick={() => login()}>Connect with Prevy</Button>
+      )}
     </>
   );
-}
+};

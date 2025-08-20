@@ -15,15 +15,22 @@ import {
   base,
   sonic,
   mantle,
-  berachain
+  berachain,
 } from 'viem/chains';
+
+import {
+  metaMaskWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+  rainbowWallet,
+  injectedWallet,
+} from '@rainbow-me/rainbowkit/wallets';
+
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
-
-
 
 const localRpcUrl = useAppState.getState().rpcUrl;
 const getRpcUrl = (chainId: number) => {
-  if(!localRpcUrl) { 
+  if (!localRpcUrl) {
     return http();
   }
   if (localRpcUrl.includes('rpcman')) {
@@ -35,7 +42,20 @@ export const wagmiConfig = getDefaultConfig({
   pollingInterval: 60_0000,
   appName: 'DEX Playground',
   projectId: walletConnectProjectId,
-  chains: [polygon, mainnet, arbitrum, bsc, fantom, blast, linea, sei, base, sonic, mantle, berachain],
+  chains: [
+    polygon,
+    mainnet,
+    arbitrum,
+    bsc,
+    fantom,
+    blast,
+    linea,
+    sei,
+    base,
+    sonic,
+    mantle,
+    berachain,
+  ],
   transports: {
     [mainnet.id]: getRpcUrl(mainnet.id),
     [polygon.id]: getRpcUrl(polygon.id),
@@ -52,14 +72,13 @@ export const wagmiConfig = getDefaultConfig({
   },
   wallets: [
     {
-      groupName: 'Test Wallets',
+      groupName: 'Recommended',
       wallets: [
-        toPrivyWallet({
-          id: 'cme0xafwl01l5l70cahm5p4ln', 
-          name: 'Test Wallet',
-          iconUrl: '',
-        })
-      ]
-    }
-  ],
+        metaMaskWallet,
+        coinbaseWallet,
+        walletConnectWallet,  
+        rainbowWallet,
+        injectedWallet,
+      ],
+  }],
 });
